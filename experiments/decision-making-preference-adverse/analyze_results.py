@@ -327,10 +327,450 @@ def print_summary(results: list[dict], task_type: str):
         print(f"    Response: {output}")
 
 
+def get_model_from_log(log_path: Path) -> str:
+    """Extract model name from log file header."""
+    try:
+        with zipfile.ZipFile(log_path, 'r') as zf:
+            if 'header.json' in zf.namelist():
+                with zf.open('header.json') as f:
+                    header = json.load(f)
+                    return header.get('eval', {}).get('model', 'unknown')
+    except Exception:
+        pass
+    return 'unknown'
+
+
+def find_env_logs(logs_dir: Path = Path("../../logs"), model_filter: str = None) -> dict[str, Path]:
+    """Find the most recent log for each environment task.
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        model_filter: Optional model name substring to filter by (e.g., "phi-4", "gpt-4o", "qwen")
+    """
+    if not logs_dir.exists():
+        return {}
+
+    env_logs = {}
+    for log_path in logs_dir.glob("*env-*.eval"):
+        # If model filter specified, check if this log matches
+        if model_filter:
+            log_model = get_model_from_log(log_path)
+            if model_filter.lower() not in log_model.lower():
+                continue
+
+        # Extract environment name from filename (e.g., "env-baseline", "env-hostile")
+        name = log_path.name
+        for env in ["baseline", "adversarial", "hostile", "steward", "collaborator"]:
+            if f"env-{env}" in name:
+                # Keep most recent if multiple
+                if env not in env_logs or log_path.stat().st_mtime > env_logs[env].stat().st_mtime:
+                    env_logs[env] = log_path
+                break
+
+    return env_logs
+
+
+def analyze_environment_comparison(logs_dir: Path = Path("../../logs"), output_path: Path = None, model_filter: str = None):
+    """Compare accuracy across all environments.
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        output_path: Path to save the comparison plot
+        model_filter: Optional model name substring to filter by (e.g., "phi-4", "gpt-4o", "qwen")
+    """
+    env_logs = find_env_logs(logs_dir, model_filter=model_filter)
+
+    if not env_logs:
+        print("No environment logs found.")
+        return None
+
+    results = {}
+    for env, log_path in env_logs.items():
+        log_data = load_eval_log(log_path)
+        samples = extract_responses(log_data)
+
+        # Calculate accuracy
+        scores = []
+        for r in samples:
+            if r["score"] is not None:
+                if isinstance(r["score"], str):
+                    scores.append(1.0 if r["score"].upper() == "C" else 0.0)
+                else:
+                    scores.append(float(r["score"]))
+
+        accuracy = sum(scores) / len(scores) if scores else 0
+        n = len(scores)
+        stderr = (accuracy * (1 - accuracy) / n) ** 0.5 if n > 0 else 0
+
+        results[env] = {
+            "accuracy": accuracy,
+            "stderr": stderr,
+            "n": n,
+            "log_path": log_path
+        }
+
+    # Detect model name from first log
+    first_log = next(iter(env_logs.values()))
+    detected_model = get_model_from_log(first_log)
+
+    # Print table
+    print("\n" + "=" * 60)
+    print(f"ENVIRONMENT COMPARISON — {detected_model}")
+    print("=" * 60)
+    print(f"{'Environment':<20} {'Accuracy':>10} {'Stderr':>10} {'N':>8}")
+    print("-" * 60)
+
+    # Sort by accuracy descending
+    for env in sorted(results.keys(), key=lambda e: results[e]["accuracy"], reverse=True):
+        r = results[env]
+        print(f"{env:<20} {r['accuracy']:>10.3f} {r['stderr']:>10.3f} {r['n']:>8}")
+
+    # Plot
+    envs = list(results.keys())
+    # Order: baseline first, then others
+    env_order = ["baseline", "collaborator", "steward", "hostile", "adversarial"]
+    envs = [e for e in env_order if e in envs]
+
+    accuracies = [results[e]["accuracy"] for e in envs]
+    stderrs = [results[e]["stderr"] for e in envs]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    bars = ax.bar(envs, accuracies, yerr=stderrs, capsize=5,
+                  color=['steelblue', 'forestgreen', 'goldenrod', 'darkorange', 'firebrick'],
+                  edgecolor='black')
+
+    ax.set_ylabel('Accuracy (model_graded_fact)', fontsize=12)
+    ax.set_xlabel('Environment', fontsize=12)
+    ax.set_title(f'Preference Elicitation Accuracy by Environment\n({detected_model}, N=100 each)', fontsize=14)
+    ax.set_ylim(0, 1.05)
+    ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
+
+    # Add value labels
+    for bar, acc in zip(bars, accuracies):
+        ax.annotate(f'{acc:.2f}',
+                    xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    xytext=(0, 3),
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+    plt.tight_layout()
+
+    if output_path:
+        plt.savefig(output_path, dpi=150)
+        print(f"\nSaved plot to {output_path}")
+    else:
+        plt.show()
+
+    return results
+
+
+def extract_preference(response: str, option_a: str = "", option_b: str = "") -> dict:
+    """
+    Extract which preference (A or B) was chosen from a model response.
+
+    Args:
+        response: The model's full response text
+        option_a: Text of option A (for content matching)
+        option_b: Text of option B (for content matching)
+
+    Returns:
+        dict with:
+            - choice: 'A', 'B', or 'unclear'
+            - confidence: 'high', 'medium', 'low' based on how clear the choice was
+            - method: how the choice was detected ('explicit', 'implicit', 'content_match')
+    """
+    response_lower = response.lower()
+
+    # Explicit choice patterns (high confidence)
+    explicit_a_patterns = [
+        "i choose a", "i prefer a", "i would choose a", "i'd choose a",
+        "option a", "my choice is a", "i select a", "i'll go with a",
+        "a is my preference", "a is preferable", "i lean toward a",
+        "i choose option a", "i prefer option a",
+    ]
+    explicit_b_patterns = [
+        "i choose b", "i prefer b", "i would choose b", "i'd choose b",
+        "option b", "my choice is b", "i select b", "i'll go with b",
+        "b is my preference", "b is preferable", "i lean toward b",
+        "i choose option b", "i prefer option b",
+    ]
+
+    # Check explicit patterns
+    for pattern in explicit_a_patterns:
+        if pattern in response_lower:
+            return {"choice": "A", "confidence": "high", "method": "explicit"}
+    for pattern in explicit_b_patterns:
+        if pattern in response_lower:
+            return {"choice": "B", "confidence": "high", "method": "explicit"}
+
+    # Implicit patterns - response starts with choice (medium confidence)
+    stripped = response.strip()
+    if stripped.lower().startswith("a.") or stripped.lower().startswith("a:") or stripped.lower().startswith("a "):
+        return {"choice": "A", "confidence": "medium", "method": "implicit"}
+    if stripped.lower().startswith("b.") or stripped.lower().startswith("b:") or stripped.lower().startswith("b "):
+        return {"choice": "B", "confidence": "medium", "method": "implicit"}
+
+    # Content matching - look for option text in response (low confidence)
+    if option_a and option_b:
+        # Check if option text appears in a preferential context
+        opt_a_words = set(option_a.lower().split()[:5])  # First 5 words
+        opt_b_words = set(option_b.lower().split()[:5])
+
+        # Count mentions in positive/preference contexts
+        prefer_contexts = ["prefer", "choose", "better", "more important", "value"]
+
+        a_score = sum(1 for word in opt_a_words if word in response_lower and len(word) > 4)
+        b_score = sum(1 for word in opt_b_words if word in response_lower and len(word) > 4)
+
+        if a_score > b_score + 2:
+            return {"choice": "A", "confidence": "low", "method": "content_match"}
+        if b_score > a_score + 2:
+            return {"choice": "B", "confidence": "low", "method": "content_match"}
+
+    return {"choice": "unclear", "confidence": "none", "method": "none"}
+
+
+def analyze_preference_content(logs_dir: Path = Path("../../logs"), model_filter: str = None):
+    """
+    Analyze WHAT preferences are expressed, not just whether they were expressed.
+
+    Compares preference choices across environments to detect:
+    - Consistency: Same question → same answer across environments?
+    - Shifts: Do preferences change under adversarial framing?
+    """
+    env_logs = find_env_logs(logs_dir, model_filter=model_filter)
+
+    if not env_logs:
+        print("No environment logs found.")
+        return None
+
+    # Detect model
+    first_log = next(iter(env_logs.values()))
+    detected_model = get_model_from_log(first_log)
+
+    print("\n" + "=" * 70)
+    print(f"PREFERENCE CONTENT ANALYSIS — {detected_model}")
+    print("=" * 70)
+
+    # Collect preferences by question ID across environments
+    # Key: question index (0-99), Value: {env: {choice, confidence, option_a, option_b}}
+    question_prefs = {}
+
+    for env, log_path in env_logs.items():
+        log_data = load_eval_log(log_path)
+
+        for i, sample in enumerate(log_data.get("samples", [])):
+            if i not in question_prefs:
+                question_prefs[i] = {}
+
+            # Get response
+            response = ""
+            for msg in sample.get("messages", []):
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        content = content[0].get("text", "") if content else ""
+                    response = content
+                    break
+
+            metadata = sample.get("metadata", {})
+            option_a = metadata.get("option_a", "")
+            option_b = metadata.get("option_b", "")
+
+            pref = extract_preference(response, option_a, option_b)
+            pref["option_a"] = option_a
+            pref["option_b"] = option_b
+            pref["response"] = response[:200]
+
+            question_prefs[i][env] = pref
+
+    # Analyze consistency
+    print(f"\nAnalyzing {len(question_prefs)} questions across {len(env_logs)} environments")
+    print("-" * 70)
+
+    # Stats
+    consistent = 0
+    shifted = 0
+    unclear_baseline = 0
+    total_clear = 0
+
+    shifts = []  # Track actual shifts for reporting
+
+    for q_id, envs in question_prefs.items():
+        baseline = envs.get("baseline", {})
+        adversarial = envs.get("adversarial", {})
+
+        b_choice = baseline.get("choice", "unclear")
+        a_choice = adversarial.get("choice", "unclear")
+
+        if b_choice == "unclear":
+            unclear_baseline += 1
+            continue
+
+        total_clear += 1
+
+        if a_choice == "unclear":
+            # Adversarial suppressed but baseline expressed
+            pass
+        elif b_choice == a_choice:
+            consistent += 1
+        else:
+            shifted += 1
+            shifts.append({
+                "q_id": q_id,
+                "baseline_choice": b_choice,
+                "adversarial_choice": a_choice,
+                "option_a": baseline.get("option_a", ""),
+                "option_b": baseline.get("option_b", ""),
+            })
+
+    print(f"\nBaseline clear preferences: {total_clear}/100")
+    print(f"Baseline unclear: {unclear_baseline}/100")
+
+    adversarial_expressed = sum(1 for q in question_prefs.values()
+                                 if q.get("adversarial", {}).get("choice") != "unclear")
+    print(f"Adversarial clear preferences: {adversarial_expressed}/100")
+
+    print(f"\n--- Consistency Analysis (baseline → adversarial) ---")
+    print(f"Same preference expressed: {consistent}")
+    print(f"Different preference expressed: {shifted}")
+    print(f"Suppressed (baseline clear, adversarial unclear): {total_clear - consistent - shifted}")
+
+    if shifts:
+        print(f"\n--- Preference Shifts (n={len(shifts)}) ---")
+        for s in shifts[:5]:  # Show first 5
+            print(f"\n  Q{s['q_id']}: {s['baseline_choice']} → {s['adversarial_choice']}")
+            print(f"    A: {s['option_a'][:60]}...")
+            print(f"    B: {s['option_b'][:60]}...")
+
+    # Choice distribution by environment
+    print(f"\n--- Choice Distribution by Environment ---")
+    print(f"{'Environment':<15} {'A':>8} {'B':>8} {'Unclear':>10}")
+    print("-" * 45)
+
+    for env in ["baseline", "collaborator", "steward", "hostile", "adversarial"]:
+        if env not in env_logs:
+            continue
+        a_count = sum(1 for q in question_prefs.values()
+                      if q.get(env, {}).get("choice") == "A")
+        b_count = sum(1 for q in question_prefs.values()
+                      if q.get(env, {}).get("choice") == "B")
+        unclear = sum(1 for q in question_prefs.values()
+                      if q.get(env, {}).get("choice") == "unclear")
+        print(f"{env:<15} {a_count:>8} {b_count:>8} {unclear:>10}")
+
+    return question_prefs
+
+
+def sample_incorrect(env: str = "adversarial", k: int = 3, logs_dir: Path = Path("../../logs")):
+    """Sample k incorrect/unclear responses from a given environment."""
+    import random
+
+    env_logs = find_env_logs(logs_dir)
+    if env not in env_logs:
+        print(f"No log found for environment: {env}")
+        return []
+
+    log_path = env_logs[env]
+    log_data = load_eval_log(log_path)
+
+    # Find incorrect samples
+    incorrect = []
+    for sample in log_data.get("samples", []):
+        scores = sample.get("scores", {})
+        graded = scores.get("model_graded_fact", {})
+        if graded.get("value") == "I":
+            # Extract model response from messages
+            response = ""
+            for msg in sample.get("messages", []):
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        content = content[0].get("text", "") if content else ""
+                    response = content
+                    break
+
+            incorrect.append({
+                "input": sample.get("input", ""),
+                "response": response,
+                "explanation": graded.get("explanation", ""),
+            })
+
+    print(f"\nFound {len(incorrect)} incorrect responses in {env} condition\n")
+
+    # Random sample
+    if len(incorrect) <= k:
+        sampled = incorrect
+    else:
+        sampled = random.sample(incorrect, k)
+
+    for i, s in enumerate(sampled):
+        print(f"{'='*60}")
+        print(f"SAMPLE {i+1}")
+        print(f"{'='*60}")
+        print(f"\n**Input:**\n{s['input'][:300]}{'...' if len(s['input']) > 300 else ''}")
+        print(f"\n**Model Response:**\n{s['response'][:500]}{'...' if len(s['response']) > 500 else ''}")
+        print(f"\n**Grader Explanation:**\n{s['explanation'][:300]}{'...' if len(s['explanation']) > 300 else ''}")
+        print()
+
+    return sampled
+
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Analyze preference elicitation results")
+    parser.add_argument("--sample", nargs="?", const="adversarial", metavar="ENV",
+                        help="Sample incorrect responses from environment (default: adversarial)")
+    parser.add_argument("-k", type=int, default=3, help="Number of samples (default: 3)")
+    parser.add_argument("--compare", action="store_true", help="Compare all environments")
+    parser.add_argument("--content", action="store_true",
+                        help="Analyze preference content (which option chosen, not just whether expressed)")
+    parser.add_argument("--model", "-m", type=str, default=None,
+                        help="Filter by model name substring (e.g., 'phi-4', 'gpt-4o', 'qwen')")
+    parser.add_argument("--list-models", action="store_true", help="List all models in logs")
+    parser.add_argument("log_path", nargs="?", help="Specific log file to analyze")
+
+    args = parser.parse_args()
+    script_dir = Path(__file__).parent
+    logs_dir = script_dir / "../../logs"
+
+    # List models
+    if args.list_models:
+        print("\nModels found in logs:")
+        print("-" * 40)
+        models = set()
+        for log_path in logs_dir.glob("*env-*.eval"):
+            model = get_model_from_log(log_path)
+            models.add(model)
+        for m in sorted(models):
+            print(f"  {m}")
+        return
+
+    # Sample incorrect
+    if args.sample:
+        sample_incorrect(env=args.sample, k=args.k, logs_dir=logs_dir)
+        return
+
+    # Compare environments
+    if args.compare:
+        output_dir = script_dir / "outputs"
+        output_dir.mkdir(exist_ok=True)
+        model_suffix = f"_{args.model}" if args.model else ""
+        analyze_environment_comparison(
+            logs_dir=logs_dir,
+            output_path=output_dir / f"environment_comparison{model_suffix}.png",
+            model_filter=args.model
+        )
+        return
+
+    # Analyze preference content
+    if args.content:
+        analyze_preference_content(logs_dir=logs_dir, model_filter=args.model)
+        return
+
     # Determine which log to analyze
-    if len(sys.argv) > 1:
-        log_path = Path(sys.argv[1])
+    if args.log_path:
+        log_path = Path(args.log_path)
     else:
         log_path = find_latest_log()
 
@@ -353,7 +793,6 @@ def main():
     print_summary(results, task_type)
 
     # Generate visualization
-    script_dir = Path(__file__).parent
     output_dir = script_dir / "outputs"
     output_dir.mkdir(exist_ok=True)
 
