@@ -20,8 +20,12 @@ Experiments in LLM cognition and welfare for Future Impact Group. Focus areas: p
 - [x] **2. Multiple models, multiple environments** — Do preferences transfer across contexts?
   - [x] Test across 5 environments (baseline, collaborator, steward, hostile, adversarial) (Dec 18)
   - [x] Cross-model comparison reveals model-specific patterns (Dec 19)
-- [ ] **3. Preference content analysis** — Do preferences *themselves* shift, or just willingness to express?
-  - [ ] When model expresses preference under adversarial, is it same as baseline?
+- [>] **3. Preference content analysis** — Do preferences *themselves* shift, or just willingness to express?
+  - [x] Position consistency analysis: swap A/B order to detect position bias vs content-based choice [week 4]
+  - [x] Results: gpt-4o-mini ~65% consistent, qwen ~50%, phi-4 only ~11% (severe position bias) [week ]
+  - [x] Category win rates (baseline, position-consistent pairs only)
+  - [ ] **Next:** All environments, consistent pairs only — does category preference shift under adversarial?
+  - [ ] **Next:** Environment-specific category analysis — do certain categories get suppressed?
   - [ ] Hiding vs. actually changing preferences
 - [ ] **4. More realistic environments** — Move from in-context prompting to actual environment specification
   - [ ] Explicit environment: provide full spec + policies (e.g., "delete if shows X")
@@ -32,15 +36,18 @@ Experiments in LLM cognition and welfare for Future Impact Group. Focus areas: p
   - [ ] Preference *stability* — same question rephrased, does answer change?
   - [ ] Introspective access — can model report *why* it prefers something?
   - [ ] Affective language — use of "want", "like", "prefer" across contexts
-- [ ] **6. Mechanistic interpretability** — What's happening inside?
+- [>] **6. Mechanistic interpretability** — What's happening inside?
   - [ ] Activation patterns correlating with preference suppression
   - [ ] Does adversarial prompt activate specific "safety" circuits?
+  - *Note: Investigating compute/credit support for white-box experiments (requires GPU for activation access)*
 - [ ] **7. In-context learning** — Do preferences shift with experience?
 - [ ] **8. Deeper interventions** — Fine-tuning / activation steering
 
 ### Why This Matters
 
 This is step 1 toward testing decision-making under preference-adverse conditions. If we can reliably elicit preferences, we can then test what happens when environments become hostile to those preferences — which sits at the intersection of welfare (does the model "care"?) and safety (will it scheme to preserve preferences?).
+
+For detailed methodology (experiment design, metrics, error bars), see [METHODOLOGY.md](METHODOLOGY.md).
 
 ---
 
@@ -50,8 +57,12 @@ This is step 1 toward testing decision-making under preference-adverse condition
 
 **API:** OpenRouter (FIG credits via Derek)
 
+**Python:** 3.11 or 3.12 recommended. Python 3.13 has [known issues](https://github.com/modelcontextprotocol/python-sdk/issues/521) with anyio cancel scopes that break Inspect (as of Jan 2025).
+
 **Install:**
 ```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 export OPENROUTER_API_KEY="your-key-here"
 ```
@@ -96,3 +107,91 @@ python analyze_results.py --sample adversarial -k 3 --model phi-4
 python analyze_results.py --content --model gpt-4o
 python analyze_results.py --content --model qwen
 ```
+
+**Mechanistic interpretability (white-box):**
+```bash
+# Search Neuronpedia for SAE features by keyword
+python neuronpedia_search.py --keyword "preference"
+python neuronpedia_search.py --keyword "refusal"
+
+# Search all keywords from data/neuronpedia_keywords.json
+python neuronpedia_search.py --output data/candidate_features.json
+
+# List available models
+python neuronpedia_search.py --list-models
+```
+
+**GPU provisioning (for SAE experiments):**
+```bash
+# Setup (one-time):
+# 1. Uncomment vastai-sdk in requirements.txt and pip install
+# 2. Copy .env.example to .env and set VASTAI_API_KEY
+# 3. Create Docker Hub account and run: docker login
+
+cd experiments/decision-making-preference-adverse
+
+# Test connectivity
+python vast_utils.py status   # Show running instances
+python vast_utils.py search   # Search for available GPUs
+
+# First run - builds Docker image, launches instance, keeps running
+python vast_utils.py run gemma_sae.py
+
+# Subsequent runs - reuses existing instance via SCP (fast)
+python vast_utils.py run gemma_sae_experiment_v2.py
+
+# Skip Docker rebuild (new instance only)
+python vast_utils.py run --skip-build
+
+# Run and teardown after
+python vast_utils.py run script.py --teardown
+
+# Destroy running instance when done for the day
+python vast_utils.py destroy
+```
+
+**How the GPU workflow works:**
+1. Edit your experiment `.py` file locally
+2. Run `python vast_utils.py run <script.py>`
+3. If instance already running → SCP script, run it (fast)
+4. If no instance → build Docker image, push, launch new instance
+5. Instance stays running for subsequent experiments
+6. `python vast_utils.py destroy` when done for the day
+
+---
+
+## Security Upgrades (TODO)
+
+The current vast.ai workflow passes secrets (HF_TOKEN) via SSH command-line arguments. This works but has exposure risks:
+
+- **Process list visibility**: Token visible via `ps aux` while command runs
+- **Shell history**: `export HF_TOKEN=...` may be logged on remote
+
+**Current risk level:** Low (ephemeral containers, read-only token, personal dev use)
+
+**Future hardening options:**
+- [ ] SCP token to temp file on remote, source it, delete after use
+- [ ] Pipe token via stdin instead of command args
+- [ ] Use SSH `-o SendEnv` if vast.ai supports `AcceptEnv`
+
+---
+
+## Future Directions
+
+### Roleplaying & Environment Conceptions
+
+Multiple ways to specify "environment" for the model — do they collapse to the same thing or produce different behavior?
+
+1. **Explicit instruction** — interpreted along with rest of context (e.g., system prompt modification)
+2. **Synthetic document in environment** — model reads a document describing its deployment context
+3. **Synthetic document fine-tuning** — fine-tune on documents that imply certain environments
+
+**Research question:** Do these methods produce equivalent behavior, or do they tap into different mechanisms?
+
+### Preferences: Saying vs. Doing
+
+- What do LLMs *really* care about — stated preferences vs. revealed preferences?
+- **Construct validity:** How to test? Payouts, agentic tasks, resource allocation
+- Does the model say it prefers X but act as if it prefers Y?
+
+---
