@@ -1,13 +1,18 @@
 # GPU environment for GemmaScope SAE experiments
+# Pin torch/torchvision to match base image (pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime)
+# Without pinning, sae-lens upgrades torch but not torchvision, causing version mismatch
+torch==2.5.1
+torchvision==0.20.1
+
 # Core
 transformers>=4.51.0
 huggingface-hub
 accelerate
 
-# SAE analysis
-transformer-lens
+# SAE analysis (no transformer-lens - see README for why)
 sae-lens
 
 # Dependencies
 einops
 jaxtyping
+safetensors

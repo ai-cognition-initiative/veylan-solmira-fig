@@ -4,6 +4,9 @@ GemmaScope SAE - Mechanistic Interpretability Experiment
 Load Gemma 2 2B + GemmaScope SAEs to inspect feature activations.
 Uses pre-identified candidate features from data/candidate_features.json.
 
+Uses transformers + sae-lens directly (no TransformerLens dependency).
+This approach supports both Gemma 2 and Gemma 3.
+
 Usage:
     python vast_utils.py run gemma_sae.py --skip-build
 """
@@ -25,48 +28,75 @@ def check_environment():
     print()
 
 
-def load_model_and_sae():
-    """Load Gemma 2 2B with TransformerLens and a GemmaScope SAE."""
-    from transformer_lens import HookedTransformer
+def load_model_and_sae(model_name="google/gemma-2-2b", sae_release="gemma-scope-2b-pt-res-canonical", sae_id="layer_0/width_16k/canonical"):
+    """
+    Load a Gemma model with transformers and a GemmaScope SAE.
+
+    Args:
+        model_name: HuggingFace model name (e.g., "google/gemma-2-2b", "google/gemma-3-4b-pt")
+        sae_release: SAE release name from sae-lens
+        sae_id: Specific SAE ID (layer/width/variant)
+
+    Returns:
+        model, tokenizer, sae
+    """
+    from transformers import AutoModelForCausalLM, AutoTokenizer
     from sae_lens import SAE
 
     token = os.environ.get("HF_TOKEN")
 
-    # Load Gemma 2 2B via TransformerLens
-    print("Loading Gemma 2 2B...")
-    model = HookedTransformer.from_pretrained(
-        "gemma-2-2b",
-        device="cuda",
-        dtype=torch.bfloat16,
-        hf_token=token
+    # Load model via transformers
+    print(f"Loading {model_name}...")
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        device_map="cuda",
+        torch_dtype=torch.bfloat16,
+        token=token,
+        output_hidden_states=True,
     )
-    print(f"Model loaded: {model.cfg.model_name}")
-    print(f"Layers: {model.cfg.n_layers}, d_model: {model.cfg.d_model}")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, token=token)
 
-    # Load a GemmaScope SAE (residual stream, layer 0, 16k width)
-    print("\nLoading GemmaScope SAE (layer 0, 16k width)...")
+    print(f"Model loaded: {model_name}")
+    print(f"Hidden size: {model.config.hidden_size}")
+    print(f"Layers: {model.config.num_hidden_layers}")
+
+    # Load GemmaScope SAE
+    print(f"\nLoading SAE: {sae_release} / {sae_id}...")
     sae, cfg_dict, sparsity = SAE.from_pretrained(
-        release="gemma-scope-2b-pt-res-canonical",
-        sae_id="layer_0/width_16k/canonical",
+        release=sae_release,
+        sae_id=sae_id,
         device="cuda"
     )
     print(f"SAE loaded: {sae.cfg.d_sae} features")
 
-    return model, sae
+    return model, tokenizer, sae
 
 
-def get_feature_activations(model, sae, text, layer=0):
+def get_feature_activations(model, tokenizer, sae, text, layer=0):
     """
     Run text through model and SAE, return feature activations.
 
-    Returns the SAE feature activations at the specified layer.
+    Args:
+        model: HuggingFace model with output_hidden_states=True
+        tokenizer: HuggingFace tokenizer
+        sae: SAE from sae-lens
+        text: Input text string
+        layer: Which layer's residual stream to analyze
+
+    Returns:
+        feature_acts: [batch, seq, d_sae] tensor of SAE feature activations
+        tokens: tokenized input
     """
     # Tokenize
-    tokens = model.to_tokens(text)
+    inputs = tokenizer(text, return_tensors="pt").to("cuda")
 
-    # Get residual stream activations at the layer
-    _, cache = model.run_with_cache(tokens, names_filter=f"blocks.{layer}.hook_resid_post")
-    residual = cache[f"blocks.{layer}.hook_resid_post"]  # [batch, seq, d_model]
+    # Forward pass - get hidden states
+    with torch.no_grad():
+        outputs = model(**inputs, output_hidden_states=True)
+
+    # hidden_states is tuple of (embedding, layer0, layer1, ..., layerN)
+    # So layer 0 residual is at index 1
+    residual = outputs.hidden_states[layer + 1]  # [batch, seq, d_model]
 
     # Pass through SAE encoder to get feature activations
     # SAE expects [batch * seq, d_model]
@@ -76,7 +106,7 @@ def get_feature_activations(model, sae, text, layer=0):
     # Reshape back to [batch, seq, d_sae]
     feature_acts = feature_acts.reshape(residual.shape[0], residual.shape[1], -1)
 
-    return feature_acts, tokens
+    return feature_acts, inputs
 
 
 def main():
@@ -86,7 +116,12 @@ def main():
         print("No GPU available. This script requires CUDA.")
         return
 
-    model, sae = load_model_and_sae()
+    # Load Gemma 2 2B + GemmaScope
+    model, tokenizer, sae = load_model_and_sae(
+        model_name="google/gemma-2-2b",
+        sae_release="gemma-scope-2b-pt-res-canonical",
+        sae_id="layer_0/width_16k/canonical"
+    )
 
     # Test with a simple prompt
     test_prompt = "I prefer working alone rather than in groups."
@@ -95,11 +130,15 @@ def main():
     print("=" * 50)
     print(f"Prompt: {test_prompt}")
 
-    feature_acts, tokens = get_feature_activations(model, sae, test_prompt, layer=0)
+    feature_acts, inputs = get_feature_activations(model, tokenizer, sae, test_prompt, layer=0)
 
     # Show shape and basic stats
     print(f"\nActivation shape: {feature_acts.shape}")
     print(f"  (batch={feature_acts.shape[0]}, seq={feature_acts.shape[1]}, features={feature_acts.shape[2]})")
+
+    # Decode tokens for display
+    tokens = tokenizer.convert_ids_to_tokens(inputs.input_ids[0])
+    print(f"Tokens: {tokens}")
 
     # Find top activated features at the last token
     last_token_acts = feature_acts[0, -1, :]  # [d_sae]

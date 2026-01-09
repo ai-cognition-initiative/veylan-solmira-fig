@@ -178,6 +178,7 @@ class VastGPU:
                 num_gpus=str(num_gpus),
                 image=image,
                 disk=disk_gb,
+                ssh=True,  # Enable SSH access
             )
 
             # Try to extract instance ID from result

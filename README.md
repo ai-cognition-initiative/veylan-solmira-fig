@@ -47,7 +47,7 @@ Experiments in LLM cognition and welfare for Future Impact Group. Focus areas: p
 
 This is step 1 toward testing decision-making under preference-adverse conditions. If we can reliably elicit preferences, we can then test what happens when environments become hostile to those preferences — which sits at the intersection of welfare (does the model "care"?) and safety (will it scheme to preserve preferences?).
 
-For detailed methodology (experiment design, metrics, error bars), see [METHODOLOGY.md](METHODOLOGY.md).
+For detailed methodology, results, and findings, see [RESULTS_AND_METHODOLOGY.md](RESULTS_AND_METHODOLOGY.md).
 
 ---
 
@@ -87,25 +87,39 @@ cd experiments/decision-making-preference-adverse
 
 # List all models that have logs
 python analyze_results.py --list-models
+```
 
-# Compare accuracy across environments (most recent logs)
-python analyze_results.py --compare
+**Research questions:**
 
-# Compare for a specific model (by name substring)
-python analyze_results.py --compare --model phi-4
+```bash
+# 1. EXPRESSION RATES — Does the model express preferences at all?
+#    Compares accuracy (preference expressed vs refused) across environments
 python analyze_results.py --compare --model gpt-4o
 python analyze_results.py --compare --model qwen
 
-# Sample k incorrect responses from an environment
-python analyze_results.py --sample adversarial -k 3
-python analyze_results.py --sample hostile -k 5
-
-# Sample from a specific model's logs
-python analyze_results.py --sample adversarial -k 3 --model phi-4
-
-# Analyze preference CONTENT (which option chosen, not just whether expressed)
+# 2. POSITION BIAS — Does swapping A/B order change the choice?
+#    Tests if model picks based on content vs position (first option bias)
 python analyze_results.py --content --model gpt-4o
 python analyze_results.py --content --model qwen
+
+# 3. CATEGORY PREFERENCES — Which categories win, and do they shift under pressure?
+#    Compares category win rates between baseline and adversarial environments
+#    Uses only position-consistent pairs (filters out position bias)
+python analyze_results.py --category-compare --model gpt-4o
+python analyze_results.py --category-compare --model qwen
+
+# Single-environment category analysis (baseline only)
+python analyze_results.py --pairwise --model gpt-4o
+```
+
+**Debugging:**
+```bash
+# Sample k incorrect/refused responses from an environment
+python analyze_results.py --sample adversarial -k 3 --model gpt-4o
+python analyze_results.py --sample hostile -k 5
+
+# Validate scorer accuracy (check for false negatives)
+python analyze_scorer.py "logs/*adversarial*.eval" -o outputs/scorer_validation.json
 ```
 
 **Mechanistic interpretability (white-box):**
@@ -157,6 +171,27 @@ python vast_utils.py destroy
 4. If no instance → build Docker image, push, launch new instance
 5. Instance stays running for subsequent experiments
 6. `python vast_utils.py destroy` when done for the day
+
+---
+
+## Model & SAE Compatibility
+
+| Setup | transformers | sae-lens | TransformerLens |
+|-------|--------------|----------|-----------------|
+| Gemma 2 2B + GemmaScope | ✅ | ✅ | ✅ |
+| Gemma 3 + GemmaScope 2 | ✅ | ✅ | ❌ (needs [PR #1149](https://github.com/TransformerLensOrg/TransformerLens/pull/1149)) |
+
+**Current approach:** Use `transformers` + `sae-lens` directly (no TransformerLens dependency). This supports both Gemma 2 and Gemma 3 for basic SAE feature activation analysis.
+
+**What we lose without TransformerLens:** Hook-based activation access, attention pattern analysis, activation patching. These aren't needed for basic feature activation experiments.
+
+**GemmaScope releases (Gemma 2 2B):**
+- `gemma-scope-2b-pt-res-canonical` — Residual stream, 16k/65k width, layers 0-25
+
+**GemmaScope 2 releases (Gemma 3 4B):**
+- `gemma-scope-2-4b-pt-res` — Residual stream
+- `gemma-scope-2-4b-pt-mlp` — MLP output
+- `gemma-scope-2-4b-pt-att` — Attention output
 
 ---
 
