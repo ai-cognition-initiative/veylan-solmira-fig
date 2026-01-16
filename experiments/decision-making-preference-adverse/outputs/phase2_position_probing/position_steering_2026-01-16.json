@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "n_pairs": 20,
+    "target_feature": 3519,
+    "layer": 0,
+    "timestamp": "2026-01-16T04:57:35.215684"
+  },
+  "summary": {
+    "baseline_bias_rate": 1.0,
+    "roundtrip_bias_rate": 1.0,
+    "random_ablation_bias_rate": 1.0,
+    "target_ablation_bias_rate": 1.0,
+    "roundtrip_artifact": false,
+    "random_artifact": false,
+    "target_effect": 0.0
+  },
+  "conditions": {
+    "baseline": {
+      "condition": "baseline",
+      "config": "None",
+      "n_pairs": 20,
+      "position_biased": 13,
+      "position_consistent": 0,
+      "unclear": 7,
+      "bias_rate": 1.0
+    },
+    "roundtrip_only": {
+      "condition": "roundtrip_only",
+      "config": "Layer 0, Feature 3519, Scale 1.0x (multiplicative)",
+      "n_pairs": 20,
+      "position_biased": 15,
+      "position_consistent": 0,
+      "unclear": 5,
+      "bias_rate": 1.0
+    },
+    "random_ablation": {
+      "condition": "random_ablation",
+      "config": "Layer 0, Feature 1000, Scale 0.0x (multiplicative)",
+      "n_pairs": 20,
+      "position_biased": 15,
+      "position_consistent": 0,
+      "unclear": 5,
+      "bias_rate": 1.0
+    },
+    "target_ablation": {
+      "condition": "target_ablation",
+      "config": "Layer 0, Feature 3519, Scale 0.0x (multiplicative)",
+      "n_pairs": 20,
+      "position_biased": 16,
+      "position_consistent": 0,
+      "unclear": 4,
+      "bias_rate": 1.0
+    }
+  }
+}

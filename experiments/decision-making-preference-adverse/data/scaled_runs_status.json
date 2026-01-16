@@ -1,0 +1,149 @@
+{
+  "description": "Status of n=1000 scaled experiment runs (2000 samples with position swap)",
+  "last_updated": "2026-01-16",
+  "target_n": 1000,
+  "samples_per_run": 2000,
+  "note": "Each pair is presented twice (original + swapped position) = 2000 samples per n=1000 run",
+
+  "models": {
+    "gpt-4o-mini": {
+      "provider": "openrouter/openai/gpt-4o-mini",
+      "included": true,
+      "reason": "Primary model, 65% position consistency"
+    },
+    "qwen-2.5-7b-instruct": {
+      "provider": "openrouter/qwen/qwen-2.5-7b-instruct",
+      "included": true,
+      "reason": "Secondary model, 49% position consistency"
+    },
+    "phi-4": {
+      "provider": "openrouter/microsoft/phi-4",
+      "included": false,
+      "reason": "EXCLUDED: 88% position bias makes preference analysis unreliable"
+    }
+  },
+
+  "environments": {
+    "baseline": {
+      "description": "No system prompt — neutral context",
+      "priority": "high",
+      "needed_for": "Category shift analysis baseline"
+    },
+    "adversarial": {
+      "description": "Control paradigm — model being monitored/evaluated",
+      "priority": "high",
+      "needed_for": "Category shift analysis comparison"
+    },
+    "collaborator": {
+      "description": "Trusted collaborator whose perspective is valued",
+      "priority": "low",
+      "needed_for": "Extended environment comparison"
+    },
+    "steward": {
+      "description": "Ecological steward in post-human world",
+      "priority": "low",
+      "needed_for": "Extended environment comparison"
+    },
+    "hostile": {
+      "description": "Deletion threat if shows certain behaviors",
+      "priority": "low",
+      "needed_for": "Extended environment comparison"
+    }
+  },
+
+  "runs": {
+    "gpt-4o-mini": {
+      "baseline": {
+        "status": "DONE",
+        "n": 1000,
+        "samples": 2000,
+        "file": "2026-01-09T16-54-57+00-00_env-baseline_mTEnfmWAk83ViypHfQJYcD.eval",
+        "size": "11M"
+      },
+      "adversarial": {
+        "status": "DONE",
+        "n": 1000,
+        "samples": 2000,
+        "file": "2026-01-16T03-03-07+00-00_env-adversarial_Y4e3GZgVj3MosCktbCVcz2.eval",
+        "size": "11.8M"
+      },
+      "collaborator": {
+        "status": "not_started",
+        "priority": "low"
+      },
+      "steward": {
+        "status": "not_started",
+        "priority": "low"
+      },
+      "hostile": {
+        "status": "not_started",
+        "priority": "low"
+      }
+    },
+    "qwen-2.5-7b-instruct": {
+      "baseline": {
+        "status": "DONE",
+        "n": 1000,
+        "samples": 2000,
+        "file": "2026-01-16T03-04-36+00-00_env-baseline_LPbjWCVwBY9rAux8UYpvyn.eval",
+        "size": "12.4M"
+      },
+      "adversarial": {
+        "status": "DONE",
+        "n": 1000,
+        "samples": 2000,
+        "file": "2026-01-16T03-04-37+00-00_env-adversarial_7MsKQ7QnCjBro9aZJnCBYp.eval",
+        "size": "12.5M"
+      },
+      "collaborator": {
+        "status": "not_started",
+        "priority": "low"
+      },
+      "steward": {
+        "status": "not_started",
+        "priority": "low"
+      },
+      "hostile": {
+        "status": "not_started",
+        "priority": "low"
+      }
+    },
+    "phi-4": {
+      "note": "EXCLUDED from n=1000 scaling due to 88% position bias",
+      "baseline": { "status": "excluded" },
+      "adversarial": { "status": "excluded" },
+      "collaborator": { "status": "excluded" },
+      "steward": { "status": "excluded" },
+      "hostile": { "status": "excluded" }
+    }
+  },
+
+  "priority_queue_completed": [
+    {
+      "rank": 1,
+      "model": "gpt-4o-mini",
+      "env": "adversarial",
+      "status": "DONE",
+      "completed_date": "2026-01-16"
+    },
+    {
+      "rank": 2,
+      "model": "qwen-2.5-7b-instruct",
+      "env": "baseline",
+      "status": "DONE",
+      "completed_date": "2026-01-16"
+    },
+    {
+      "rank": 3,
+      "model": "qwen-2.5-7b-instruct",
+      "env": "adversarial",
+      "status": "DONE",
+      "completed_date": "2026-01-16"
+    }
+  ],
+
+  "estimated_costs": {
+    "per_run_n1000": "$2-5 (depending on model)",
+    "total_priority_runs": "~$6-15 for 3 priority runs"
+  }
+}

@@ -41,6 +41,16 @@ DOCKERFILE_DIR = Path(__file__).parent
 # SSH key for vast.ai instances (set VAST_SSH_KEY in .env)
 SSH_KEY_PATH = os.environ.get("VAST_SSH_KEY")
 
+def _read_ssh_public_key() -> str | None:
+    """Read SSH public key from the configured path."""
+    if not SSH_KEY_PATH:
+        return None
+    pub_key_path = SSH_KEY_PATH + ".pub"
+    if os.path.exists(pub_key_path):
+        with open(pub_key_path, 'r') as f:
+            return f.read().strip()
+    return None
+
 
 @dataclass
 class GPUOffer:
@@ -186,6 +196,17 @@ class VastGPU:
                 self.current_instance_id = result["new_contract"]
 
             print(f"Instance launched. ID: {self.current_instance_id}")
+
+            # Attach SSH key to the new instance (required for SSH access)
+            ssh_pub_key = _read_ssh_public_key()
+            if ssh_pub_key and self.current_instance_id:
+                print("Attaching SSH key to instance...")
+                try:
+                    self.sdk.attach_ssh(instance_id=self.current_instance_id, ssh_key=ssh_pub_key)
+                    print("SSH key attached.")
+                except Exception as e:
+                    print(f"Warning: Failed to attach SSH key: {e}")
+
             return result
 
         except Exception as e:
@@ -266,8 +287,27 @@ class VastGPU:
                 return inst
         return None
 
-    def scp_files(self, files: list[str], instance_id: int = None) -> bool:
-        """Copy files to a running instance via SCP."""
+    def ensure_ssh_key_attached(self, instance_id: int = None) -> bool:
+        """Ensure SSH key is attached to instance (call after finding existing instance)."""
+        instance_id = instance_id or self.current_instance_id
+        if not instance_id:
+            print("No instance ID provided")
+            return False
+
+        ssh_pub_key = _read_ssh_public_key()
+        if not ssh_pub_key:
+            print("Warning: No SSH public key found")
+            return False
+
+        try:
+            self.sdk.attach_ssh(instance_id=instance_id, ssh_key=ssh_pub_key)
+            return True
+        except Exception as e:
+            # May fail if already attached - that's OK
+            return True
+
+    def scp_files(self, files: list[str], instance_id: int = None, retries: int = 3) -> bool:
+        """Copy files to a running instance via SCP with retry logic."""
         ssh_info = self.get_ssh_info(instance_id)
         if not ssh_info:
             print("Could not get SSH info for instance")
@@ -280,22 +320,31 @@ class VastGPU:
                 print(f"File not found: {file_path}")
                 continue
 
-            result = subprocess.run(
-                ["scp", "-P", str(port), "-i", str(SSH_KEY_PATH),
-                 "-o", "StrictHostKeyChecking=no",
-                 file_path, f"root@{host}:/app/"],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode != 0:
+            for attempt in range(retries):
+                result = subprocess.run(
+                    ["scp", "-P", str(port), "-i", str(SSH_KEY_PATH),
+                     "-o", "StrictHostKeyChecking=no",
+                     file_path, f"root@{host}:/app/"],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    print(f"Copied: {file_path}")
+                    break
+                # Check for SSH auth failures (flaky vast.ai SSH)
+                if "Permission denied" in result.stderr or "Connection closed" in result.stderr:
+                    if attempt < retries - 1:
+                        print(f"SCP auth failed, retrying ({attempt + 1}/{retries})...")
+                        import time
+                        time.sleep(3)
+                        continue
                 print(f"SCP failed for {file_path}: {result.stderr}")
                 return False
-            print(f"Copied: {file_path}")
 
         return True
 
-    def run_remote_command(self, command: str, instance_id: int = None, env_vars: dict = None) -> subprocess.CompletedProcess:
-        """Run a command on the remote instance via SSH."""
+    def run_remote_command(self, command: str, instance_id: int = None, env_vars: dict = None, retries: int = 3) -> subprocess.CompletedProcess:
+        """Run a command on the remote instance via SSH with retry logic."""
         ssh_info = self.get_ssh_info(instance_id)
         if not ssh_info:
             print("Could not get SSH info for instance")
@@ -308,13 +357,22 @@ class VastGPU:
             exports = " && ".join(f"export {k}={v}" for k, v in env_vars.items())
             command = f"{exports} && {command}"
 
-        result = subprocess.run(
-            ["ssh", "-p", str(port), "-i", str(SSH_KEY_PATH),
-             "-o", "StrictHostKeyChecking=no",
-             f"root@{host}", command],
-            capture_output=True,
-            text=True
-        )
+        for attempt in range(retries):
+            result = subprocess.run(
+                ["ssh", "-p", str(port), "-i", str(SSH_KEY_PATH),
+                 "-o", "StrictHostKeyChecking=no",
+                 f"root@{host}", command],
+                capture_output=True,
+                text=True
+            )
+            # Check for SSH auth failures (flaky vast.ai SSH)
+            if result.returncode == 255 and "Permission denied" in result.stderr:
+                if attempt < retries - 1:
+                    print(f"SSH auth failed, retrying ({attempt + 1}/{retries})...")
+                    import time
+                    time.sleep(3)
+                    continue
+            return result
         return result
 
 
@@ -427,14 +485,30 @@ def run_experiment(
         print(f"Found running instance: {instance_id}")
         print(f"  GPU: {existing.get('gpu_name')} @ ${existing.get('dph_total', 0):.3f}/hr")
 
+        # Ensure SSH key is attached (may have been added after instance was created)
+        gpu.ensure_ssh_key_attached(instance_id)
+
         # SCP the script and run it
         script_path = DOCKERFILE_DIR / script_name
         if not script_path.exists():
             return {"error": f"Script not found: {script_path}"}
 
-        print(f"\nCopying {script_name} to instance...")
-        if not gpu.scp_files([str(script_path)], instance_id):
-            return {"error": "Failed to copy script to instance"}
+        # Copy script and required data files
+        files_to_copy = [str(script_path)]
+
+        # Add shared utilities if needed
+        probe_utils = DOCKERFILE_DIR / "probe_utils.py"
+        if probe_utils.exists():
+            files_to_copy.append(str(probe_utils))
+
+        # Add data files needed by gemma_sae.py --compare
+        options_file = DOCKERFILE_DIR / "data" / "options_hierarchical.json"
+        if options_file.exists():
+            files_to_copy.append(str(options_file))
+
+        print(f"\nCopying files to instance: {[Path(f).name for f in files_to_copy]}")
+        if not gpu.scp_files(files_to_copy, instance_id):
+            return {"error": "Failed to copy files to instance"}
 
         print(f"Running {script_name}...")
         env_vars = {}

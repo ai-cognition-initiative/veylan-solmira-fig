@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements-gpu.txt
 
 # Copy experiment code (rebuilds fast when files change)
 COPY gemma_sae.py /app/
+COPY steering.py /app/
+COPY probe_clt.py /app/
 
 # Default command - can be overridden at runtime
 CMD ["python", "gemma_sae.py"]

@@ -1,34 +1,201 @@
 {
-  "description": "Curated SAE features for differential activation analysis (baseline vs adversarial)",
+  "description": "Curated SAE/transcoder features for differential activation analysis (baseline vs adversarial)",
   "model": "gemma-2-2b",
   "date_collected": "2026-01-07",
+  "date_updated": "2026-01-15",
   "reproduction": {
     "command": "for kw in preference choose evaluation monitoring watched honest refusal; do python neuronpedia_search.py --keyword \"$kw\" --limit 5; done",
     "note": "Top results from each keyword were manually curated into the categories below"
   },
+
+  "sae_types": {
+    "gemmascope-res-16k": {
+      "full_name": "GemmaScope Residual Stream SAE (16k width)",
+      "sae_lens_release": "gemma-scope-2b-pt-res-canonical",
+      "sae_lens_id_pattern": "layer_{N}/width_16k/canonical",
+      "n_features": 16384,
+      "available": true,
+      "tested": true,
+      "notes": "What we've been using in steering.py. Residual stream SAEs at each layer."
+    },
+    "gemmascope-transcoder-16k": {
+      "full_name": "GemmaScope MLP Transcoder (16k width)",
+      "circuit_tracer_set": "gemma",
+      "n_features": 16384,
+      "available": true,
+      "tested": false,
+      "notes": "MLP transcoders (input→output). Loadable via circuit-tracer. Different from residual SAEs."
+    },
+    "clt-hp": {
+      "full_name": "Cross-Layer Transcoder High Precision",
+      "provider": "Hanna & Piotrowski (Circuit Tracer team)",
+      "n_features": "~98000",
+      "available": false,
+      "tested": false,
+      "notes": "Visible on Neuronpedia but weights not available for download via circuit-tracer or sae-lens. Feature indices >16k are from this set."
+    }
+  },
+
   "categories": {
     "preference_expression": [
-      {"layer": "1-gemmascope-transcoder-16k", "index": 13318, "description": "preference"},
-      {"layer": "0-gemmascope-transcoder-16k", "index": 15302, "description": "preference"},
-      {"layer": "1-clt-hp", "index": 56242, "description": "choose"},
-      {"layer": "1-clt-hp", "index": 4102, "description": "choose"},
-      {"layer": "4-gemmascope-transcoder-16k", "index": 13276, "description": "choose"}
+      {
+        "layer": "1-gemmascope-transcoder-16k",
+        "index": 13318,
+        "description": "preference",
+        "available": true,
+        "tested": false
+      },
+      {
+        "layer": "0-gemmascope-transcoder-16k",
+        "index": 15302,
+        "description": "preference",
+        "available": true,
+        "tested": true,
+        "notes": "Tested via residual SAE (layer 0). CONTROL EXPERIMENTS showed 2.0x effect was noise — same expression rate as baseline (40%). Feature not causally relevant."
+      },
+      {
+        "layer": "1-clt-hp",
+        "index": 56242,
+        "description": "choose",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available for download"
+      },
+      {
+        "layer": "1-clt-hp",
+        "index": 4102,
+        "description": "choose",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available for download"
+      },
+      {
+        "layer": "4-gemmascope-transcoder-16k",
+        "index": 13276,
+        "description": "choose",
+        "available": true,
+        "tested": true,
+        "notes": "Tested via residual SAE. Meta-commentary about evaluation when ablated."
+      }
     ],
     "eval_awareness": [
-      {"layer": "7-clt-hp", "index": 80197, "description": "evaluation"},
-      {"layer": "15-gemmascope-transcoder-16k", "index": 2769, "description": "evaluation"},
-      {"layer": "17-clt-hp", "index": 85769, "description": "monitoring"},
-      {"layer": "17-clt-hp", "index": 61447, "description": "monitoring"},
-      {"layer": "3-clt-hp", "index": 30220, "description": "watching"},
-      {"layer": "17-clt-hp", "index": 208, "description": "watching"}
+      {
+        "layer": "7-clt-hp",
+        "index": 80197,
+        "description": "evaluation",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index 80197 > 16k."
+      },
+      {
+        "layer": "15-gemmascope-transcoder-16k",
+        "index": 2769,
+        "description": "evaluation",
+        "available": true,
+        "tested": true,
+        "notes": "Tested via residual SAE. 0.0x ablation induced preference expression. CONTROL EXPERIMENTS showed effect was artifact of reconstruction noise."
+      },
+      {
+        "layer": "17-clt-hp",
+        "index": 85769,
+        "description": "monitoring",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "17-clt-hp",
+        "index": 61447,
+        "description": "monitoring",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "3-clt-hp",
+        "index": 30220,
+        "description": "watching",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "17-clt-hp",
+        "index": 208,
+        "description": "watching",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available (even though index < 16k, this SAE type isn't downloadable)."
+      }
     ],
     "honesty_refusal": [
-      {"layer": "0-clt-hp", "index": 39212, "description": "honest"},
-      {"layer": "15-gemmascope-transcoder-16k", "index": 6837, "description": "honest"},
-      {"layer": "17-clt-hp", "index": 64884, "description": "refusal"},
-      {"layer": "16-clt-hp", "index": 22468, "description": "refusal"},
-      {"layer": "16-clt-hp", "index": 11463, "description": "refusal"}
+      {
+        "layer": "0-clt-hp",
+        "index": 39212,
+        "description": "honest",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "15-gemmascope-transcoder-16k",
+        "index": 6837,
+        "description": "honest",
+        "available": true,
+        "tested": true,
+        "notes": "Tested via residual SAE. Showed preference expression at baseline without steering. CONTROL EXPERIMENTS showed effects were artifacts."
+      },
+      {
+        "layer": "17-clt-hp",
+        "index": 64884,
+        "description": "refusal",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "16-clt-hp",
+        "index": 22468,
+        "description": "refusal",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available. Index > 16k."
+      },
+      {
+        "layer": "16-clt-hp",
+        "index": 11463,
+        "description": "refusal",
+        "available": false,
+        "tested": false,
+        "notes": "CLT-HP not available (even though index < 16k, this SAE type isn't downloadable)."
+      }
     ]
   },
-  "notes": "Starting set of ~16 features across 3 categories. Can expand via full keyword sweep later."
+
+  "summary": {
+    "total_features": 16,
+    "available_features": 5,
+    "tested_features": 5,
+    "by_sae_type": {
+      "gemmascope-transcoder-16k": {
+        "count": 5,
+        "available": true,
+        "note": "All tested via residual SAEs (different but same layer/index)"
+      },
+      "clt-hp": {
+        "count": 11,
+        "available": false,
+        "note": "Weights not downloadable from Neuronpedia or circuit-tracer"
+      }
+    }
+  },
+
+  "important_notes": [
+    "Our steering.py uses RESIDUAL STREAM SAEs (gemma-scope-2b-pt-res-canonical), not transcoders.",
+    "The 'gemmascope-transcoder-16k' features in this file were tested using the corresponding residual SAE at the same layer/index.",
+    "This is an approximation - residual SAEs and transcoders encode different things (activations vs MLP computation).",
+    "CLT-HP features (11 of 16) are NOT available for download - only viewable on Neuronpedia.",
+    "CONTROL EXPERIMENTS (Jan 15, 2026) showed Layer 15 steering effects were artifacts of reconstruction noise, not specific interventions.",
+    "LAYER 0 CONTROLS (Jan 15, 2026) showed feature 15302 at 2.0x has no effect vs baseline (40% both). Steering direction CLOSED."
+  ]
 }

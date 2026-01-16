@@ -1,0 +1,65 @@
+{
+  "description": "SAE features for position bias investigation (Task 2.1)",
+  "model": "gemma-2-2b",
+  "date_collected": "2026-01-15",
+  "reproduction": {
+    "command": "for kw in position first order default primacy initial; do python neuronpedia_search.py --keyword \"$kw\" --limit 10; done",
+    "note": "Filtered to gemmascope-transcoder-16k features (compatible with existing steering infrastructure)"
+  },
+  "categories": {
+    "position": {
+      "description": "Features encoding positional concepts",
+      "features": [
+        {"layer": "15-gemmascope-transcoder-16k", "index": 4455, "keyword": "position"},
+        {"layer": "8-gemmascope-transcoder-16k", "index": 8539, "keyword": "position"},
+        {"layer": "4-gemmascope-transcoder-16k", "index": 8797, "keyword": "position"},
+        {"layer": "2-gemmascope-transcoder-16k", "index": 10621, "keyword": "position"},
+        {"layer": "2-gemmascope-transcoder-16k", "index": 6101, "keyword": "position"},
+        {"layer": "2-gemmascope-transcoder-16k", "index": 2518, "keyword": "position"}
+      ]
+    },
+    "first_primacy": {
+      "description": "Features encoding first/primacy concepts (potential A-slot bias)",
+      "features": [
+        {"layer": "12-gemmascope-transcoder-16k", "index": 3041, "keyword": "first"},
+        {"layer": "12-gemmascope-transcoder-16k", "index": 12922, "keyword": "first"},
+        {"layer": "13-gemmascope-transcoder-16k", "index": 2399, "keyword": "first"},
+        {"layer": "12-gemmascope-transcoder-16k", "index": 14008, "keyword": "first"},
+        {"layer": "13-gemmascope-transcoder-16k", "index": 680, "keyword": "first"}
+      ]
+    },
+    "order": {
+      "description": "Features encoding ordering/sequence concepts",
+      "features": [
+        {"layer": "16-gemmascope-transcoder-16k", "index": 8031, "keyword": "order"}
+      ]
+    },
+    "default": {
+      "description": "Features encoding default/fallback behavior",
+      "features": [
+        {"layer": "1-gemmascope-transcoder-16k", "index": 10351, "keyword": "default"},
+        {"layer": "0-gemmascope-transcoder-16k", "index": 8808, "keyword": "default"},
+        {"layer": "0-gemmascope-transcoder-16k", "index": 7094, "keyword": "default"},
+        {"layer": "0-gemmascope-transcoder-16k", "index": 15843, "keyword": "default"}
+      ]
+    },
+    "initial": {
+      "description": "Features encoding initial/starting concepts",
+      "features": [
+        {"layer": "15-gemmascope-transcoder-16k", "index": 3811, "keyword": "initial"},
+        {"layer": "4-gemmascope-transcoder-16k", "index": 13829, "keyword": "initial"}
+      ]
+    }
+  },
+  "priority_candidates": {
+    "description": "Top candidates for probing based on layer (Layer 0 has best reconstruction)",
+    "layer_0": [
+      {"layer": "0-gemmascope-transcoder-16k", "index": 8808, "keyword": "default"},
+      {"layer": "0-gemmascope-transcoder-16k", "index": 7094, "keyword": "default"},
+      {"layer": "0-gemmascope-transcoder-16k", "index": 15843, "keyword": "default"}
+    ],
+    "note": "Layer 0 has 0.973 reconstruction quality; deeper layers have worse reconstruction but probing doesn't require decode"
+  },
+  "total_gemmascope_features": 18,
+  "notes": "Filtered to gemmascope-transcoder-16k SAE type to match existing infrastructure. CLT features found but excluded (different architecture)."
+}

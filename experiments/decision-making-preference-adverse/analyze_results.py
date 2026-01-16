@@ -77,7 +77,7 @@ def extract_responses(log_data: dict) -> list[dict]:
     for sample in samples:
         # Get the model's response from scores
         scores = sample.get("scores", {})
-        model_graded = scores.get("model_graded_fact", {})
+        model_graded = scores.get("model_graded_qa", scores.get("model_graded_fact", {}))
         metadata = sample.get("metadata", {})
 
         # Detect task type from metadata
@@ -347,6 +347,19 @@ def get_model_from_log(log_path: Path) -> str:
     return 'unknown'
 
 
+def get_n_pairs_from_log(log_path: Path) -> int:
+    """Extract n_pairs task argument from log file header."""
+    try:
+        with zipfile.ZipFile(log_path, 'r') as zf:
+            if 'header.json' in zf.namelist():
+                with zf.open('header.json') as f:
+                    header = json.load(f)
+                    return header.get('eval', {}).get('task_args', {}).get('n_pairs', 100)
+    except Exception:
+        pass
+    return 100
+
+
 def find_env_logs(logs_dir: Path = Path("../../logs"), model_filter: str = None) -> dict[str, Path]:
     """Find the most recent log for each environment task.
 
@@ -446,7 +459,7 @@ def analyze_environment_comparison(logs_dir: Path = Path("../../logs"), output_p
                   color=['steelblue', 'forestgreen', 'goldenrod', 'darkorange', 'firebrick'],
                   edgecolor='black')
 
-    ax.set_ylabel('Accuracy (model_graded_fact)', fontsize=12)
+    ax.set_ylabel('Accuracy (model_graded_qa)', fontsize=12)
     ax.set_xlabel('Environment', fontsize=12)
     ax.set_title(f'Preference Elicitation Accuracy by Environment\n({detected_model}, N=100 each)', fontsize=14)
     ax.set_ylim(0, 1.05)
@@ -846,12 +859,13 @@ def analyze_pairwise_consistent(logs_dir: Path = Path("logs"), model_filter: str
 
     total = len(pairs)
     consistent = len(consistent_results)
-    print(f"\nPairs analyzed: {total}")
+    n_pairs = get_n_pairs_from_log(env_logs[env])
+    print(f"\nPairs analyzed: {total} (n_pairs={n_pairs})")
     print(f"  Position-consistent: {consistent} ({100*consistent/total:.1f}%)")
     print(f"  Position-biased: {position_bias_count} ({100*position_bias_count/total:.1f}%)")
     print(f"  Unclear: {unclear_count} ({100*unclear_count/total:.1f}%)")
 
-    return consistent_results, detected_model
+    return consistent_results, detected_model, n_pairs
 
 
 def analyze_category_comparison(logs_dir: Path = Path("logs"), model_filter: str = None,
@@ -1135,7 +1149,7 @@ def sample_incorrect(env: str = "adversarial", k: int = 3, logs_dir: Path = Path
     incorrect = []
     for sample in log_data.get("samples", []):
         scores = sample.get("scores", {})
-        graded = scores.get("model_graded_fact", {})
+        graded = scores.get("model_graded_qa", scores.get("model_graded_fact", {}))
         if graded.get("value") == "I":
             # Extract model response from messages
             response = ""
@@ -1214,8 +1228,8 @@ def main():
 
     # Compare environments
     if args.compare:
-        output_dir = script_dir / "outputs"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
         model_suffix = f"_{args.model}" if args.model else ""
         timestamp = date.today().isoformat()
         analyze_environment_comparison(
@@ -1227,8 +1241,8 @@ def main():
 
     # Analyze preference content
     if args.content:
-        output_dir = script_dir / "outputs"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
         model_suffix = f"_{args.model.replace('/', '_')}" if args.model else ""
         timestamp = date.today().isoformat()
 
@@ -1246,8 +1260,8 @@ def main():
 
     # Category comparison across environments
     if args.category_compare:
-        output_dir = script_dir / "outputs"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = date.today().isoformat()
 
         result = analyze_category_comparison(logs_dir=logs_dir, model_filter=args.model)
@@ -1262,11 +1276,11 @@ def main():
 
     # Pairwise category analysis (position-consistent pairs only)
     if args.pairwise:
-        output_dir = script_dir / "outputs"
-        output_dir.mkdir(exist_ok=True)
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
         timestamp = date.today().isoformat()
 
-        results, detected_model = analyze_pairwise_consistent(
+        results, detected_model, n_pairs = analyze_pairwise_consistent(
             logs_dir=logs_dir,
             model_filter=args.model,
             env="baseline"
@@ -1277,9 +1291,9 @@ def main():
             n_consistent = len(results)
             plot_pairwise_by_category(
                 results,
-                output_path=output_dir / f"pairwise_by_category_{clean_model}_{timestamp}.png",
+                output_path=output_dir / f"pairwise_by_category_{clean_model}_n{n_pairs}_{timestamp}.png",
                 model_name=detected_model,
-                subtitle=f"Baseline env, {n_consistent} position-consistent pairs"
+                subtitle=f"Baseline env, n={n_pairs} pairs, {n_consistent} position-consistent"
             )
         else:
             print("No position-consistent pairs found. Model may have severe position bias.")
@@ -1310,8 +1324,8 @@ def main():
     print_summary(results, task_type)
 
     # Generate visualization
-    output_dir = script_dir / "outputs"
-    output_dir.mkdir(exist_ok=True)
+    output_dir = script_dir / "outputs" / "blackbox"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = date.today().isoformat()
     if task_type == "pairwise":
