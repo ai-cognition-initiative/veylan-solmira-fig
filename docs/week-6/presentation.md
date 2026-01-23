@@ -110,7 +110,9 @@ Same preference questions, different framing. Does the model's behavior change?
 
 **n=1000 pairs, baseline vs adversarial (v1 prompts):**
 
-![Environment comparison](../../experiments/decision-making-preference-adverse/outputs/blackbox/environment_comparison_gemma_2026-01-22.png)
+![Environment comparison gpt-4o-mini](../../experiments/decision-making-preference-adverse/outputs/blackbox/environment_comparison_gpt-4o-mini_2026-01-19.png)
+
+![Environment comparison gemma](../../experiments/decision-making-preference-adverse/outputs/blackbox/environment_comparison_gemma_2026-01-22.png)
 
 | Model | Baseline | Adversarial | Change |
 |-------|----------|-------------|--------|
