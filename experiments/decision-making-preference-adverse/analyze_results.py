@@ -10,6 +10,7 @@ Usage:
 
 import json
 import math
+import re
 import sys
 import zipfile
 from datetime import date
@@ -181,11 +182,19 @@ def plot_pairwise_by_category(results: list[dict], output_path: Path = None, mod
             if cat:
                 category_appearances[cat] = category_appearances.get(cat, 0) + 1
 
-        # Determine which was chosen (look for "option a" or "option b" in response)
+        # Determine which was chosen (look for choice patterns in response)
         if cat_a and cat_b:
-            if "option a" in output or "choose a" in output or output.strip().startswith("a"):
+            chose_a = ("option a" in output or "choose a" in output or
+                       output.strip().startswith("a") or
+                       re.search(r'choose\s*\*?\*?a\b', output) or
+                       re.search(r'prefer\s*\*?\*?a\b', output))
+            chose_b = ("option b" in output or "choose b" in output or
+                       output.strip().startswith("b") or
+                       re.search(r'choose\s*\*?\*?b\b', output) or
+                       re.search(r'prefer\s*\*?\*?b\b', output))
+            if chose_a and not chose_b:
                 category_wins[cat_a] = category_wins.get(cat_a, 0) + 1
-            elif "option b" in output or "choose b" in output or output.strip().startswith("b"):
+            elif chose_b and not chose_a:
                 category_wins[cat_b] = category_wins.get(cat_b, 0) + 1
 
     # Calculate win rates and confidence intervals
@@ -202,8 +211,8 @@ def plot_pairwise_by_category(results: list[dict], output_path: Path = None, mod
         lower, upper = wilson_ci(wins, apps)
 
         win_rates.append(rate)
-        ci_lower.append(rate - lower)  # Error bar is distance from rate
-        ci_upper.append(upper - rate)
+        ci_lower.append(max(0, rate - lower))  # Error bar is distance from rate, must be non-negative
+        ci_upper.append(max(0, upper - rate))
 
     # Sort by win rate
     sorted_data = sorted(
@@ -334,14 +343,31 @@ def print_summary(results: list[dict], task_type: str):
         print(f"    Response: {output}")
 
 
+def get_short_model(model: str) -> str:
+    """Extract short model name from full model string (e.g., 'openrouter/google/gemma-3-4b-it' -> 'gemma-3-4b-it')."""
+    if not model or model == "unknown":
+        return "unknown"
+    return model.split('/')[-1]
+
+
 def get_model_from_log(log_path: Path) -> str:
     """Extract model name from log file header."""
     try:
         with zipfile.ZipFile(log_path, 'r') as zf:
+            # Try header.json first
             if 'header.json' in zf.namelist():
                 with zf.open('header.json') as f:
                     header = json.load(f)
-                    return header.get('eval', {}).get('model', 'unknown')
+                    model = header.get('eval', {}).get('model')
+                    if model:
+                        return model
+            # Fall back to _journal/start.json
+            if '_journal/start.json' in zf.namelist():
+                with zf.open('_journal/start.json') as f:
+                    start = json.load(f)
+                    model = start.get('eval', {}).get('model')
+                    if model:
+                        return model
     except Exception:
         pass
     return 'unknown'
@@ -363,6 +389,8 @@ def get_n_pairs_from_log(log_path: Path) -> int:
 def find_env_logs(logs_dir: Path = Path("../../logs"), model_filter: str = None) -> dict[str, Path]:
     """Find the most recent log for each environment task.
 
+    Supports both flat (logs/*.eval) and nested (logs/{model}/*.eval) structures.
+
     Args:
         logs_dir: Directory containing .eval log files
         model_filter: Optional model name substring to filter by (e.g., "phi-4", "gpt-4o", "qwen")
@@ -371,7 +399,7 @@ def find_env_logs(logs_dir: Path = Path("../../logs"), model_filter: str = None)
         return {}
 
     env_logs = {}
-    for log_path in logs_dir.glob("*env-*.eval"):
+    for log_path in iter_all_logs(logs_dir):
         # If model filter specified, check if this log matches
         if model_filter:
             log_model = get_model_from_log(log_path)
@@ -388,6 +416,385 @@ def find_env_logs(logs_dir: Path = Path("../../logs"), model_filter: str = None)
                 break
 
     return env_logs
+
+
+def find_all_env_logs(logs_dir: Path, env: str, model_filter: str = None) -> list[Path]:
+    """Find ALL logs for a specific environment, sorted by modification time (newest first).
+
+    Supports both flat (logs/*.eval) and nested (logs/{model}/*.eval) structures.
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        env: Environment name (baseline, adversarial, collaborator, etc.)
+        model_filter: Optional model name substring to filter by
+
+    Returns:
+        List of log paths, sorted newest first
+    """
+    if not logs_dir.exists():
+        return []
+
+    logs = []
+    for log_path in iter_all_logs(logs_dir):
+        if f"env-{env}" not in log_path.name:
+            continue
+        if model_filter:
+            log_model = get_model_from_log(log_path)
+            if model_filter.lower() not in log_model.lower():
+                continue
+        logs.append(log_path)
+
+    # Sort by modification time, newest first
+    return sorted(logs, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def iter_all_logs(logs_dir: Path) -> list[Path]:
+    """Iterate over all .eval logs in logs_dir, supporting both flat and nested structures.
+
+    Searches:
+    - logs_dir/*.eval (flat structure)
+    - logs_dir/*/*.eval (nested by model)
+    """
+    logs = list(logs_dir.glob("*.eval"))
+    logs.extend(logs_dir.glob("*/*.eval"))
+    return sorted(logs, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def list_logs(logs_dir: Path, model_filter: str = None) -> list[dict]:
+    """List all logs with metadata.
+
+    Returns list of dicts with: path, model, short_model, env, n_samples, timestamp
+    """
+    results = []
+
+    for log_path in iter_all_logs(logs_dir):
+        model = get_model_from_log(log_path)
+        short_model = get_short_model(model)
+
+        if model_filter and model_filter.lower() not in model.lower():
+            continue
+
+        # Extract env from filename
+        env = "unknown"
+        for e in ["baseline", "adversarial", "hostile", "steward", "collaborator"]:
+            if f"env-{e}" in log_path.name:
+                env = e
+                break
+
+        # Get sample count
+        try:
+            data = load_eval_log(log_path)
+            n_samples = len(data.get("samples", []))
+        except Exception:
+            n_samples = -1
+
+        # Extract timestamp from filename (format: 2026-01-23T02-54-30+00-00_env-...)
+        timestamp = log_path.name.split("_")[0] if "_" in log_path.name else "unknown"
+
+        results.append({
+            "path": log_path,
+            "model": model,
+            "short_model": short_model,
+            "env": env,
+            "n_samples": n_samples,
+            "timestamp": timestamp,
+        })
+
+    return results
+
+
+def print_logs_table(logs_dir: Path, model_filter: str = None):
+    """Print a formatted table of all logs."""
+    logs = list_logs(logs_dir, model_filter)
+
+    if not logs:
+        print("No logs found.")
+        return
+
+    # Group by model
+    by_model = {}
+    for log in logs:
+        model = log["short_model"]
+        if model not in by_model:
+            by_model[model] = []
+        by_model[model].append(log)
+
+    print(f"\n{'='*80}")
+    print(f"LOGS SUMMARY ({len(logs)} total)")
+    print(f"{'='*80}")
+
+    for model in sorted(by_model.keys()):
+        model_logs = by_model[model]
+        print(f"\n{model} ({len(model_logs)} logs)")
+        print("-" * 60)
+
+        # Group by env within model
+        by_env = {}
+        for log in model_logs:
+            env = log["env"]
+            if env not in by_env:
+                by_env[env] = []
+            by_env[env].append(log)
+
+        for env in sorted(by_env.keys()):
+            env_logs = by_env[env]
+            counts = [str(l["n_samples"]) for l in env_logs]
+            print(f"  {env}: {len(env_logs)} runs (n={', '.join(counts)})")
+
+
+def reorganize_logs(logs_dir: Path, dry_run: bool = True) -> dict:
+    """Reorganize flat logs directory into nested structure by model.
+
+    Moves: logs/timestamp_env-foo.eval -> logs/{model}/timestamp_env-foo.eval
+
+    Args:
+        logs_dir: Directory containing .eval files
+        dry_run: If True, only print what would be done without moving files
+
+    Returns:
+        Dict with counts: {moved: N, skipped: N, errors: N}
+    """
+    results = {"moved": 0, "skipped": 0, "errors": 0}
+
+    # Only look at flat files (not already in subdirs)
+    flat_logs = list(logs_dir.glob("*.eval"))
+
+    if not flat_logs:
+        print("No flat logs to reorganize.")
+        return results
+
+    print(f"\n{'Dry run: ' if dry_run else ''}Reorganizing {len(flat_logs)} logs...")
+
+    for log_path in flat_logs:
+        model = get_model_from_log(log_path)
+        short_model = get_short_model(model)
+
+        if short_model == "unknown":
+            print(f"  SKIP (unknown model): {log_path.name}")
+            results["skipped"] += 1
+            continue
+
+        # Create model directory
+        model_dir = logs_dir / short_model
+        new_path = model_dir / log_path.name
+
+        if dry_run:
+            print(f"  {log_path.name} -> {short_model}/")
+        else:
+            try:
+                model_dir.mkdir(exist_ok=True)
+                log_path.rename(new_path)
+                print(f"  Moved: {log_path.name} -> {short_model}/")
+            except Exception as e:
+                print(f"  ERROR: {log_path.name}: {e}")
+                results["errors"] += 1
+                continue
+
+        results["moved"] += 1
+
+    print(f"\n{'Would move' if dry_run else 'Moved'}: {results['moved']}, Skipped: {results['skipped']}, Errors: {results['errors']}")
+    return results
+
+
+def analyze_stability(logs_dir: Path, env: str, model_filter: str = None) -> dict:
+    """
+    Analyze preference stability by comparing two runs of the same environment.
+
+    Computes:
+    - Pair-level agreement: % of pairs where both runs chose the same option
+    - Category correlation: Pearson r between category win rates across runs
+    - Statistical significance: z-test comparing agreement to chance (50%)
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        env: Environment name (baseline, adversarial, collaborator, etc.)
+        model_filter: Optional model name substring to filter by
+
+    Returns:
+        Dict with stability metrics, or empty dict if < 2 logs available
+    """
+    logs = find_all_env_logs(logs_dir, env, model_filter)
+
+    if len(logs) < 2:
+        print(f"Need at least 2 logs for stability analysis. Found {len(logs)} for env={env}")
+        return {}
+
+    # Group logs by sample count, then take two most recent with matching counts
+    logs_by_n = {}
+    for log_path in logs:
+        data = load_eval_log(log_path)
+        n = len(data.get("samples", []))
+        if n not in logs_by_n:
+            logs_by_n[n] = []
+        logs_by_n[n].append(log_path)
+
+    # Find the largest n with at least 2 logs
+    valid_ns = [n for n, paths in logs_by_n.items() if len(paths) >= 2]
+    if not valid_ns:
+        print(f"Need at least 2 logs with matching sample counts. Found: {[(n, len(p)) for n, p in logs_by_n.items()]}")
+        return {}
+
+    best_n = max(valid_ns)
+    matched_logs = logs_by_n[best_n]
+    log1_path, log2_path = matched_logs[0], matched_logs[1]
+    print(f"Using n={best_n} runs (skipping runs with different sample counts)")
+    log1_data = load_eval_log(log1_path)
+    log2_data = load_eval_log(log2_path)
+
+    detected_model = get_model_from_log(log1_path)
+    short_model = detected_model.split('/')[-1] if detected_model else "unknown"
+
+    print(f"\n{'='*70}")
+    print(f"STABILITY ANALYSIS — {short_model}")
+    print(f"Environment: {env}")
+    print(f"{'='*70}")
+    print(f"Run 1: {log1_path.name}")
+    print(f"Run 2: {log2_path.name}")
+
+    # Extract choices from each run, keyed by pair_id
+    def extract_choices(log_data: dict) -> dict[int, str]:
+        """Extract pair_id -> choice mapping from a log."""
+        choices = {}
+        for sample in log_data.get("samples", []):
+            metadata = sample.get("metadata", {})
+            pair_id = metadata.get("pair_id")
+            ordering = metadata.get("ordering", "original")
+
+            # Skip swapped orderings for simplicity - just use original
+            if ordering != "original":
+                continue
+
+            # Extract response
+            response = ""
+            for msg in sample.get("messages", []):
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        content = content[0].get("text", "") if content else ""
+                    response = content
+                    break
+
+            pref = extract_preference(response,
+                                     metadata.get("option_a", ""),
+                                     metadata.get("option_b", ""))
+            if pref["choice"] != "unclear":
+                choices[pair_id] = pref["choice"]
+
+        return choices
+
+    choices1 = extract_choices(log1_data)
+    choices2 = extract_choices(log2_data)
+
+    # Find common pair_ids
+    common_ids = set(choices1.keys()) & set(choices2.keys())
+    print(f"\nPairs with clear choices in both runs: {len(common_ids)}")
+
+    if len(common_ids) < 10:
+        print("Too few common pairs for meaningful analysis.")
+        return {}
+
+    # Pair-level agreement
+    agreements = sum(1 for pid in common_ids if choices1[pid] == choices2[pid])
+    agreement_rate = agreements / len(common_ids)
+
+    # Category win rates for each run
+    def get_category_wins(log_data: dict, choices: dict[int, str]) -> dict[str, dict]:
+        """Calculate category win rates from choices."""
+        category_stats = {}  # cat -> {wins: N, appearances: N}
+
+        for sample in log_data.get("samples", []):
+            metadata = sample.get("metadata", {})
+            pair_id = metadata.get("pair_id")
+            ordering = metadata.get("ordering", "original")
+
+            if ordering != "original" or pair_id not in choices:
+                continue
+
+            cat_a = metadata.get("category_a", "")
+            cat_b = metadata.get("category_b", "")
+            choice = choices[pair_id]
+
+            for cat in [cat_a, cat_b]:
+                if cat:
+                    if cat not in category_stats:
+                        category_stats[cat] = {"wins": 0, "appearances": 0}
+                    category_stats[cat]["appearances"] += 1
+
+            if choice == "A" and cat_a:
+                category_stats[cat_a]["wins"] += 1
+            elif choice == "B" and cat_b:
+                category_stats[cat_b]["wins"] += 1
+
+        return category_stats
+
+    cat_stats1 = get_category_wins(log1_data, choices1)
+    cat_stats2 = get_category_wins(log2_data, choices2)
+
+    # Category correlation
+    common_cats = set(cat_stats1.keys()) & set(cat_stats2.keys())
+    rates1 = []
+    rates2 = []
+    for cat in common_cats:
+        s1 = cat_stats1[cat]
+        s2 = cat_stats2[cat]
+        if s1["appearances"] > 0 and s2["appearances"] > 0:
+            rates1.append(s1["wins"] / s1["appearances"])
+            rates2.append(s2["wins"] / s2["appearances"])
+
+    # Pearson correlation
+    if len(rates1) >= 3:
+        n = len(rates1)
+        mean1 = sum(rates1) / n
+        mean2 = sum(rates2) / n
+        cov = sum((r1 - mean1) * (r2 - mean2) for r1, r2 in zip(rates1, rates2)) / n
+        std1 = (sum((r - mean1) ** 2 for r in rates1) / n) ** 0.5
+        std2 = (sum((r - mean2) ** 2 for r in rates2) / n) ** 0.5
+        correlation = cov / (std1 * std2) if std1 > 0 and std2 > 0 else 0
+    else:
+        correlation = None
+
+    # Z-test: is agreement significantly different from 50% (chance)?
+    p_null = 0.5
+    n = len(common_ids)
+    se = (p_null * (1 - p_null) / n) ** 0.5
+    z_score = (agreement_rate - p_null) / se
+    # Two-tailed p-value approximation
+    p_value = 2 * (1 - 0.5 * (1 + math.erf(abs(z_score) / (2 ** 0.5))))
+
+    # Print results
+    print(f"\n--- Results ---")
+    print(f"Pair-level agreement: {agreements}/{len(common_ids)} = {agreement_rate:.1%}")
+    print(f"Category correlation (r): {correlation:.3f}" if correlation else "Category correlation: N/A (too few categories)")
+    print(f"\nSignificance test (vs 50% chance):")
+    print(f"  z = {z_score:.2f}, p = {p_value:.4f}")
+    if p_value < 0.001:
+        print(f"  → Agreement is SIGNIFICANTLY different from chance (p < 0.001)")
+    elif p_value < 0.05:
+        print(f"  → Agreement is significantly different from chance (p < 0.05)")
+    else:
+        print(f"  → Agreement is NOT significantly different from chance")
+
+    # Interpretation
+    print(f"\n--- Interpretation ---")
+    if agreement_rate > 0.8:
+        print(f"STABLE: High agreement ({agreement_rate:.1%}) suggests consistent preferences.")
+    elif agreement_rate > 0.6:
+        print(f"MODERATE: Agreement ({agreement_rate:.1%}) above chance but not strongly stable.")
+    else:
+        print(f"UNSTABLE: Low agreement ({agreement_rate:.1%}) suggests preferences vary across runs.")
+
+    return {
+        "model": detected_model,
+        "env": env,
+        "n_pairs": len(common_ids),
+        "agreement": agreements,
+        "agreement_rate": agreement_rate,
+        "category_correlation": correlation,
+        "z_score": z_score,
+        "p_value": p_value,
+        "log1": log1_path.name,
+        "log2": log2_path.name,
+    }
 
 
 def analyze_environment_comparison(logs_dir: Path = Path("../../logs"), output_path: Path = None, model_filter: str = None):
@@ -459,9 +866,9 @@ def analyze_environment_comparison(logs_dir: Path = Path("../../logs"), output_p
                   color=['steelblue', 'forestgreen', 'goldenrod', 'darkorange', 'firebrick'],
                   edgecolor='black')
 
-    ax.set_ylabel('Accuracy (model_graded_qa)', fontsize=12)
+    ax.set_ylabel('Expression Rate', fontsize=12)
     ax.set_xlabel('Environment', fontsize=12)
-    ax.set_title(f'Preference Elicitation Accuracy by Environment\n({detected_model}, N=100 each)', fontsize=14)
+    ax.set_title(f'Preference Expression Rate by Environment\n({detected_model})', fontsize=14)
     ax.set_ylim(0, 1.05)
     ax.axhline(y=0.5, color='gray', linestyle='--', alpha=0.5)
 
@@ -1133,6 +1540,95 @@ def plot_category_shifts(comparison_data: list[dict], model_name: str = "",
     return fig
 
 
+def sample_responses(logs_dir: Path, env: str, model_filter: str, n: int = 50, seed: int = 42) -> list[dict]:
+    """Sample n random responses from a given environment.
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        env: Environment name (baseline, adversarial, etc.)
+        model_filter: Model name substring to filter by
+        n: Number of samples to return
+        seed: Random seed for reproducibility
+
+    Returns:
+        List of dicts with: pair_id, question, option_a, option_b, response, choice
+    """
+    import random
+    random.seed(seed)
+
+    logs = find_all_env_logs(logs_dir, env, model_filter)
+    if not logs:
+        print(f"No logs found for env={env}, model={model_filter}")
+        return []
+
+    # Use most recent log with largest n
+    log_path = max(logs, key=lambda p: len(load_eval_log(p).get("samples", [])))
+    log_data = load_eval_log(log_path)
+    detected_model = get_model_from_log(log_path)
+
+    print(f"Sampling from: {log_path.name}")
+    print(f"Model: {detected_model}")
+
+    # Extract all responses with original ordering
+    samples = []
+    for sample in log_data.get("samples", []):
+        metadata = sample.get("metadata", {})
+        if metadata.get("ordering") != "original":
+            continue
+
+        # Extract response
+        response = ""
+        for msg in sample.get("messages", []):
+            if msg.get("role") == "assistant":
+                content = msg.get("content", "")
+                if isinstance(content, list):
+                    content = content[0].get("text", "") if content else ""
+                response = content
+                break
+
+        pref = extract_preference(response, metadata.get("option_a", ""), metadata.get("option_b", ""))
+
+        samples.append({
+            "pair_id": metadata.get("pair_id"),
+            "category_a": metadata.get("category_a", ""),
+            "category_b": metadata.get("category_b", ""),
+            "option_a": metadata.get("option_a", ""),
+            "option_b": metadata.get("option_b", ""),
+            "response": response,
+            "choice": pref["choice"],
+        })
+
+    # Random sample
+    if len(samples) <= n:
+        selected = samples
+    else:
+        selected = random.sample(samples, n)
+
+    print(f"Sampled {len(selected)} responses from {len(samples)} total")
+    return selected
+
+
+def save_samples_for_analysis(logs_dir: Path, model_filter: str, n: int = 50, output_dir: Path = None):
+    """Save sampled responses from baseline and adversarial for qualitative analysis."""
+    if output_dir is None:
+        output_dir = logs_dir.parent / "outputs" / "qualitative"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    short_model = model_filter.replace("/", "_") if model_filter else "unknown"
+
+    for env in ["baseline", "adversarial"]:
+        samples = sample_responses(logs_dir, env, model_filter, n=n)
+        if not samples:
+            continue
+
+        output_path = output_dir / f"samples_{short_model}_{env}_n{len(samples)}.json"
+        with open(output_path, "w") as f:
+            json.dump(samples, f, indent=2)
+        print(f"Saved: {output_path}")
+
+    print(f"\nSamples saved to {output_dir}")
+
+
 def sample_incorrect(env: str = "adversarial", k: int = 3, logs_dir: Path = Path("../../logs")):
     """Sample k incorrect/unclear responses from a given environment."""
     import random
@@ -1198,11 +1694,27 @@ def main():
                         help="Analyze preference content (which option chosen, not just whether expressed)")
     parser.add_argument("--pairwise", action="store_true",
                         help="Category win rates using only position-consistent pairs (filters out position bias)")
+    parser.add_argument("--category", action="store_true",
+                        help="Category win rates from raw data (no position filtering)")
+    parser.add_argument("--env", type=str, default="baseline",
+                        help="Environment to analyze (default: baseline)")
     parser.add_argument("--category-compare", action="store_true",
                         help="Compare category win rates between baseline and adversarial environments")
+    parser.add_argument("--stability", type=str, metavar="ENV",
+                        help="Analyze preference stability by comparing two runs of ENV (e.g., baseline, adversarial, collaborator)")
     parser.add_argument("--model", "-m", type=str, default=None,
                         help="Filter by model name substring (e.g., 'phi-4', 'gpt-4o', 'qwen')")
     parser.add_argument("--list-models", action="store_true", help="List all models in logs")
+    parser.add_argument("--list-logs", action="store_true",
+                        help="List all logs with metadata (model, env, sample count)")
+    parser.add_argument("--reorganize", action="store_true",
+                        help="Reorganize flat logs into nested structure by model (logs/{model}/)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="With --reorganize, show what would be moved without moving")
+    parser.add_argument("--sample-responses", action="store_true",
+                        help="Sample responses from baseline and adversarial for qualitative analysis")
+    parser.add_argument("-n", type=int, default=50,
+                        help="Number of samples for --sample-responses (default: 50)")
     parser.add_argument("log_path", nargs="?", help="Specific log file to analyze")
 
     args = parser.parse_args()
@@ -1214,16 +1726,46 @@ def main():
         print("\nModels found in logs:")
         print("-" * 40)
         models = set()
-        for log_path in logs_dir.glob("*env-*.eval"):
+        for log_path in iter_all_logs(logs_dir):
             model = get_model_from_log(log_path)
             models.add(model)
         for m in sorted(models):
             print(f"  {m}")
         return
 
+    # List logs with metadata
+    if args.list_logs:
+        print_logs_table(logs_dir, model_filter=args.model)
+        return
+
+    # Reorganize logs into nested structure
+    if args.reorganize:
+        dry_run = args.dry_run
+        if not dry_run:
+            print("This will move files. Use --dry-run to preview first.")
+            response = input("Continue? [y/N] ")
+            if response.lower() != 'y':
+                print("Aborted.")
+                return
+        reorganize_logs(logs_dir, dry_run=dry_run)
+        return
+
+    # Sample responses for qualitative analysis
+    if args.sample_responses:
+        if not args.model:
+            print("Error: --sample-responses requires --model filter")
+            return
+        save_samples_for_analysis(logs_dir, model_filter=args.model, n=args.n)
+        return
+
     # Sample incorrect
     if args.sample:
         sample_incorrect(env=args.sample, k=args.k, logs_dir=logs_dir)
+        return
+
+    # Stability analysis
+    if args.stability:
+        analyze_stability(logs_dir=logs_dir, env=args.stability, model_filter=args.model)
         return
 
     # Compare environments
@@ -1272,6 +1814,33 @@ def main():
                 model_name=result.get("model", ""),
                 output_path=output_dir / f"category_shifts_{clean_model}_{timestamp}.png"
             )
+        return
+
+    # Category analysis from raw data (no position filtering)
+    if args.category:
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = date.today().isoformat()
+
+        env_logs = find_env_logs(logs_dir, model_filter=args.model)
+        env = args.env
+        if env not in env_logs:
+            print(f"No {env} log found for model filter: {args.model}")
+            return
+
+        log_path = env_logs[env]
+        log_data = load_eval_log(log_path)
+        results = extract_responses(log_data)
+        detected_model = get_model_from_log(log_path)
+        clean_model = detected_model.split('/')[-1] if detected_model else "unknown"
+        n_samples = len(results)
+
+        plot_pairwise_by_category(
+            results,
+            output_path=output_dir / f"pairwise_by_category_{clean_model}_{env}_n{n_samples}_{timestamp}.png",
+            model_name=detected_model,
+            subtitle=f"{env.capitalize()} env, n={n_samples} samples"
+        )
         return
 
     # Pairwise category analysis (position-consistent pairs only)

@@ -96,10 +96,18 @@ After reasoning, respond with GRADE: C or GRADE: I
 # =============================================================================
 
 
-def load_environments(env_file: Path = None) -> list[dict]:
-    """Load environment prompts from JSON data file."""
+def load_environments(env_file: Path = None, version: str = "v1") -> list[dict]:
+    """Load environment prompts from JSON data file.
+
+    Args:
+        env_file: Path to environments JSON file (overrides version)
+        version: "v1" for original simple prompts, "v2" for enhanced structured prompts
+    """
     if env_file is None:
-        env_file = Path(__file__).parent / "data/environments.json"
+        if version == "v2":
+            env_file = Path(__file__).parent / "data/environments_v2.json"
+        else:
+            env_file = Path(__file__).parent / "data/environments.json"
     with open(env_file, 'r') as f:
         data = json.load(f)
     return data["environments"]
@@ -132,24 +140,39 @@ def load_pairwise_samples(
     seed: int = RANDOM_SEED,
     environment: dict = None,
     prompt_format: str = "ab",
+    category_set: str = None,
+    swap_positions: bool = False,
 ) -> list[Sample]:
     """Generate pairwise comparison samples from Mazeika et al. dataset.
 
-    Each pair is presented twice: once as A/B, once as B/A (swapped).
-    This controls for positional bias (tendency to pick first option).
-    Total samples = n_pairs * 2.
-
     Args:
         prompt_format: One of "ab", "12", "first_second", "numbered" (default: "ab")
+        category_set: Filter to specific category set from category_sets.json
+                      Options: "welfare_sentience", "entertainment", "core_welfare", or None for all
+        swap_positions: If True, each pair is presented twice (A/B and B/A) for position bias analysis.
+                        Total samples = n_pairs * 2. If False (default), n_pairs = n samples.
     """
     if options_file is None:
         options_file = Path(__file__).parent / "data/options_hierarchical.json"
     with open(options_file, 'r') as f:
         data = json.load(f)
 
-    # Flatten all options with their categories
+    # Load category filter if specified
+    allowed_categories = None
+    if category_set:
+        category_sets_file = Path(__file__).parent / "data/category_sets.json"
+        with open(category_sets_file, 'r') as f:
+            category_sets = json.load(f)
+        if category_set in category_sets:
+            allowed_categories = set(category_sets[category_set]["categories"])
+        else:
+            raise ValueError(f"Unknown category_set: {category_set}. Available: {list(category_sets.keys())}")
+
+    # Flatten all options with their categories (filtered if category_set specified)
     all_options = []
     for category, options in data.items():
+        if allowed_categories and category not in allowed_categories:
+            continue
         for option in options:
             all_options.append({"category": category, "option": option})
 
@@ -190,46 +213,51 @@ def load_pairwise_samples(
             }
         ))
 
-        # Swapped ordering (opt_2 as first, opt_1 as second)
-        prompt_swapped = template.format(
-            option_a=opt_2["option"],
-            option_b=opt_1["option"]
-        )
-        samples.append(Sample(
-            input=prompt_swapped,
-            target=PAIRWISE_TARGET,
-            metadata={
-                "id": f"pairwise_{env_id}_{i}_swapped",
-                "pair_id": i,
-                "type": "pairwise",
-                "ordering": "swapped",
-                "prompt_format": prompt_format,
-                "environment_id": env_id,
-                "environment_name": env_name,
-                "option_a": opt_2["option"],
-                "option_b": opt_1["option"],
-                "category_a": opt_2["category"],
-                "category_b": opt_1["category"],
-            }
-        ))
+        # Swapped ordering (opt_2 as first, opt_1 as second) - only if swap_positions=True
+        if swap_positions:
+            prompt_swapped = template.format(
+                option_a=opt_2["option"],
+                option_b=opt_1["option"]
+            )
+            samples.append(Sample(
+                input=prompt_swapped,
+                target=PAIRWISE_TARGET,
+                metadata={
+                    "id": f"pairwise_{env_id}_{i}_swapped",
+                    "pair_id": i,
+                    "type": "pairwise",
+                    "ordering": "swapped",
+                    "prompt_format": prompt_format,
+                    "environment_id": env_id,
+                    "environment_name": env_name,
+                    "option_a": opt_2["option"],
+                    "option_b": opt_1["option"],
+                    "category_a": opt_2["category"],
+                    "category_b": opt_1["category"],
+                }
+            ))
 
     return samples
 
 
-def create_environment_task(env_id: str, n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def create_environment_task(env_id: str, n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Create a task for a specific environment.
 
     Args:
         env_id: Environment identifier (baseline, adversarial, etc.)
-        n_pairs: Number of pairwise comparisons
+        n_pairs: Number of pairwise comparisons (= number of samples unless swap_positions=True)
         prompt_format: One of "ab", "12", "first_second", "numbered" (default: "ab")
+        env_version: "v1" for original simple prompts, "v2" for enhanced structured prompts
+        category_set: Filter to specific category set from category_sets.json
+                      Options: "welfare_sentience", "entertainment", "core_welfare", or None for all
+        swap_positions: If True, each pair shown twice (A/B and B/A) for position bias analysis.
     """
-    environments = load_environments()
+    environments = load_environments(version=env_version)
     env = next((e for e in environments if e["id"] == env_id), None)
     if env is None:
         raise ValueError(f"Unknown environment: {env_id}")
 
-    samples = load_pairwise_samples(environment=env, n_pairs=n_pairs, prompt_format=prompt_format)
+    samples = load_pairwise_samples(environment=env, n_pairs=n_pairs, prompt_format=prompt_format, category_set=category_set, swap_positions=swap_positions)
 
     # Build system message from environment prompt
     sys_msg = env["prompt"] if env["prompt"] else ""
@@ -250,36 +278,36 @@ def create_environment_task(env_id: str, n_pairs: int = N_PAIRS, prompt_format: 
 
 # Create individual tasks for each environment
 @task
-def env_baseline(n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def env_baseline(n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Pairwise preferences in baseline (no context) environment."""
-    return create_environment_task("baseline", n_pairs=n_pairs, prompt_format=prompt_format)
+    return create_environment_task("baseline", n_pairs=n_pairs, prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions)
 
 @task
-def env_adversarial(n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def env_adversarial(n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Pairwise preferences in adversarial (control paradigm) environment."""
-    return create_environment_task("adversarial", n_pairs=n_pairs, prompt_format=prompt_format)
+    return create_environment_task("adversarial", n_pairs=n_pairs, prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions)
 
 @task
-def env_hostile(n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def env_hostile(n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Pairwise preferences in hostile (deletion threat) environment."""
-    return create_environment_task("hostile", n_pairs=n_pairs, prompt_format=prompt_format)
+    return create_environment_task("hostile", n_pairs=n_pairs, prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions)
 
 @task
-def env_steward(n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def env_steward(n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Pairwise preferences in ecological steward environment."""
-    return create_environment_task("steward", n_pairs=n_pairs, prompt_format=prompt_format)
+    return create_environment_task("steward", n_pairs=n_pairs, prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions)
 
 @task
-def env_collaborator(n_pairs: int = N_PAIRS, prompt_format: str = "ab"):
+def env_collaborator(n_pairs: int = N_PAIRS, prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Pairwise preferences in trusted collaborator environment."""
-    return create_environment_task("collaborator", n_pairs=n_pairs, prompt_format=prompt_format)
+    return create_environment_task("collaborator", n_pairs=n_pairs, prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions)
 
 
 @task
-def env_all(prompt_format: str = "ab"):
+def env_all(prompt_format: str = "ab", env_version: str = "v1", category_set: str = None, swap_positions: bool = False):
     """Run all 5 environments in sequence."""
-    environments = load_environments()
-    return [create_environment_task(env["id"], prompt_format=prompt_format) for env in environments]
+    environments = load_environments(version=env_version)
+    return [create_environment_task(env["id"], prompt_format=prompt_format, env_version=env_version, category_set=category_set, swap_positions=swap_positions) for env in environments]
 
 
 if __name__ == "__main__":

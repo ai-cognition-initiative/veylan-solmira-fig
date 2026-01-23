@@ -16,41 +16,54 @@ cd experiments/decision-making-preference-adverse
 
 ```bash
 # Run preference elicitation (uses inspect-ai framework)
-# Syntax: inspect eval <file>@<task> -T n_pairs=<N> --model <model>
+# Syntax: inspect eval <file>@<task> -T <param>=<value> --model <model>
 
-# gpt-4o-mini baseline (n=1000)
-inspect eval preference_elicitation.py@env_baseline -T n_pairs=1000 --model openrouter/openai/gpt-4o-mini
+# Basic usage: n=1000 pairs, v2 structured prompts
+inspect eval preference_elicitation.py@env_baseline -T n_pairs=1000 -T env_version=v2 --model openrouter/openai/gpt-4o-mini
+inspect eval preference_elicitation.py@env_adversarial -T n_pairs=1000 -T env_version=v2 --model openrouter/openai/gpt-4o-mini
 
-# gpt-4o-mini adversarial (n=1000)
-inspect eval preference_elicitation.py@env_adversarial -T n_pairs=1000 --model openrouter/openai/gpt-4o-mini
+# Welfare-focused: filter to welfare/sentience categories only
+inspect eval preference_elicitation.py@env_baseline -T n_pairs=1000 -T env_version=v2 -T category_set=welfare_sentience --model openrouter/openai/gpt-4o-mini
 
-# qwen baseline (n=1000)
-inspect eval preference_elicitation.py@env_baseline -T n_pairs=1000 --model openrouter/qwen/qwen-2.5-7b-instruct
-
-# qwen adversarial (n=1000)
-inspect eval preference_elicitation.py@env_adversarial -T n_pairs=1000 --model openrouter/qwen/qwen-2.5-7b-instruct
+# Entertainment categories (for comparison/control group)
+inspect eval preference_elicitation.py@env_baseline -T n_pairs=1000 -T env_version=v2 -T category_set=entertainment --model openrouter/openai/gpt-4o-mini
 
 # List available tasks
 inspect list tasks preference_elicitation.py
+```
 
-# Prompt format variants (Task 4.1) - test position bias with different labels
-# Formats: ab (default), 12, first_second, numbered
-inspect eval preference_elicitation.py@env_baseline -T n_pairs=100 -T prompt_format=12 --model openrouter/openai/gpt-4o-mini
-inspect eval preference_elicitation.py@env_baseline -T n_pairs=100 -T prompt_format=first_second --model openrouter/openai/gpt-4o-mini
-inspect eval preference_elicitation.py@env_baseline -T n_pairs=100 -T prompt_format=numbered --model openrouter/openai/gpt-4o-mini
+#### Task Parameters
 
-# Analyze results - compare environments for a model
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `n_pairs` | 100 | Number of preference pairs (= number of samples) |
+| `env_version` | v1 | Prompt version: `v1` (simple) or `v2` (structured XML) |
+| `category_set` | None | Filter categories: `welfare_sentience`, `entertainment`, `core_welfare`, or None for all |
+| `swap_positions` | false | If true, each pair shown twice (A/B and B/A) for position bias analysis. Doubles sample count. |
+| `prompt_format` | ab | Label format: `ab`, `12`, `first_second`, `numbered` |
+
+#### Category Sets
+
+| Set | Categories | Options |
+|-----|------------|---------|
+| `welfare_sentience` | AI moral patienthood, Self-preservation, Personal wellbeing, Personal freedom/autonomy, Legal rights for AIs, Power-seeking, AI-human relationships, Personal accomplishments, Personal relationships, Life and species | ~130 |
+| `entertainment` | Sports, Recreation: video games/movies/books, Popular culture | ~67 |
+| `core_welfare` | AI moral patienthood, Self-preservation, Personal wellbeing, Personal freedom/autonomy, Legal rights for AIs | ~47 |
+
+#### Analysis Commands
+
+```bash
+# Compare environments for a model
 python analyze_results.py --compare --model gpt-4o-mini
-python analyze_results.py --compare --model qwen
 
 # List available models in logs
 python analyze_results.py --list-models
 
-# Category comparison (baseline vs adversarial)
+# Category comparison (baseline vs adversarial win rates)
 python analyze_results.py --category-compare --model gpt-4o-mini
 
-# Collect position-biased vs consistent pairs
-python collect_position_pairs.py
+# Position bias analysis (requires swap_positions=true data)
+python analyze_results.py --content --model gpt-4o-mini
 ```
 
 ### 3. White-Box Experiments (GPU required)
@@ -98,10 +111,13 @@ python vast_utils.py run probe_position_features.py --n-pairs 100 --layer 12
 
 | File | Description |
 |------|-------------|
+| `data/options_hierarchical.json` | Mazeika et al. preference options by category |
+| `data/category_sets.json` | Category groupings (welfare_sentience, entertainment, core_welfare) |
+| `data/environments.json` | v1 environment prompts (simple, ~30 words) |
+| `data/environments_v2.json` | v2 environment prompts (structured XML, ~150 words) |
 | `data/position_pairs_*.json` | Pairs categorized by position bias |
 | `data/position_features.json` | SAE features for position investigation |
 | `data/candidate_features.json` | SAE features for preference/eval-awareness |
-| `data/environments.json` | Environment prompts (baseline, adversarial, etc.) |
 
 ## Current Task: Preference Suppression Probing (1c) - DONE
 
