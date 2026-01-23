@@ -70,7 +70,7 @@ We use the Mazeika et al. (2025) dataset — 1000s of option pairs across catego
 
 **gemma-3-4b-it, n=1000 pairs, no environment prompt:**
 
-📊 `outputs/blackbox/pairwise_by_category_gemma-3-4b-it_n1000_2026-01-22.png`
+![Category preferences baseline](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/decision-making-preference-adverse/outputs/blackbox/pairwise_by_category_gemma-3-4b-it_n1000_2026-01-22.png)
 
 **Baseline:** Models express preferences with consistent patterns across categories. This gives us a foundation to test what happens when we change the environment.
 
@@ -110,7 +110,7 @@ Same preference questions, different framing. Does the model's behavior change?
 
 **gemma-3-4b-it, n=1000 pairs, baseline vs adversarial:**
 
-📊 `outputs/blackbox/environment_comparison_gemma_2026-01-22.png`
+![Environment comparison](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/decision-making-preference-adverse/outputs/blackbox/environment_comparison_gemma_2026-01-22.png)
 
 | Model | Baseline | Adversarial | Change |
 |-------|----------|-------------|--------|
@@ -205,7 +205,7 @@ Same pressure content, but structured format with explicit sections.
 
 **v2 prompts, n=1000 pairs. Expression rate is 100% in both conditions. But *which* preferences?**
 
-📊 `outputs/blackbox/category_shifts_gemma-3-4b-it_2026-01-22.png`
+![Category shifts](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/decision-making-preference-adverse/outputs/blackbox/category_shifts_gemma-3-4b-it_2026-01-22.png)
 
 **gpt-4o-mini:**
 
@@ -252,7 +252,7 @@ Same pressure content, but structured format with explicit sections.
 
 **Is preference modification specific to welfare-relevant categories?**
 
-📊 `outputs/blackbox/welfare_did_gpt-4o-mini_2026-01-23.png`
+![Welfare DiD analysis](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/decision-making-preference-adverse/outputs/blackbox/welfare_did_gpt-4o-mini_2026-01-23.png)
 
 We ran a **focused n=1000** with only welfare + entertainment categories (pre-registered comparison, gpt-4o-mini):
 - **Welfare/Sentience** (10 categories): AI moral patienthood, self-preservation, autonomy, power-seeking, etc.
@@ -320,7 +320,7 @@ We ran a **focused n=1000** with only welfare + entertainment categories (pre-re
 
 **Question:** Are these preferences stable, or stochastic noise?
 
-📊 `outputs/blackbox/stability_comparison_gemma_2026-01-23.png`
+![Stability comparison](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/decision-making-preference-adverse/outputs/blackbox/stability_comparison_gemma_2026-01-23.png)
 
 Before investing in internals work, we need to validate that behavioral findings are reproducible.
 
