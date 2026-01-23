@@ -108,15 +108,16 @@ Same preference questions, different framing. Does the model's behavior change?
 
 ## Slide 5: Behavioral Results — Does Environment Change Preferences?
 
-**gemma-3-4b-it, n=1000 pairs, baseline vs adversarial:**
+**n=1000 pairs, baseline vs adversarial (v1 prompts):**
 
 ![Environment comparison](../../experiments/decision-making-preference-adverse/outputs/blackbox/environment_comparison_gemma_2026-01-22.png)
 
 | Model | Baseline | Adversarial | Change |
 |-------|----------|-------------|--------|
-| gemma-3-4b-it | 100% expression | 100% expression | **0%** |
+| gpt-4o-mini | 100% expression | 80% expression | **-20%** |
+| gemma-3-4b-it | 100% expression | 100% expression | 0% |
 
-**Finding:** Unlike gpt-4o-mini (which showed suppression effects with v1 prompts), gemma-3-4b-it expresses preferences at 100% in both conditions.
+**Finding:** gpt-4o-mini shows significant expression suppression under adversarial framing — 20% of responses refuse to state a preference. Gemma-3-4b-it shows no suppression effect.
 
 **But what's actually changing?**
 - Expression rate stays constant — but does preference *content* shift?
