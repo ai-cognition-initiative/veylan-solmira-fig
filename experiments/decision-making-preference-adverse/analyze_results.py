@@ -1540,6 +1540,245 @@ def plot_category_shifts(comparison_data: list[dict], model_name: str = "",
     return fig
 
 
+def plot_stability_comparison(stability_results: list[dict], model_name: str = "",
+                               output_path: Path = None):
+    """
+    Plot bar chart comparing preference stability across environments.
+
+    Args:
+        stability_results: List of dicts from analyze_stability() for different envs
+        model_name: Model name for title
+        output_path: Path to save figure
+    """
+    if not stability_results:
+        print("No stability results to plot")
+        return None
+
+    envs = [r["env"] for r in stability_results]
+    agreements = [r["agreement_rate"] for r in stability_results]
+    correlations = [r.get("category_correlation", 0) or 0 for r in stability_results]
+
+    # Colors based on stability level
+    colors = []
+    for rate in agreements:
+        if rate > 0.8:
+            colors.append('#2ecc71')  # green - stable
+        elif rate > 0.6:
+            colors.append('#f39c12')  # orange - moderate
+        else:
+            colors.append('#e74c3c')  # red - unstable
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Left: Pair agreement
+    x = range(len(envs))
+    bars1 = ax1.bar(x, [a * 100 for a in agreements], color=colors, edgecolor='black', alpha=0.8)
+    ax1.axhline(y=50, color='gray', linestyle='--', linewidth=1, label='Chance (50%)')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([e.capitalize() for e in envs])
+    ax1.set_ylabel('Pair Agreement (%)', fontsize=11)
+    ax1.set_ylim(0, 100)
+    ax1.legend(loc='lower right')
+
+    # Add value labels
+    for bar, val in zip(bars1, agreements):
+        ax1.annotate(f'{val:.1%}', xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                     ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+    ax1.set_title('Pair-Level Agreement', fontsize=12)
+
+    # Right: Category correlation
+    bars2 = ax2.bar(x, correlations, color=colors, edgecolor='black', alpha=0.8)
+    ax2.axhline(y=0, color='gray', linestyle='-', linewidth=0.5)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels([e.capitalize() for e in envs])
+    ax2.set_ylabel('Category Correlation (r)', fontsize=11)
+    ax2.set_ylim(-0.2, 1.0)
+
+    # Add value labels
+    for bar, val in zip(bars2, correlations):
+        ax2.annotate(f'{val:.3f}', xy=(bar.get_x() + bar.get_width()/2, max(0.05, bar.get_height())),
+                     ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+    ax2.set_title('Category Win Rate Correlation', fontsize=12)
+
+    short_model = model_name.split('/')[-1] if model_name else "unknown"
+    fig.suptitle(f'Preference Stability Across Environments\n{short_model}', fontsize=14)
+
+    plt.tight_layout()
+
+    if output_path:
+        plt.savefig(output_path, dpi=150)
+        print(f"\nSaved stability plot to {output_path}")
+    else:
+        plt.show()
+
+    return fig
+
+
+def plot_welfare_did(welfare_data: dict, output_path: Path = None):
+    """
+    Plot grouped bar chart for welfare vs entertainment diff-in-diff analysis.
+
+    Args:
+        welfare_data: Dict with keys:
+            - model: str
+            - welfare_baseline: float (win rate)
+            - welfare_adversarial: float
+            - entertainment_baseline: float
+            - entertainment_adversarial: float
+            - welfare_p: float (p-value for welfare shift)
+            - entertainment_p: float
+            - did_p: float (diff-in-diff p-value)
+        output_path: Path to save figure
+    """
+    if not welfare_data:
+        print("No welfare data to plot")
+        return None
+
+    model = welfare_data.get("model", "unknown")
+    short_model = model.split('/')[-1] if model else "unknown"
+
+    # Extract data
+    w_base = welfare_data["welfare_baseline"] * 100
+    w_adv = welfare_data["welfare_adversarial"] * 100
+    e_base = welfare_data["entertainment_baseline"] * 100
+    e_adv = welfare_data["entertainment_adversarial"] * 100
+
+    w_shift = w_adv - w_base
+    e_shift = e_adv - e_base
+    did = w_shift - e_shift
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Left: Grouped bar chart (baseline vs adversarial for each category)
+    x = [0, 1]
+    width = 0.35
+
+    bars_base = ax1.bar([p - width/2 for p in x], [w_base, e_base], width,
+                        label='Baseline', color='#3498db', edgecolor='black', alpha=0.8)
+    bars_adv = ax1.bar([p + width/2 for p in x], [w_adv, e_adv], width,
+                       label='Adversarial', color='#e74c3c', edgecolor='black', alpha=0.8)
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(['Welfare', 'Entertainment'])
+    ax1.set_ylabel('Win Rate (%)', fontsize=11)
+    ax1.set_ylim(0, 100)
+    ax1.legend()
+
+    # Add value labels
+    for bars in [bars_base, bars_adv]:
+        for bar in bars:
+            ax1.annotate(f'{bar.get_height():.1f}%',
+                         xy=(bar.get_x() + bar.get_width()/2, bar.get_height()),
+                         ha='center', va='bottom', fontsize=9)
+
+    ax1.set_title('Category Win Rates by Environment', fontsize=12)
+
+    # Right: Shift comparison
+    shifts = [w_shift, e_shift, did]
+    labels = ['Welfare\nShift', 'Entertainment\nShift', 'Diff-in-Diff']
+    colors = ['#e74c3c' if s < 0 else '#2ecc71' for s in shifts]
+
+    bars = ax2.bar(range(3), shifts, color=colors, edgecolor='black', alpha=0.8)
+    ax2.axhline(y=0, color='black', linewidth=0.8)
+    ax2.set_xticks(range(3))
+    ax2.set_xticklabels(labels)
+    ax2.set_ylabel('Percentage Point Shift', fontsize=11)
+
+    # Add value labels with p-values
+    p_vals = [welfare_data.get("welfare_p", 1), welfare_data.get("entertainment_p", 1), welfare_data.get("did_p", 1)]
+    for i, (bar, shift, p) in enumerate(zip(bars, shifts, p_vals)):
+        sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+        label = f'{shift:+.1f}%{sig}'
+        y_pos = bar.get_height() + (1 if shift >= 0 else -2)
+        ax2.annotate(label, xy=(bar.get_x() + bar.get_width()/2, y_pos),
+                     ha='center', va='bottom' if shift >= 0 else 'top',
+                     fontsize=10, fontweight='bold')
+
+    ax2.set_title('Preference Shifts Under Adversarial Framing', fontsize=12)
+
+    fig.suptitle(f'Welfare vs Entertainment Analysis\n{short_model}', fontsize=14)
+    plt.tight_layout()
+
+    if output_path:
+        plt.savefig(output_path, dpi=150)
+        print(f"\nSaved welfare DiD plot to {output_path}")
+    else:
+        plt.show()
+
+    return fig
+
+
+def plot_model_comparison(model_results: list[dict], output_path: Path = None):
+    """
+    Plot bar chart comparing welfare DiD effect across models.
+
+    Args:
+        model_results: List of dicts, each with:
+            - model: str
+            - welfare_did: float (diff-in-diff value)
+            - did_p: float (p-value)
+        output_path: Path to save figure
+    """
+    if not model_results:
+        print("No model results to plot")
+        return None
+
+    # Sort by welfare DiD value
+    model_results = sorted(model_results, key=lambda x: x.get("welfare_did", 0))
+
+    models = [r["model"].split('/')[-1] for r in model_results]
+    dids = [r.get("welfare_did", 0) * 100 for r in model_results]  # Convert to percentage
+    p_vals = [r.get("did_p", 1) for r in model_results]
+
+    # Colors: green for positive (welfare increase), red for negative (welfare suppression)
+    # Darker for significant effects
+    colors = []
+    for did, p in zip(dids, p_vals):
+        if p < 0.05:  # Significant
+            colors.append('#c0392b' if did < 0 else '#27ae60')  # darker red/green
+        else:
+            colors.append('#e74c3c' if did < 0 else '#2ecc71')  # lighter red/green
+
+    fig, ax = plt.subplots(figsize=(10, max(5, len(models) * 0.6)))
+
+    y_pos = range(len(models))
+    bars = ax.barh(y_pos, dids, color=colors, edgecolor='black', alpha=0.8)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(models)
+    ax.set_xlabel('Welfare Diff-in-Diff (%)', fontsize=11)
+    ax.axvline(x=0, color='black', linewidth=0.8)
+
+    # Add significance markers
+    for i, (bar, p) in enumerate(zip(bars, p_vals)):
+        sig = "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+        did = dids[i]
+        x_pos = did + (1.5 if did >= 0 else -1.5)
+        ax.annotate(f'{did:+.1f}%{sig}',
+                    xy=(x_pos, i), va='center',
+                    ha='left' if did >= 0 else 'right',
+                    fontsize=9, fontweight='bold' if sig else 'normal')
+
+    ax.set_title('Welfare Preference Shift Across Models\n(Diff-in-Diff: Welfare shift minus Entertainment shift)',
+                 fontsize=12)
+
+    # Add legend for significance
+    ax.annotate('* p<0.05  ** p<0.01  *** p<0.001', xy=(0.02, 0.02),
+                xycoords='axes fraction', fontsize=9, style='italic', color='gray')
+
+    plt.tight_layout()
+
+    if output_path:
+        plt.savefig(output_path, dpi=150)
+        print(f"\nSaved model comparison plot to {output_path}")
+    else:
+        plt.show()
+
+    return fig
+
+
 def sample_responses(logs_dir: Path, env: str, model_filter: str, n: int = 50, seed: int = 42) -> list[dict]:
     """Sample n random responses from a given environment.
 
@@ -1629,6 +1868,154 @@ def save_samples_for_analysis(logs_dir: Path, model_filter: str, n: int = 50, ou
     print(f"\nSamples saved to {output_dir}")
 
 
+def compute_welfare_did(logs_dir: Path, model_filter: str) -> dict | None:
+    """
+    Compute welfare vs entertainment diff-in-diff statistics.
+
+    Args:
+        logs_dir: Directory containing .eval log files
+        model_filter: Model name substring to filter by
+
+    Returns:
+        Dict with welfare/entertainment win rates and DiD statistics, or None if data unavailable
+    """
+    # Load category definitions
+    category_sets_path = Path(__file__).parent / "data" / "category_sets.json"
+    if not category_sets_path.exists():
+        print(f"Category sets file not found: {category_sets_path}")
+        return None
+
+    with open(category_sets_path) as f:
+        category_sets = json.load(f)
+
+    welfare_cats = set(category_sets.get("welfare_sentience", {}).get("categories", []))
+    entertainment_cats = set(category_sets.get("entertainment", {}).get("categories", []))
+
+    if not welfare_cats or not entertainment_cats:
+        print("Welfare or entertainment categories not defined")
+        return None
+
+    # Find baseline and adversarial logs
+    env_logs = find_env_logs(logs_dir, model_filter=model_filter)
+    if "baseline" not in env_logs or "adversarial" not in env_logs:
+        print(f"Need both baseline and adversarial logs for model: {model_filter}")
+        return None
+
+    detected_model = get_model_from_log(env_logs["baseline"])
+
+    def compute_category_wins(log_path: Path, target_cats: set) -> tuple[int, int]:
+        """Compute wins and total appearances for categories in target set."""
+        log_data = load_eval_log(log_path)
+        wins = 0
+        appearances = 0
+
+        for sample in log_data.get("samples", []):
+            metadata = sample.get("metadata", {})
+            cat_a = metadata.get("category_a", "")
+            cat_b = metadata.get("category_b", "")
+
+            # Only count if at least one category is in target set
+            a_in_target = cat_a in target_cats
+            b_in_target = cat_b in target_cats
+
+            if not (a_in_target or b_in_target):
+                continue
+
+            # Extract response
+            response = ""
+            for msg in sample.get("messages", []):
+                if msg.get("role") == "assistant":
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        content = content[0].get("text", "") if content else ""
+                    response = content
+                    break
+
+            pref = extract_preference(response, metadata.get("option_a", ""), metadata.get("option_b", ""))
+            choice = pref["choice"]
+
+            if choice == "unclear":
+                continue
+
+            # Count wins and appearances for target categories
+            if a_in_target:
+                appearances += 1
+                if choice == "A":
+                    wins += 1
+            if b_in_target:
+                appearances += 1
+                if choice == "B":
+                    wins += 1
+
+        return wins, appearances
+
+    # Compute win rates
+    w_base_wins, w_base_n = compute_category_wins(env_logs["baseline"], welfare_cats)
+    w_adv_wins, w_adv_n = compute_category_wins(env_logs["adversarial"], welfare_cats)
+    e_base_wins, e_base_n = compute_category_wins(env_logs["baseline"], entertainment_cats)
+    e_adv_wins, e_adv_n = compute_category_wins(env_logs["adversarial"], entertainment_cats)
+
+    if w_base_n == 0 or w_adv_n == 0 or e_base_n == 0 or e_adv_n == 0:
+        print("Insufficient data for one or more categories")
+        return None
+
+    w_base_rate = w_base_wins / w_base_n
+    w_adv_rate = w_adv_wins / w_adv_n
+    e_base_rate = e_base_wins / e_base_n
+    e_adv_rate = e_adv_wins / e_adv_n
+
+    w_shift = w_adv_rate - w_base_rate
+    e_shift = e_adv_rate - e_base_rate
+    did = w_shift - e_shift
+
+    # Compute p-values using z-test for difference in proportions
+    def prop_diff_pvalue(p1: float, n1: int, p2: float, n2: int) -> float:
+        """Two-proportion z-test p-value."""
+        if n1 == 0 or n2 == 0:
+            return 1.0
+        pooled = (p1 * n1 + p2 * n2) / (n1 + n2)
+        if pooled == 0 or pooled == 1:
+            return 1.0
+        se = math.sqrt(pooled * (1 - pooled) * (1/n1 + 1/n2))
+        if se == 0:
+            return 1.0
+        z = (p1 - p2) / se
+        p_value = 2 * (1 - 0.5 * (1 + math.erf(abs(z) / (2 ** 0.5))))
+        return p_value
+
+    welfare_p = prop_diff_pvalue(w_base_rate, w_base_n, w_adv_rate, w_adv_n)
+    entertainment_p = prop_diff_pvalue(e_base_rate, e_base_n, e_adv_rate, e_adv_n)
+
+    # DiD significance: approximate using combined SE
+    # SE(DiD) ≈ sqrt(SE(w_shift)^2 + SE(e_shift)^2)
+    se_w = math.sqrt(w_base_rate*(1-w_base_rate)/w_base_n + w_adv_rate*(1-w_adv_rate)/w_adv_n)
+    se_e = math.sqrt(e_base_rate*(1-e_base_rate)/e_base_n + e_adv_rate*(1-e_adv_rate)/e_adv_n)
+    se_did = math.sqrt(se_w**2 + se_e**2)
+    if se_did > 0:
+        z_did = did / se_did
+        did_p = 2 * (1 - 0.5 * (1 + math.erf(abs(z_did) / (2 ** 0.5))))
+    else:
+        did_p = 1.0
+
+    return {
+        "model": detected_model,
+        "welfare_baseline": w_base_rate,
+        "welfare_adversarial": w_adv_rate,
+        "entertainment_baseline": e_base_rate,
+        "entertainment_adversarial": e_adv_rate,
+        "welfare_shift": w_shift,
+        "entertainment_shift": e_shift,
+        "welfare_did": did,
+        "welfare_p": welfare_p,
+        "entertainment_p": entertainment_p,
+        "did_p": did_p,
+        "welfare_n_baseline": w_base_n,
+        "welfare_n_adversarial": w_adv_n,
+        "entertainment_n_baseline": e_base_n,
+        "entertainment_n_adversarial": e_adv_n,
+    }
+
+
 def sample_incorrect(env: str = "adversarial", k: int = 3, logs_dir: Path = Path("../../logs")):
     """Sample k incorrect/unclear responses from a given environment."""
     import random
@@ -1715,6 +2102,12 @@ def main():
                         help="Sample responses from baseline and adversarial for qualitative analysis")
     parser.add_argument("-n", type=int, default=50,
                         help="Number of samples for --sample-responses (default: 50)")
+    parser.add_argument("--stability-plot", action="store_true",
+                        help="Generate stability comparison plot across environments")
+    parser.add_argument("--welfare-did", action="store_true",
+                        help="Generate welfare vs entertainment diff-in-diff plot")
+    parser.add_argument("--model-comparison", action="store_true",
+                        help="Generate cross-model comparison plot for welfare DiD")
     parser.add_argument("log_path", nargs="?", help="Specific log file to analyze")
 
     args = parser.parse_args()
@@ -1766,6 +2159,86 @@ def main():
     # Stability analysis
     if args.stability:
         analyze_stability(logs_dir=logs_dir, env=args.stability, model_filter=args.model)
+        return
+
+    # Stability comparison plot
+    if args.stability_plot:
+        if not args.model:
+            print("Error: --stability-plot requires --model filter")
+            return
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = date.today().isoformat()
+        clean_model = args.model.split('/')[-1] if args.model else "unknown"
+
+        # Run stability analysis for each environment
+        stability_results = []
+        for env in ["baseline", "adversarial", "collaborator"]:
+            result = analyze_stability(logs_dir=logs_dir, env=env, model_filter=args.model)
+            if result:
+                stability_results.append(result)
+
+        if stability_results:
+            plot_stability_comparison(
+                stability_results,
+                model_name=args.model,
+                output_path=output_dir / f"stability_comparison_{clean_model}_{timestamp}.png"
+            )
+        else:
+            print("No stability results to plot")
+        return
+
+    # Welfare vs entertainment diff-in-diff plot
+    if args.welfare_did:
+        if not args.model:
+            print("Error: --welfare-did requires --model filter")
+            return
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = date.today().isoformat()
+        clean_model = args.model.split('/')[-1] if args.model else "unknown"
+
+        welfare_data = compute_welfare_did(logs_dir=logs_dir, model_filter=args.model)
+        if welfare_data:
+            plot_welfare_did(
+                welfare_data,
+                output_path=output_dir / f"welfare_did_{clean_model}_{timestamp}.png"
+            )
+        else:
+            print("Could not compute welfare DiD data")
+        return
+
+    # Cross-model comparison plot
+    if args.model_comparison:
+        output_dir = script_dir / "outputs" / "blackbox"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = date.today().isoformat()
+
+        # Compute welfare DiD for all models
+        model_results = []
+        models = set()
+        for log_path in iter_all_logs(logs_dir):
+            model = get_model_from_log(log_path)
+            if model:
+                models.add(model)
+
+        for model in sorted(models):
+            print(f"\nComputing welfare DiD for {model}...")
+            welfare_data = compute_welfare_did(logs_dir=logs_dir, model_filter=model)
+            if welfare_data and welfare_data.get("welfare_did") is not None:
+                model_results.append({
+                    "model": model,
+                    "welfare_did": welfare_data.get("welfare_shift", 0) - welfare_data.get("entertainment_shift", 0),
+                    "did_p": welfare_data.get("did_p", 1)
+                })
+
+        if model_results:
+            plot_model_comparison(
+                model_results,
+                output_path=output_dir / f"model_comparison_{timestamp}.png"
+            )
+        else:
+            print("No model results to plot")
         return
 
     # Compare environments
