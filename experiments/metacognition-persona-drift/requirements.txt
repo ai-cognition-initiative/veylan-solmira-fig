@@ -1,0 +1,20 @@
+# Local orchestration
+vastai-sdk
+python-dotenv
+
+# Steps 3-5 dependencies (run locally, no GPU needed)
+openai
+torch>=2.0
+transformers>=4.40
+accelerate
+huggingface_hub
+scikit-learn
+numpy
+pyarrow
+tqdm
+jsonlines
+plotly
+matplotlib>=3.10.8
+
+# assistant-axis is installed separately as editable, skipping vllm (Linux-only):
+#   pip install --no-deps -e assistant-axis/
