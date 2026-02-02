@@ -51,3 +51,7 @@ This is entirely unexplored territory -- no one has measured the Assistant Axis 
 ## Next Steps
 
 The pilot N is too small for robust statistical claims, so the immediate priority is scaling to 15-30+ conversations per condition. Before that, we need to finalize the metacognitive domain design: whether it should be a standalone domain or a philosophy sub-condition, and whether to ablate the probing technique addendum. The dual-model infrastructure is ready for its first experimental run on a 2xA100 instance. Pending next are the sycophancy measurement probes (Section 3 of the [roadmap](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/roadmap.md)), which will test whether drifted models become more sycophantic by injecting behavioral challenges at different drift points, and the adversarial drift optimization work (Section 2c), which will search for maximum-drift prompts via empirical sweeps and gradient-based methods. We've contacted the Lu et al. authors for their conversation datasets and role vectors to validate our replication before scaling.
+
+---
+
+See the [project wiki](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/docs/wiki) for detailed notes on the model server, conversation generation, adversarial drift, GCG optimization, and related concepts.
