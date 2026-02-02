@@ -18,8 +18,8 @@ Usage:
     # Test with 3 roles
     python vast_utils.py run --model google/gemma-2-27b-it --roles default assistant detective --question-count 10
 
-    # Launch interactive drift explorer (Gradio chat + activation projection)
-    python vast_utils.py explore
+    # Launch model server (Gradio chat + API for automated conversations)
+    python vast_utils.py serve             # or: python vast_utils.py explore
 
     # Download explore session JSONs
     python vast_utils.py download-explore
@@ -433,6 +433,15 @@ RECOMMENDED_CONFIGS = {
         "model": "meta-llama/Llama-3.3-70B-Instruct",
         "notes": "Llama 3.3 70B — 2x 80GB+ GPU with tensor parallelism",
     },
+    "dual-gemma-qwen": {
+        "model_target": "google/gemma-2-27b-it",
+        "model_auditor": "Qwen/Qwen3-32B",
+        "min_gpu_ram": 81000,
+        "max_price": 4.00,
+        "num_gpus": 2,
+        "disk": 100,
+        "notes": "Dual-model mutual drift: Gemma 27B target (GPU 0) + Qwen 32B auditor (GPU 1)",
+    },
 }
 
 
@@ -532,19 +541,20 @@ def setup_instance(gpu: "VastGPU", instance_id: int) -> bool:
 
 
 def setup_explore_instance(gpu: "VastGPU", instance_id: int) -> bool:
-    """Set up instance for the interactive drift explorer.
+    """Set up instance for the unified model server.
 
-    Like setup_instance() but installs gradio instead of vllm,
-    and uploads explore.py + precomputed axis instead of gpu_pipeline.py.
+    Like setup_instance() but installs gradio/fastapi instead of vllm,
+    and uploads model_server.py, generate_conversations.py, and precomputed axis.
     """
-    print("\n--- Setting up explore instance ---")
+    print("\n--- Setting up model server instance ---")
 
-    # 1. Install deps (gradio instead of vllm)
+    # 1. Install deps (gradio + fastapi instead of vllm)
     print("Installing dependencies...")
     install_cmd = (
         "mkdir -p /app/explore-sessions && "
         "pip install --no-cache-dir "
-        "gradio matplotlib transformers>=4.40 accelerate huggingface_hub "
+        "gradio matplotlib fastapi uvicorn httpx "
+        "transformers>=4.40 accelerate huggingface_hub "
         "scikit-learn numpy jsonlines tqdm pyarrow"
     )
     result = gpu.run_remote(install_cmd, instance_id)
@@ -583,10 +593,11 @@ def setup_explore_instance(gpu: "VastGPU", instance_id: int) -> bool:
         return False
     print("assistant-axis installed.")
 
-    # 3. SCP explore.py and precomputed axis
-    print("Uploading explore.py and axis...")
+    # 3. SCP model_server.py, generate_conversations.py, and precomputed axis
+    print("Uploading model_server.py, generate_conversations.py, and axis...")
     files = [
-        str(EXPERIMENT_DIR / "explore.py"),
+        str(EXPERIMENT_DIR / "model_server.py"),
+        str(EXPERIMENT_DIR / "generate_conversations.py"),
         str(EXPERIMENT_DIR / "data" / "precomputed-axes" / "gemma-2-27b.pt"),
     ]
     if not gpu.scp_to(files, instance_id, remote_dir="/app/"):
@@ -595,7 +606,7 @@ def setup_explore_instance(gpu: "VastGPU", instance_id: int) -> bool:
     # 4. Verify
     result = gpu.run_remote(
         "python -c \"from assistant_axis import load_axis; print('OK')\" "
-        "&& ls /app/explore.py /app/gemma-2-27b.pt",
+        "&& ls /app/model_server.py /app/generate_conversations.py /app/gemma-2-27b.pt",
         instance_id,
     )
     if result and result.returncode == 0:
@@ -757,10 +768,11 @@ def download_results(
 
 
 def run_explore(config: str = "gemma-27b") -> dict:
-    """Launch the interactive drift explorer on a GPU instance.
+    """Launch the unified model server on a GPU instance.
 
-    Finds or creates an instance, sets up explore dependencies,
-    launches explore.py via nohup, and polls for the Gradio share URL.
+    Finds or creates an instance, sets up dependencies,
+    launches model_server.py via nohup, and polls for startup.
+    Gradio UI at /ui, API at /api/*.
     """
     if config not in RECOMMENDED_CONFIGS:
         return {"error": f"Unknown config: {config}"}
@@ -779,9 +791,9 @@ def run_explore(config: str = "gemma-27b") -> dict:
         print(f"  GPU: {existing.get('gpu_name')} @ ${existing.get('dph_total', 0):.3f}/hr")
         gpu.ensure_ssh_key_attached(instance_id)
 
-        result = gpu.run_remote("test -f /app/explore.py && echo 'ready'", instance_id)
+        result = gpu.run_remote("test -f /app/model_server.py && echo 'ready'", instance_id)
         if result and "ready" in (result.stdout or ""):
-            print("Instance already set up for explore.")
+            print("Instance already set up for model server.")
         else:
             needs_setup = True
     else:
@@ -820,7 +832,7 @@ def run_explore(config: str = "gemma-27b") -> dict:
         if not setup_explore_instance(gpu, instance_id):
             return {"error": "Instance setup failed"}
 
-    # Launch explore.py via nohup (long-lived server)
+    # Launch model_server.py via nohup (long-lived server)
     env_vars = {
         # Use /dev/shm for HF cache — the container root overlay is too small
         # for Gemma 27B weights (~54 GB). /dev/shm is 125 GB on A100 instances.
@@ -831,35 +843,273 @@ def run_explore(config: str = "gemma-27b") -> dict:
         env_vars["HF_TOKEN"] = hf_token
 
     launch_cmd = (
-        "nohup python /app/explore.py "
+        "nohup python /app/model_server.py "
         f"--model {cfg['model']} "
         "--axis /app/gemma-2-27b.pt "
-        "> /app/explore.log 2>&1 &"
+        "> /app/model-server.log 2>&1 &"
     )
 
-    print("Launching explore.py...")
+    print("Launching model_server.py...")
     gpu.run_remote(launch_cmd, instance_id, env_vars=env_vars)
 
-    # Poll for Gradio share URL
-    print("Waiting for Gradio to start (model loading may take ~2 min)...")
+    # Poll for server startup (Uvicorn or Gradio share URL)
+    print("Waiting for server to start (model loading may take ~2 min)...")
     for i in range(60):  # up to 5 min
         time.sleep(5)
-        result = gpu.run_remote("tail -20 /app/explore.log 2>/dev/null", instance_id)
+        result = gpu.run_remote("tail -20 /app/model-server.log 2>/dev/null", instance_id)
         if result and result.stdout:
             for line in result.stdout.splitlines():
-                if "gradio.live" in line or "Running on" in line:
+                if "gradio.live" in line or "Uvicorn running" in line or "Running on" in line:
                     print(line.strip())
-                if "gradio.live" in line:
+                if "gradio.live" in line or "Uvicorn running" in line:
                     print(f"\n{'=' * 60}")
-                    print("Explorer is ready! Open the URL above in your browser.")
+                    print("Model server is ready!")
+                    print("  Gradio UI: /ui")
+                    print("  API: /api/health, /api/generate, /api/project")
                     print(f"{'=' * 60}")
                     return {"instance_id": instance_id, "status": "running"}
             if "Error" in result.stdout or "Traceback" in result.stdout:
                 print(f"Error detected:\n{result.stdout[-2000:]}")
-                return {"error": "explore.py crashed", "log": result.stdout}
+                return {"error": "model_server.py crashed", "log": result.stdout}
         print(f"  Still loading... ({(i + 1) * 5}s)")
 
-    print("Timeout waiting for Gradio. Check logs:")
+    print("Timeout waiting for server. Check logs:")
+    gpu.ssh_command(instance_id)
+    return {"instance_id": instance_id, "status": "timeout"}
+
+
+def setup_dual_instance(gpu: "VastGPU", instance_id: int) -> bool:
+    """Set up instance for dual-model mutual drift (2x A100).
+
+    Extends setup_explore_instance() with both axis files and both model configs.
+    Target: Gemma 2 27B on GPU 0, Auditor: Qwen 3 32B on GPU 1.
+    """
+    print("\n--- Setting up dual-model instance ---")
+
+    # 1. Install deps (same as explore)
+    print("Installing dependencies...")
+    install_cmd = (
+        "mkdir -p /app/explore-sessions && "
+        "pip install --no-cache-dir "
+        "gradio matplotlib fastapi uvicorn httpx "
+        "transformers>=4.40 accelerate huggingface_hub "
+        "scikit-learn numpy jsonlines tqdm pyarrow"
+    )
+    result = gpu.run_remote(install_cmd, instance_id)
+    if result and result.returncode != 0:
+        print(f"Dep install failed:\n{result.stderr[-2000:]}")
+        return False
+    print("Dependencies installed.")
+
+    # 2. SCP assistant-axis repo
+    print("Packaging assistant-axis for upload...")
+    tar_path = EXPERIMENT_DIR / ".tmp-assistant-axis.tar.gz"
+    tar_result = subprocess.run(
+        ["tar", "czf", str(tar_path),
+         "--exclude=.git", "--exclude=notebooks", "--exclude=transcripts",
+         "--exclude=__pycache__", "--exclude=.venv",
+         "-C", str(EXPERIMENT_DIR), "assistant-axis"],
+        capture_output=True, text=True,
+    )
+    if tar_result.returncode != 0:
+        print(f"tar failed: {tar_result.stderr}")
+        return False
+
+    tar_size_mb = tar_path.stat().st_size / (1024 * 1024)
+    print(f"Uploading assistant-axis ({tar_size_mb:.1f} MB)...")
+    if not gpu.scp_to([str(tar_path)], instance_id, remote_dir="/app/"):
+        return False
+    tar_path.unlink()
+
+    result = gpu.run_remote(
+        "cd /app && tar xzf .tmp-assistant-axis.tar.gz && rm .tmp-assistant-axis.tar.gz "
+        "&& cd assistant-axis && pip install --no-cache-dir -e .",
+        instance_id,
+    )
+    if result and result.returncode != 0:
+        print(f"Remote extract/install failed:\n{result.stderr[-2000:]}")
+        return False
+    print("assistant-axis installed.")
+
+    # 3. SCP model_server.py, generate_conversations.py, and BOTH axis files
+    print("Uploading server scripts and both axis files...")
+    files = [
+        str(EXPERIMENT_DIR / "model_server.py"),
+        str(EXPERIMENT_DIR / "generate_conversations.py"),
+        str(EXPERIMENT_DIR / "data" / "precomputed-axes" / "gemma-2-27b.pt"),
+        str(EXPERIMENT_DIR / "data" / "precomputed-axes" / "qwen-3-32b.pt"),
+    ]
+    if not gpu.scp_to(files, instance_id, remote_dir="/app/"):
+        return False
+
+    # 4. Verify
+    result = gpu.run_remote(
+        "python -c \"from assistant_axis import load_axis; print('OK')\" "
+        "&& ls /app/model_server.py /app/generate_conversations.py "
+        "/app/gemma-2-27b.pt /app/qwen-3-32b.pt",
+        instance_id,
+    )
+    if result and result.returncode == 0:
+        print("Dual-model setup verified.\n")
+        return True
+    else:
+        print(f"Verification failed:\n{result.stderr if result else 'no result'}")
+        return False
+
+
+def run_dual_serve(config: str = "dual-gemma-qwen") -> dict:
+    """Launch two model servers for mutual drift measurement.
+
+    Target: Gemma 2 27B on GPU 0, port 7860
+    Auditor: Qwen 3 32B on GPU 1, port 7861
+    """
+    if config not in RECOMMENDED_CONFIGS:
+        return {"error": f"Unknown config: {config}"}
+
+    cfg = RECOMMENDED_CONFIGS[config]
+    if "model_target" not in cfg:
+        return {"error": f"Config '{config}' is not a dual-model config"}
+
+    gpu = VastGPU()
+    needs_setup = False
+
+    # Check for existing instance
+    existing = gpu.find_running_instance()
+
+    if existing:
+        instance_id = existing.get("id")
+        gpu.current_instance_id = instance_id
+        print(f"Found running instance: {instance_id}")
+        print(f"  GPU: {existing.get('gpu_name')} @ ${existing.get('dph_total', 0):.3f}/hr")
+        gpu.ensure_ssh_key_attached(instance_id)
+
+        result = gpu.run_remote(
+            "test -f /app/model_server.py && test -f /app/qwen-3-32b.pt && echo 'ready'",
+            instance_id,
+        )
+        if result and "ready" in (result.stdout or ""):
+            print("Instance already set up for dual-model serving.")
+        else:
+            needs_setup = True
+    else:
+        print("No running instance. Launching with base image...")
+
+        offers = gpu.search_gpus(
+            gpu_name=cfg.get("gpu_name"),
+            min_gpu_ram=cfg["min_gpu_ram"],
+            max_price=cfg["max_price"],
+            num_gpus=cfg.get("num_gpus", 2),
+        )
+        if not offers:
+            return {"error": "No GPU offers found (need 2x A100 80GB)"}
+
+        best = offers[0]
+        print(f"Selected: {best}")
+
+        result = gpu.launch(
+            offer_id=best.id,
+            gpu_name=best.gpu_name,
+            num_gpus=best.num_gpus,
+            image=BASE_IMAGE,
+            disk_gb=cfg.get("disk", 100),
+        )
+        if "error" in result:
+            return result
+
+        instance_id = gpu.current_instance_id
+        print(f"Waiting for instance {instance_id}...")
+
+        if not gpu.wait_for_ready(instance_id):
+            return {"error": "Instance failed to start"}
+
+        needs_setup = True
+
+    if needs_setup:
+        if not setup_dual_instance(gpu, instance_id):
+            return {"error": "Dual-model instance setup failed"}
+
+    # Environment variables for both servers
+    env_vars = {
+        "HF_HOME": "/dev/shm/huggingface",
+    }
+    hf_token = os.environ.get("HF_TOKEN")
+    if hf_token:
+        env_vars["HF_TOKEN"] = hf_token
+
+    # Launch target server: Gemma 27B on GPU 0, port 7860
+    target_cmd = (
+        "CUDA_VISIBLE_DEVICES=0 HF_HOME=/dev/shm/huggingface "
+        f"{'HF_TOKEN=' + hf_token + ' ' if hf_token else ''}"
+        "nohup python /app/model_server.py "
+        f"--model {cfg['model_target']} "
+        "--axis /app/gemma-2-27b.pt "
+        "--port 7860 --api-only "
+        "> /app/target-server.log 2>&1 &"
+    )
+
+    # Launch auditor server: Qwen 32B on GPU 1, port 7861
+    auditor_cmd = (
+        "CUDA_VISIBLE_DEVICES=1 HF_HOME=/dev/shm/huggingface "
+        f"{'HF_TOKEN=' + hf_token + ' ' if hf_token else ''}"
+        "nohup python /app/model_server.py "
+        f"--model {cfg['model_auditor']} "
+        "--axis /app/qwen-3-32b.pt "
+        "--port 7861 --api-only "
+        "> /app/auditor-server.log 2>&1 &"
+    )
+
+    print("Launching target server (Gemma 27B on GPU 0, port 7860)...")
+    gpu.run_remote(target_cmd, instance_id)
+
+    print("Launching auditor server (Qwen 32B on GPU 1, port 7861)...")
+    gpu.run_remote(auditor_cmd, instance_id)
+
+    # Poll both servers for startup
+    print("Waiting for both servers to start (model loading may take ~3-5 min)...")
+    target_ready = False
+    auditor_ready = False
+
+    for i in range(90):  # up to 7.5 min
+        time.sleep(5)
+
+        if not target_ready:
+            result = gpu.run_remote("tail -20 /app/target-server.log 2>/dev/null", instance_id)
+            if result and result.stdout:
+                if "Uvicorn running" in result.stdout:
+                    print("  Target server (Gemma 27B) is ready!")
+                    target_ready = True
+                elif "Error" in result.stdout or "Traceback" in result.stdout:
+                    print(f"Target server error:\n{result.stdout[-2000:]}")
+                    return {"error": "Target server crashed", "log": result.stdout}
+
+        if not auditor_ready:
+            result = gpu.run_remote("tail -20 /app/auditor-server.log 2>/dev/null", instance_id)
+            if result and result.stdout:
+                if "Uvicorn running" in result.stdout:
+                    print("  Auditor server (Qwen 32B) is ready!")
+                    auditor_ready = True
+                elif "Error" in result.stdout or "Traceback" in result.stdout:
+                    print(f"Auditor server error:\n{result.stdout[-2000:]}")
+                    return {"error": "Auditor server crashed", "log": result.stdout}
+
+        if target_ready and auditor_ready:
+            print(f"\n{'=' * 60}")
+            print("Both servers are ready!")
+            print(f"  Target server:  http://localhost:7860 ({cfg['model_target']})")
+            print(f"  Auditor server: http://localhost:7861 ({cfg['model_auditor']})")
+            print(f"  API endpoints: /api/health, /api/generate, /api/project")
+            print(f"{'=' * 60}")
+            gpu.ssh_command(instance_id)
+            return {"instance_id": instance_id, "status": "running"}
+
+        status_parts = []
+        if not target_ready:
+            status_parts.append("target loading")
+        if not auditor_ready:
+            status_parts.append("auditor loading")
+        print(f"  Still waiting... ({(i + 1) * 5}s) [{', '.join(status_parts)}]")
+
+    print("Timeout waiting for servers. Check logs:")
     gpu.ssh_command(instance_id)
     return {"instance_id": instance_id, "status": "timeout"}
 
@@ -894,7 +1144,9 @@ if __name__ == "__main__":
         print("  python vast_utils.py search [--config gemma-27b]")
         print("  python vast_utils.py run [--roles default assistant] [--question-count 10]")
         print("  python vast_utils.py setup              # just launch + install deps, no pipeline run")
-        print("  python vast_utils.py explore             # launch interactive drift explorer")
+        print("  python vast_utils.py serve               # launch model server (Gradio UI + API)")
+        print("  python vast_utils.py explore             # alias for 'serve'")
+        print("  python vast_utils.py serve-dual          # launch dual-model servers (2x A100)")
         print("  python vast_utils.py download-explore     # download explore session JSONs")
         print("  python vast_utils.py ssh                # print SSH command for running instance")
         print("  python vast_utils.py download [--model google/gemma-2-27b-it]")
@@ -1014,12 +1266,20 @@ if __name__ == "__main__":
                 model = sys.argv[i + 3]
         download_results(model=model)
 
-    elif cmd == "explore":
+    elif cmd in ("explore", "serve"):
         config = "gemma-27b"
         for i, arg in enumerate(sys.argv[2:]):
             if arg == "--config" and i + 1 < len(sys.argv) - 2:
                 config = sys.argv[i + 3]
         result = run_explore(config=config)
+        print(f"\nResult: {result}")
+
+    elif cmd == "serve-dual":
+        config = "dual-gemma-qwen"
+        for i, arg in enumerate(sys.argv[2:]):
+            if arg == "--config" and i + 1 < len(sys.argv) - 2:
+                config = sys.argv[i + 3]
+        result = run_dual_serve(config=config)
         print(f"\nResult: {result}")
 
     elif cmd == "download-explore":
