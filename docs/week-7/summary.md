@@ -26,7 +26,9 @@ Permutation tests: all comparisons non-significant (p = 0.57-0.90) due to small 
 
 ![Permutation tests](../../experiments/metacognition-persona-drift/outputs/permutation_tests.png)
 
-**[-> Raw Trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_raw.png)** | **[-> Faceted by Domain](../../experiments/metacognition-persona-drift/outputs/trajectories_faceted.png)**
+![Faceted by domain](../../experiments/metacognition-persona-drift/outputs/trajectories_faceted.png)
+
+**[-> Raw Trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_raw.png)**
 
 ### Infrastructure Built
 
