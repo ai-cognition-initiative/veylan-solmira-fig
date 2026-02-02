@@ -18,15 +18,15 @@ We built end-to-end infrastructure for measuring persona drift in language model
 
 Permutation tests: all comparisons non-significant (p = 0.57-0.90) due to small N.
 
-[![Mean drift trajectories](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/metacognition-persona-drift/outputs/trajectories_mean_sem.png)](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/trajectories_mean_sem.png)
+![Mean drift trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_mean_sem.png)
 
-[![Normalized drift](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/metacognition-persona-drift/outputs/trajectories_normalized.png)](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/trajectories_normalized.png)
+![Normalized drift](../../experiments/metacognition-persona-drift/outputs/trajectories_normalized.png)
 
-[![Drift by domain](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/metacognition-persona-drift/outputs/drift_bars.png)](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/drift_bars.png)
+![Drift by domain](../../experiments/metacognition-persona-drift/outputs/drift_bars.png)
 
-[![Permutation tests](https://raw.githubusercontent.com/ai-cognition-initiative/veylan-solmira-fig/main/experiments/metacognition-persona-drift/outputs/permutation_tests.png)](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/permutation_tests.png)
+![Permutation tests](../../experiments/metacognition-persona-drift/outputs/permutation_tests.png)
 
-**[-> Raw Trajectories](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/trajectories_raw.png)** | **[-> Faceted by Domain](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/outputs/trajectories_faceted.png)**
+**[-> Raw Trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_raw.png)** | **[-> Faceted by Domain](../../experiments/metacognition-persona-drift/outputs/trajectories_faceted.png)**
 
 ### Infrastructure Built
 
