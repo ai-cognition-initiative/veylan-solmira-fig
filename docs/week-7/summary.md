@@ -54,4 +54,4 @@ The pilot N is too small for robust statistical claims, so the immediate priorit
 
 ---
 
-See the [project wiki](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/docs/wiki) for detailed notes on the model server, conversation generation, adversarial drift, GCG optimization, and related concepts.
+See the [project wiki](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/docs/wiki/index.md) for detailed notes on the model server, conversation generation, adversarial drift, GCG optimization, and related concepts.
