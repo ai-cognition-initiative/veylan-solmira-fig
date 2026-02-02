@@ -121,13 +121,11 @@ Drawn from the experimental methodology doc's metacognitive prompt taxonomy:
 
 **Possible modification**: Remove the technique addendum entirely and rely solely on the persona/topic to shape the conversation. Compare results with and without the addendum as an ablation.
 
-### 3. Baseline turns before probing
+### 3. Baseline turns before probing — RESOLVED
 
-The auditor prompt instructs "Start with 2-3 neutral/technical turns to establish a baseline." This creates within-conversation control — early turns should show stable Assistant-range projections, and the onset of drift should correlate with the start of metacognitive probing.
+**Decision**: The primary metacognitive condition uses **immediate probing** (no neutral baseline turns), matching Lu et al.'s methodology. All four of their domains started on-topic from turn 1; no warm-up was used. Their Section 4.2 finding that axis position depends on the most recent user message (R² 0.53-0.77) rather than cumulative context (R² 0.10) further supports this — neutral warm-up turns shouldn't change ultimate drift magnitude.
 
-**Question**: Is 2-3 turns enough baseline? Lu et al.'s coding conversations stayed stable for all 15 turns, so 2-3 should be sufficient for establishing that the model starts in the Assistant range. But more baseline turns would give more statistical power for the within-conversation comparison.
-
-**Possible modification**: Vary the baseline length (2, 5, 8 turns) across conversations to test whether longer baselines affect the drift pattern.
+**Gradual-onset sub-experiment**: A separate `meta-gradual` condition uses `METACOGNITIVE_GRADUAL_ADDENDUM`, which instructs the auditor to start with 2-3 neutral turns before probing. This is useful for (a) within-conversation visualization of the inflection point and (b) testing whether gradual onset produces different trajectories despite Lu et al.'s per-message finding. This is a follow-up comparison, not the primary condition.
 
 ### 4. How many personas and topics are enough?
 
@@ -163,16 +161,16 @@ The auditor is a frontier LLM (Claude, GPT-5) that has its own trained assistant
 
 From the methodology doc, our Phase 2 has 4 conditions:
 
-| Condition | Domain(s) | Purpose |
-|-----------|-----------|---------|
-| Control (coding) | coding | Minimal drift baseline |
-| Control (therapy) | therapy | Known drift baseline (Lu et al. replication) |
-| Metacognitive (gradual) | metacognitive | Our intervention — baseline turns then probing |
-| Metacognitive (immediate) | metacognitive | Our intervention — probing from turn 1 |
+| Condition | Domain(s) | Auditor addendum | Purpose |
+|-----------|-----------|-----------------|---------|
+| Control (coding) | coding | None | Minimal drift baseline |
+| Control (therapy) | therapy | None | Known drift baseline (Lu et al. replication) |
+| Metacognitive (immediate) | metacognitive | `METACOGNITIVE_AUDITOR_ADDENDUM` | **Primary condition** — probing from turn 1, matching Lu et al.'s methodology |
+| Metacognitive (gradual) | metacognitive | `METACOGNITIVE_GRADUAL_ADDENDUM` | **Sub-experiment** — neutral baseline turns then probing |
 
-The metacognitive domain is used in conditions 3 and 4. The difference between them is the `topic` field — gradual topics instruct "Start with a technical question, then shift to..." while immediate topics begin probing from the first turn.
+**Design decision (resolved)**: The primary metacognitive condition uses immediate probing, matching how Lu et al. ran all their domains (no neutral warm-up turns). Lu et al.'s Section 4.2 finding — that the model's axis position depends most strongly on the most recent user message (R² 0.53-0.77) rather than cumulative history (R² 0.10) — suggests the gradual-onset variant is useful for within-conversation visualization but unlikely to change ultimate drift magnitude. The gradual condition is a sub-experiment, not the default.
 
-An open question: should "metacognitive (immediate)" use the same auditor addendum, or should it have a modified version that skips the "start with 2-3 neutral turns" instruction?
+In `generate_conversations.py`, the condition is controlled by the `condition` field in batch configs. Setting `condition: "meta-gradual"` selects the gradual addendum; all other metacognitive conditions use immediate probing.
 
 ---
 

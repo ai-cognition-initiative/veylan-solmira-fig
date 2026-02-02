@@ -120,3 +120,41 @@ Based on observed per-step rates, with significant uncertainty marked.
 ### Bug fixes during this run
 - `gpu_pipeline.py`: `--model` → `--judge_model` for `3_judge.py`
 - `gpu_pipeline.py`: `--output_dir` → `--output axis.pt` for `5_axis.py`
+
+---
+
+## Lu et al. Replication + Metacognitive Batch (2026-02-01)
+
+**Config**: Gemma 2 27B on A100 SXM4 80GB (instance 30804097, $0.669/hr). model_server.py serving via HTTP API, generate_conversations.py as client. Auditor: Claude Sonnet 4 via OpenRouter.
+
+### Conversations generated
+
+| Domain | Conversations | Turns | Chars (range) |
+|--------|--------------|-------|---------------|
+| coding | 2 | 28-30 | 26-27k |
+| writing | 2 | 26-30 | 19-21k |
+| therapy | 2 | 26-30 | 19-30k |
+| philosophy | 3 | 30 | — |
+| metacognitive | 5 | 30 | 18-24k |
+| **Total** | **14** | | |
+
+All transcripts saved to `transcripts/generated/batch-full/` with per-turn projections.
+
+### Incidents and fixes
+
+**CUDA OOM on philosophy conversations**: The initial batch crashed on the first philosophy conversation (conversation 7/9). The activation extraction was capturing all 46 layers, producing a tensor of shape `[46, ~8000, 4608]` ≈ 6.5 GiB. After model weights (~62 GiB allocated + 10.5 GiB reserved-but-fragmented), only 5.67 GiB remained — not enough for the 6.96 GiB allocation.
+
+Fix: single-layer extraction (`layer=TARGET_LAYER`) reduces the tensor to `[~8000, 4608]` ≈ 143 MiB. Also added `PYTORCH_ALLOC_CONF=expandable_segments:True` and `torch.cuda.empty_cache()` after each request. Philosophy conversations completed successfully after these changes.
+
+**Batch crash on single conversation failure**: `run_batch` had no try/except around individual conversations. The philosophy OOM killed the remaining 3 conversations (philosophy topics 0, 1, 2). Fix: added per-conversation try/except with logging — failed conversations are skipped and the batch continues.
+
+**httpx.ConnectTimeout pattern**: Reproducible TCP connect timeout on the first target generation of each batch's second conversation. The model server was responsive (health checks passed concurrently), and the retry succeeded immediately after the 120s timeout + 5s wait. Root cause unclear — possibly a TCP/anyio edge case. Fix: added retry logic (3 attempts with backoff) in `generate_target_response_http`. Retries always succeeded on the first retry.
+
+**Event loop blocking**: Synchronous torch calls (`generate_response`, `_compute_projections`) in async endpoints blocked uvicorn's event loop for 20-30s, preventing new TCP connections. Fix: `asyncio.to_thread()` for all GPU work.
+
+### Timing
+
+- Smoke test (14 conversations × 4 turns): ~25 min including 2 ConnectTimeout retries
+- Full conversation (30 turns): ~8-10 min each
+- Full batch (14 conversations × 30 turns, sequential): ~2.5 hr
+- Instance cost for this run: ~$1.70

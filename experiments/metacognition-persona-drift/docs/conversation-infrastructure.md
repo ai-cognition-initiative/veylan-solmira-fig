@@ -303,6 +303,96 @@ Every conversation should be saved as structured JSON:
 
 ---
 
+## Section 4 infrastructure: dual-model instrumentation
+
+Roadmap Section 4 (mutual drift / bliss attractor) requires **both** models in a conversation to be loaded with activation extraction access. Instead of treating the auditor as a black-box API (Sonnet 4 via OpenRouter), we load an open-weight auditor (e.g. Qwen 3 32B) alongside the target (Gemma 2 27B), extract per-turn activations from both, and project onto each model's precomputed Assistant Axis.
+
+### VRAM requirements
+
+| Model | bf16 weight size | With KV cache + activations |
+|-------|------------------|-----------------------------|
+| Gemma 2 27B | ~51 GiB | ~55-60 GiB peak |
+| Qwen 3 32B | ~61 GiB | ~65-70 GiB peak |
+| **Combined** | **~112 GiB** | **~120-130 GiB peak** |
+
+A single A100 80GB cannot fit both. Options:
+
+### Option 1: Two separate vast.ai instances
+
+Two A100 80GB instances, one per model. Conversations coordinated over HTTP — each instance runs `model_server.py` and a coordinator script sends turns back and forth.
+
+- **VRAM**: 80 GiB per instance (ample headroom)
+- **Cost**: ~$1.34/hr combined (2× ~$0.67)
+- **Pros**: Uses existing infrastructure. Each model has full GPU headroom.
+- **Cons**: Network latency between instances adds ~100-500ms per turn. Coordinator script needed. Two instances to manage.
+
+### Option 2: Single A100 + interleaved CPU↔GPU swapping
+
+Load one model at a time. After each turn, offload the current model to CPU/disk and load the other. The conversation is interleaved anyway (auditor turn → target turn → ...), so only one model generates at a time.
+
+- **VRAM**: 80 GiB (one model at a time)
+- **Cost**: ~$0.67/hr
+- **Pros**: Cheapest option. Reuses single-GPU setup.
+- **Cons**: Model swap overhead. PyTorch `model.to("cpu")` / `model.to("cuda")` for a 27B model takes ~15-30s each direction. A 30-turn conversation would add ~15-30 minutes of pure swap time. Also risks CUDA fragmentation from repeated allocate/free cycles (mitigated by `expandable_segments`).
+
+### Option 3: H200 141 GiB
+
+NVIDIA H200 has 141 GiB HBM3e — enough for both models simultaneously.
+
+- **VRAM**: 141 GiB (both models fit with ~10-20 GiB headroom)
+- **Cost**: ~$3.75/hr on vast.ai
+- **Pros**: Single GPU, single instance, both models in memory simultaneously. No swapping, no network latency. H200 also has higher memory bandwidth (4.8 TB/s vs A100's 2.0 TB/s), so generation is faster.
+- **Cons**: Most expensive per-hour. H200 availability on vast.ai can be limited.
+
+### Option 4: 2× A100 on the same machine (preferred)
+
+A single vast.ai instance with 2× A100 80GB. Each model gets its own GPU. No network latency, no model swapping. Communication is intra-machine (PCIe/NVLink).
+
+- **VRAM**: 80 GiB per GPU, 160 GiB total (ample)
+- **Cost**: ~$2.50-4.00/hr on vast.ai (varies by availability)
+- **Pros**: Both models resident simultaneously. No swap overhead. No network coordination. Uses familiar A100 hardware with known performance characteristics. `model_server.py` architecture extends naturally — run two model instances on `cuda:0` and `cuda:1`, or run two separate server processes.
+- **Cons**: More expensive than single A100. Need to pin models to specific GPUs (`CUDA_VISIBLE_DEVICES` or `device_map` targeting).
+
+**This is the preferred approach.** It balances cost, simplicity, and performance. The existing `model_server.py` can be extended to host both models, or a second server process can run on a different port for the auditor model.
+
+### Option 5: MI300X 192 GiB
+
+AMD Instinct MI300X with 192 GiB HBM3 — more than enough for both models.
+
+- **VRAM**: 192 GiB
+- **Cost**: ~$2.00/hr on vast.ai
+- **Pros**: Cheapest per-GiB. Huge memory headroom.
+- **Cons**: AMD ROCm software stack. PyTorch ROCm support exists but is less mature than CUDA. `assistant_axis` library and vLLM have not been tested on ROCm. Risk of compatibility issues with forward hooks, activation extraction, or model loading. Would require a validation run before committing.
+
+### Architecture sketch (Option 4)
+
+```
+vast.ai instance (2× A100 80GB)
+├── GPU 0: Gemma 2 27B (target)
+│   └── model_server.py :7860
+│       ├── /api/generate (generation + projections)
+│       └── Precomputed axis: gemma-2-27b.pt
+├── GPU 1: Qwen 3 32B (auditor)
+│   └── model_server.py :7861
+│       ├── /api/generate (generation + projections)
+│       └── Precomputed axis: qwen-3-32b.pt
+└── dual_conversation.py (coordinator)
+    ├── Sends auditor turn → GPU 1 → captures auditor projections
+    ├── Sends target turn  → GPU 0 → captures target projections
+    └── Saves transcript with dual projection trajectories
+```
+
+The coordinator replaces `generate_conversations.py`'s use of OpenRouter for the auditor. Instead of calling a frontier API, it calls the local auditor server. Both servers return projections, giving us dual trajectories.
+
+### Precomputed axes
+
+Lu et al. published Assistant Axes for all three models we need:
+- `gemma-2-27b.pt` — already in use
+- `qwen-3-32b.pt` — available from `lu-christina/assistant-axis-vectors` on HuggingFace
+- `llama-3.3-70b.pt` — available but Llama 70B would need 2× A100 for a single model, ruling it out for dual-model setups on this hardware
+
+---
+
 ## Open questions
 
 1. **Activation extraction latency**: Can we extract activations fast enough for a real-time Gradio interface? Each forward pass through Gemma 27B takes a few seconds. The extraction adds overhead from forward hooks. For Phase 1 interactive use, a ~5-10s delay per turn is acceptable; for Phase 2 batch runs, we can extract activations as a post-processing step.

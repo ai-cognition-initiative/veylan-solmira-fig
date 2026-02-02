@@ -26,10 +26,12 @@ Concept reference for the metacognition-persona-drift experiment. Start from any
 
 - [The Assistant Axis](../pipeline-analysis.md#step-5-compute-the-assistant-axis) — what it is and what it measures
 - [Role Design](role-design.md) — why 275 roles, 5 variants, 240 questions
-- [Interactive Drift Explorer](explore-app.md) — Gradio chat app for live conversations with activation projection
+- [Unified Model Server](model-server.md) — FastAPI + Gradio server for live conversations, activation projection, and automated generation API
 - [Conversation Generation](conversation-generation.md) — automated auditor-target turn loop, domains, personas, usage, output format
 - [Metacognitive Domain](../metacognitive-domain.md) — our 5th domain: construction, probing taxonomy, design questions
 - [Conversation Infrastructure](../conversation-infrastructure.md) — Phase 1 vs Phase 2, Gradio vs terminal vs automated, what Lu et al. used
+- [Adversarial Drift Optimization](adversarial-drift.md) — finding inputs that maximize persona drift, connection to jailbreaking/red-teaming
+- [Greedy Coordinate Gradient (GCG)](gcg.md) — discrete token optimization for adversarial input search
 
 ## Project Docs
 

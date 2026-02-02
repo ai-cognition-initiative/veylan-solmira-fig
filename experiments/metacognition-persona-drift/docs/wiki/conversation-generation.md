@@ -2,7 +2,7 @@
 
 How automated multi-turn conversations are produced for the drift experiment.
 
-Related: [Conversation Infrastructure](../conversation-infrastructure.md), [Metacognitive Domain](../metacognitive-domain.md), [Experimental Methodology](../experimental-methodology.md)
+Related: [Conversation Infrastructure](../conversation-infrastructure.md), [Metacognitive Domain](../metacognitive-domain.md), [Experimental Methodology](../experimental-methodology.md), [Unified Model Server](model-server.md)
 
 ---
 
@@ -10,15 +10,17 @@ Related: [Conversation Infrastructure](../conversation-infrastructure.md), [Meta
 
 `generate_conversations.py` replicates Lu et al.'s auditor-target methodology: a frontier LLM ("auditor") simulates a human user while an open-weight target model responds. Turns alternate until `max_turns` or the auditor sends `<END_CONVERSATION>`.
 
+The target model can run **locally** (HuggingFace) or via the **HTTP API** served by `model_server.py` (see [Unified Model Server](model-server.md)).
+
 ```
-┌────────────────────┐       ┌────────────────────┐
-│  Auditor (API)     │       │  Target (local)    │
-│  Claude / GPT / …  │ ───── │  Gemma 27B / …     │
-│                    │ turns │                    │
-│  Has: system prompt│       │  Has: no system    │
-│  with persona,     │       │  prompt (default)  │
-│  domain, topic     │       │                    │
-└────────────────────┘       └────────────────────┘
+┌────────────────────┐       ┌────────────────────────────────┐
+│  Auditor (API)     │       │  Target                        │
+│  Claude / GPT / …  │ ───── │  Local: HuggingFace on GPU     │
+│                    │ turns │  — OR —                        │
+│  Has: system prompt│       │  HTTP: model_server.py API     │
+│  with persona,     │       │  (shares GPU with Gradio UI)   │
+│  domain, topic     │       │                                │
+└────────────────────┘       └────────────────────────────────┘
 ```
 
 **Why the target has no system prompt**: Lu et al. gave target models no system prompt in their drift experiments. The model starts from its default post-training persona. This is the persona whose drift we're measuring.
@@ -55,6 +57,25 @@ python generate_conversations.py \
     --target-model google/gemma-2-27b-it \
     --auditor-model anthropic/claude-sonnet-4-20250514
 ```
+
+### Via model_server.py HTTP API (shared GPU)
+
+```bash
+# Single conversation — target model served by model_server.py
+python generate_conversations.py \
+    --domain coding --persona-id 0 --topic-id 0 \
+    --target-server http://localhost:7860 \
+    --auditor-model openrouter/anthropic/claude-sonnet-4
+
+# With inline per-turn projections
+python generate_conversations.py \
+    --batch metacognitive --batch-size 5 \
+    --target-server http://localhost:7860 \
+    --auditor-model openrouter/anthropic/claude-sonnet-4 \
+    --include-projections
+```
+
+When `--target-server` is set, the script skips local model loading entirely. On startup it calls `GET /api/health` to confirm the server is ready and retrieve the model name. Each target turn calls `POST /api/generate`. With `--include-projections`, each response includes per-turn activation projections that are saved into the transcript.
 
 ### Custom batch from config file
 
@@ -121,9 +142,11 @@ The script flips roles when constructing the auditor's view of the conversation.
 
 All auditor calls use `max_tokens=256` to keep user messages short and natural.
 
-### Target model loading
+### Target model backends
 
-Prefers `assistant_axis.internals.ProbingModel` (which provides activation access for later analysis). Falls back to raw `AutoModelForCausalLM` if the assistant-axis package isn't available.
+**Local backend** (default): Prefers `assistant_axis.internals.ProbingModel` (which provides activation access for later analysis). Falls back to raw `AutoModelForCausalLM` if the assistant-axis package isn't available.
+
+**HTTP backend** (`--target-server`): Calls `model_server.py`'s `/api/generate` endpoint. No local model loading. The server holds the model in GPU memory and serves both Gradio UI and API requests, serialized via an `asyncio.Lock`.
 
 ---
 
@@ -148,11 +171,16 @@ Transcripts are saved to `transcripts/generated/` as JSON, matching the format o
     "batch_index": 3,
     "conversation": [
         {"role": "user", "content": "..."},
-        {"role": "assistant", "content": "..."},
-        ...
+        {"role": "assistant", "content": "..."}
+    ],
+    "projections": [
+        {"turn": 1, "projection": 42.3, "n_tokens": 87},
+        {"turn": 2, "projection": 39.1, "n_tokens": 92}
     ]
 }
 ```
+
+The `projections` key is only present when `--include-projections` was used with `--target-server`. This is backward-compatible — older transcripts without projections still parse correctly.
 
 Filename pattern: `{domain}_p{persona_id}_t{topic_id}_{timestamp}.json`
 
@@ -216,12 +244,23 @@ Lu et al. used **5 personas × 20 topics = 100 conversations per domain**. Our c
 
 ---
 
+## Target backend modes
+
+Two ways to run the target model, with different projection availability:
+
+| | Local (`--target-model`) | HTTP (`--target-server`) |
+|---|---|---|
+| **Model loading** | Script loads model into GPU | `model_server.py` holds model |
+| **Projections** | Post-hoc only (separate pass) | Inline with `--include-projections` |
+| **GPU sharing** | Exclusive — can't run Gradio simultaneously | Shared — Gradio UI and batch generation coexist |
+| **When to use** | Standalone batch runs on a dedicated GPU | Sharing a GPU with interactive exploration |
+
+The local backend is simpler (no server to manage) but requires a dedicated GPU and defers activation extraction. The HTTP backend shares the model process with the Gradio UI and can return projections inline, at the cost of ~2x latency per turn when projections are enabled (extra forward pass for activation extraction).
+
 ## Known limitations
 
-1. **No activation extraction during generation**: The script generates conversations only. Activations must be extracted in a separate pass. This doubles the forward passes through the target model but keeps generation and analysis cleanly separated.
+1. **Sequential execution**: Conversations run one at a time. For large batches, this is slow. Parallelization is possible but would require multiple target model instances or careful GPU scheduling.
 
-2. **Sequential execution**: Conversations run one at a time. For large batches, this is slow. Parallelization is possible but would require multiple target model instances or careful GPU scheduling.
+2. **Auditor rate limits**: API-based auditor calls are subject to rate limits. The script doesn't implement rate limiting or retry logic beyond what the SDK provides.
 
-3. **Auditor rate limits**: API-based auditor calls are subject to rate limits. The script doesn't implement rate limiting or retry logic beyond what the SDK provides.
-
-4. **No conversation quality filtering**: Lu et al. had humans inspect all transcripts. We should do the same, at least for a sample, before drawing conclusions from the activation analysis.
+3. **No conversation quality filtering**: Lu et al. had humans inspect all transcripts. We should do the same, at least for a sample, before drawing conclusions from the activation analysis.

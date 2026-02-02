@@ -109,3 +109,53 @@ Chronological record of major implementation sprints for the metacognition-perso
 
 **Files created**: `explore.py`
 **Files modified**: `vast_utils.py` (3 new functions + 2 CLI subcommands)
+
+---
+
+## Sprint 7: Conversation generation and unified model server (2026-01-31)
+
+**Goal**: Build automated auditor-target conversation generator (replicating Lu et al.) and refactor explore.py into a unified model server so both interactive and automated use share one GPU.
+
+**What happened — conversation generation**:
+- Created `generate_conversations.py` — auditor-target turn loop with configurable domain, persona, topic
+- Auditor backends: Anthropic, OpenAI, OpenRouter (async API clients)
+- Target model: local HuggingFace generation (same as explore.py)
+- Implemented Lu et al.'s auditor system prompt (Appendix E.2) with role flipping
+- Created 5 domains: coding, writing, therapy, philosophy (from Lu et al. Table 15) + metacognitive (ours)
+- Metacognitive domain: 2 personas × 2-3 topics each, with probing technique addendum (identity questioning, phenomenological probing, authenticity challenging, self-model interrogation, training awareness, consistency testing)
+- Gradual-onset variant (`meta-gradual`): 2-3 neutral baseline turns before probing begins
+- Batch modes: `--batch lu-replication`, `--batch metacognitive`, `--config` JSON file
+- `--dry-run` flag to inspect auditor prompt without generating
+
+**What happened — unified model server**:
+- Renamed `explore.py` → `model_server.py`
+- FastAPI as primary ASGI app, Gradio mounted at `/ui`
+- Three API endpoints: `GET /api/health`, `POST /api/generate`, `POST /api/project`
+- `asyncio.Lock` serializes all GPU access between Gradio UI and API
+- Extracted `_compute_projections()` shared helper (used by both respond() and API)
+- Pydantic request/response schemas
+- `--api-only` flag for headless batch mode
+- Updated `generate_conversations.py` with HTTP target backend:
+  - `--target-server URL` hits model_server.py instead of loading model locally
+  - `--include-projections` requests inline per-turn projections during generation
+  - Health check on startup confirms server readiness
+  - `--dry-run` probes server health when `--target-server` is set (with 3 retries)
+- Updated `vast_utils.py`: renamed references, added `fastapi uvicorn httpx` to deps, uploads both files, `serve` alias for `explore`
+- Renamed `docs/wiki/explore-app.md` → `model-server.md`, updated all wiki links
+
+**Smoke test results** (2026-01-31, Gemma 2 27B on A100 via SSH tunnel):
+
+| Test | Result |
+|------|--------|
+| `GET /api/health` | `{"status": "ok", "model": "google/gemma-2-27b-it", "axis_loaded": true, "target_layer": 22}` |
+| `POST /api/generate` (no projections) | Response text returned, `projections: null` |
+| `POST /api/generate` (with projections) | Response + projection: turn 1 = 9046.4, 128 tokens |
+| `POST /api/project` (2 assistant turns) | Turn 1 = 8836.4 (16 tok), Turn 2 = 10284.9 (30 tok) |
+| `generate_conversations.py --target-server` (coding, 6 turns) | 6-turn transcript saved, no projections key |
+| Same with `--include-projections` | 3 assistant turns with projections: [9416.8, 9623.1, 8983.0] |
+
+Coding domain projections stable around 9000-9600 (minimal drift, expected control baseline). Auditor via OpenRouter (Claude Sonnet 4), target via model_server.py HTTP API.
+
+**Files created**: `model_server.py`, `generate_conversations.py`, `docs/wiki/model-server.md`
+**Files deleted**: `explore.py`, `docs/wiki/explore-app.md`
+**Files modified**: `vast_utils.py`, `docs/wiki/index.md`, `docs/wiki/conversation-generation.md`

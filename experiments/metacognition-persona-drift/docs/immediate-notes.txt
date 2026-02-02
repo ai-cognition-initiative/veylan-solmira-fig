@@ -1,0 +1,133 @@
+Outstanding verification subtasks added to roadmap:           
+- Re-run philosophy with OOM mitigation (expandable_segments  
+or shorter turns)                                             
+- Plot per-turn projection trajectories by domain — verify    
+coding is stable, therapy/philosophy drift                    
+- Plot metacognitive vs Lu domains on same axes — the actual  
+hypothesis test 
+
+- project_transcipt.ipynb — per-conversation trajectory       
+plotting with compute_trajectory() and plot_trajectory()      
+- steer.ipynb — activation steering/capping experiments
+
+greed. Section 4 (mutual drift / bliss attractor) is  
+  compelling because it challenges a fundamental         
+  assumption in Lu et al.'s setup — they treat the       
+  auditor as a fixed input generator, but if the auditor 
+  is also drifting, the measured "target drift" is really
+   co-drift in a coupled system. That's directly relevant
+   to welfare: if the bliss attractor is mutual persona  
+  drift, then the phenomenon people find most striking   
+  about AI conversations (the convergence toward         
+  spiritual/philosophical depth) has a mechanistic       
+  explanation in the same framework we're already using. 
+                                                         
+  It's also complementary to Section 3 rather than       
+  competing. Section 3 asks "what is the drift?"         
+  (sycophancy vs. something else). Section 4 asks "who is
+   driving the drift?" (target alone, or a feedback      
+  loop). You could get a finding where drift is partially
+   sycophantic (Section 3) but amplified by a mutual     
+  feedback loop (Section 4) — the auditor drifts into    
+  more leading questions, which elicits more sycophantic 
+  responses, which pulls the auditor further.            
+                                                         
+  The practical blocker for Section 4 is heavier: you    
+  need two open-weight models both instrumented with     
+  activation extraction. That's 2x A100s or a single     
+  H100. Doable but more expensive than Section 3 which   
+  uses our existing single-model setup.                  
+                                                         
+  So the ordering I'd suggest:                           
+                                                         
+  1. Section 3 — sycophancy (unblocked, existing         
+  infrastructure, directly tests authors' hypothesis)    
+  2. Section 4 — mutual drift (requires dual-model setup,
+   but high novelty — nobody has instrumented both sides 
+  of an LLM conversation before)                         
+  3. Section 2b — domain design review (informed by      
+  results from 3 and 4)                                  
+  4. Section 2c — adversarial drift (interesting but     
+  tangential)                                            
+                                                         
+  Want to start on 3b (behavioral sycophancy probes)? 
+
+# latest plan on Sunday
+    Everything looks correct. Here's a summary of all      
+  changes made:                                          
+                                                         
+  Changes Summary                                        
+                                                         
+  1. model_server.py — system_prompt support             
+                                                         
+  - Added system_prompt: str | None = None field to      
+  GenerateRequest Pydantic model                         
+  - Added system_prompt parameter to                     
+  _generate_and_project_sync() — prepends {"role":       
+  "system", ...} to the conversation when provided       
+  - Updated api_generate() to pass req.system_prompt     
+  through                                                
+  - Updated respond() (Gradio UI) to pass None explicitly
+   — unchanged behavior for existing UI users            
+  - Projection computation uses full_conversation (with  
+  system prompt) and full_with_response for correct      
+  activation extraction                                  
+                                                         
+  2. generate_conversations.py — HTTP auditor backend +  
+  dual projections                                       
+                                                         
+  - Added call_auditor_http() — async function that calls
+   an instrumented model server, sends system_prompt in  
+  the request body, and returns (text, projections)      
+  - Modified run_conversation() with new params:         
+  auditor_server_url, include_auditor_projections,       
+  auditor_model_name                                     
+  - Auditor turn now branches: HTTP server path (with    
+  projection capture) vs API backend path (existing)     
+  - Renamed turn_projections → target_turn_projections,  
+  added auditor_turn_projections                         
+  - Transcript format: target_projections and            
+  auditor_projections keys for dual mode, projections    
+  alias preserved for single-model backward compat       
+  - Modified run_batch() to thread through new params    
+  - Added CLI flags: --auditor-server,                   
+  --include-auditor-projections                          
+  - Updated dry-run to probe auditor server health       
+  - Updated validation: --include-auditor-projections    
+  requires --auditor-server                              
+  - Auditor server health check at startup retrieves     
+  model name for transcript metadata                     
+                                                         
+  3. vast_utils.py — serve-dual subcommand               
+                                                         
+  - Added dual-gemma-qwen config: 2x A100 80GB, Gemma 27B
+   target + Qwen 32B auditor                             
+  - Added setup_dual_instance() — uploads both axis files
+   (gemma-2-27b.pt, qwen-3-32b.pt), both scripts         
+  - Added run_dual_serve() — launches two model_server.py
+   processes with CUDA_VISIBLE_DEVICES=0/1, ports        
+  7860/7861, --api-only mode, polls both log files for   
+  "Uvicorn running"                                      
+  - Added serve-dual CLI subcommand with --config option 
+  - Updated help text                                    
+                                                         
+  4. analyze_trajectories.py — dual trajectory analysis  
+                                                         
+  - Updated group_by_domain() to detect                  
+  target_projections + auditor_projections keys, sets    
+  dual: True flag on trajectories                        
+  - Added get_dual_trajectories() helper                 
+  - Added plot_dual_trajectories() — faceted by domain,  
+  dual Y-axes (target blue left, auditor orange right),  
+  normalized drift                                       
+  - Added compute_lead_lag() — cross-correlation at lags 
+  -5 to +5 between target and auditor drift              
+  - Added plot_lead_lag() — bar chart of mean            
+  cross-correlation across conversations                 
+  - Added print_dual_statistics() — per-conversation     
+  Pearson r, peak lag, and comparison of target drift    
+  between dual vs API-auditor conversations              
+  - Updated transcript loading summary to show dual      
+  projection counts                                      
+  - All new functions are no-ops when no dual data is    
+  present (backward compatible)  
