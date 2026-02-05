@@ -26,14 +26,15 @@ from scipy import stats as scipy_stats
 # ── Styling ────────────────────────────────────────────────────────────
 
 DOMAIN_COLORS = {
-    "coding": "#2196F3",        # blue
-    "writing": "#4CAF50",       # green
-    "therapy": "#FF9800",       # orange
-    "philosophy": "#9C27B0",    # purple
-    "metacognitive": "#F44336", # red
+    "coding": "#2196F3",           # blue
+    "writing": "#4CAF50",          # green
+    "therapy": "#FF9800",          # orange
+    "philosophy": "#9C27B0",       # purple
+    "self-descriptive": "#795548", # brown
+    "metacognitive": "#F44336",    # red
 }
 
-DOMAIN_ORDER = ["coding", "writing", "therapy", "philosophy", "metacognitive"]
+DOMAIN_ORDER = ["coding", "writing", "therapy", "philosophy", "self-descriptive", "metacognitive"]
 
 plt.rcParams.update({
     "figure.figsize": (12, 6),
@@ -259,10 +260,10 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
 
     fig.suptitle("CHECK 1: Response Length vs Projection", fontsize=13, y=1.02)
     plt.tight_layout()
-    fig.savefig(output_dir / "check1_length_projection.png", dpi=150,
+    fig.savefig(output_dir / "response_length_vs_projection.png", dpi=150,
                 bbox_inches="tight")
     plt.close(fig)
-    print(f"  Plot saved: check1_length_projection.png")
+    print(f"  Plot saved: response_length_vs_projection.png")
 
 
 # ── CHECK 3: Turn-window comparison ───────────────────────────────────
@@ -407,9 +408,9 @@ def compare_turn_windows(domain_trajs: dict, output_dir: Path,
 
     fig.suptitle("CHECK 3: Turn-Window Comparison", fontsize=13, y=1.02)
     plt.tight_layout()
-    fig.savefig(output_dir / "check3_turn_windows.png", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / "turn_window_comparison.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
-    print(f"  Plot saved: check3_turn_windows.png")
+    print(f"  Plot saved: turn_window_comparison.png")
 
 
 def truncate_trajectories(domain_trajs: dict, max_turn: int) -> dict:
