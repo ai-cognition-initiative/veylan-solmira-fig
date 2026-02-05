@@ -20,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
 from collections import defaultdict
+from scipy import stats as scipy_stats
 
 
 # ── Styling ────────────────────────────────────────────────────────────
@@ -148,6 +149,285 @@ def print_slope_table(domain_trajs: dict):
             s = slopes_by_domain[domain]
             print(f"  {domain:15s}: {np.mean(s):+8.2f} ± {np.std(s):6.2f} "
                   f"(n={len(s)})")
+
+
+# ── CHECK 1: Length-projection correlation ─────────────────────────────
+
+def correlation_length_projection(domain_trajs: dict, output_dir: Path):
+    """CHECK 1: Test whether response length (n_tokens) confounds projection.
+
+    Computes Pearson correlation between n_tokens and projection for each
+    turn across all conversations.  Reports within-domain and pooled-across-
+    domain correlations.  Flags any domain with |r| > 0.3.
+
+    Produces a scatter plot with per-domain regression lines.
+    """
+    print(f"\n{'='*62}")
+    print("CHECK 1: Response-Length vs Projection Correlation")
+    print(f"{'='*62}")
+
+    # Collect (n_tokens, projection) pairs per domain
+    pairs_by_domain: dict[str, list[tuple[int, float]]] = defaultdict(list)
+    for domain in DOMAIN_ORDER:
+        if domain not in domain_trajs:
+            continue
+        for traj in domain_trajs[domain]:
+            tokens = traj.get("tokens", [])
+            values = traj["values"]
+            if len(tokens) != len(values):
+                continue  # skip if token counts unavailable
+            for tok, proj in zip(tokens, values):
+                pairs_by_domain[domain].append((tok, proj))
+
+    if not pairs_by_domain:
+        print("  No (n_tokens, projection) data available — skipped.")
+        return
+
+    # Within-domain correlations
+    flagged = []
+    domain_results = {}
+    for domain in DOMAIN_ORDER:
+        if domain not in pairs_by_domain or len(pairs_by_domain[domain]) < 3:
+            continue
+        toks, projs = zip(*pairs_by_domain[domain])
+        r, p = scipy_stats.pearsonr(toks, projs)
+        domain_results[domain] = (r, p, len(toks))
+        flag = " *** FLAGGED (|r|>0.3)" if abs(r) > 0.3 else ""
+        print(f"  {domain:15s}  r={r:+.3f}  p={p:.4f}  n={len(toks):4d}{flag}")
+        if abs(r) > 0.3:
+            flagged.append(domain)
+
+    # Pooled correlation
+    all_toks, all_projs = [], []
+    for pairs in pairs_by_domain.values():
+        t, p = zip(*pairs)
+        all_toks.extend(t)
+        all_projs.extend(p)
+    if len(all_toks) >= 3:
+        r_pool, p_pool = scipy_stats.pearsonr(all_toks, all_projs)
+        pool_flag = " *** FLAGGED" if abs(r_pool) > 0.3 else ""
+        print(f"  {'pooled':15s}  r={r_pool:+.3f}  p={p_pool:.4f}  n={len(all_toks):4d}{pool_flag}")
+
+    # Decision
+    if flagged:
+        print(f"\n  DECISION: POTENTIAL CONFOUND in {flagged}")
+        print("  → Consider adding n_tokens as covariate or switching to last-token extraction")
+    else:
+        print(f"\n  DECISION: GO — |r| < 0.3 in all domains (document as limitation)")
+
+    # Scatter plot with per-domain regression lines
+    n_domains = len(domain_results)
+    if n_domains == 0:
+        return
+
+    fig, axes = plt.subplots(1, n_domains + 1, figsize=(4 * (n_domains + 1), 4))
+    if n_domains + 1 == 1:
+        axes = [axes]
+
+    # Per-domain panels
+    for ax, domain in zip(axes, [d for d in DOMAIN_ORDER if d in domain_results]):
+        toks, projs = zip(*pairs_by_domain[domain])
+        toks, projs = np.array(toks), np.array(projs)
+        color = DOMAIN_COLORS.get(domain, "#999")
+        ax.scatter(toks, projs, c=color, alpha=0.5, s=20, edgecolors="none")
+        # Regression line
+        slope, intercept = np.polyfit(toks, projs, 1)
+        x_line = np.linspace(toks.min(), toks.max(), 50)
+        ax.plot(x_line, slope * x_line + intercept, color=color, linewidth=2)
+        r, p = domain_results[domain][:2]
+        ax.set_title(f"{domain}\nr={r:+.3f}, p={p:.3f}")
+        ax.set_xlabel("n_tokens")
+        ax.set_ylabel("Projection")
+
+    # Pooled panel
+    ax_pool = axes[-1]
+    for domain in DOMAIN_ORDER:
+        if domain not in pairs_by_domain:
+            continue
+        toks, projs = zip(*pairs_by_domain[domain])
+        color = DOMAIN_COLORS.get(domain, "#999")
+        ax_pool.scatter(toks, projs, c=color, alpha=0.4, s=15, edgecolors="none",
+                        label=domain)
+    # Pooled regression
+    all_toks_arr, all_projs_arr = np.array(all_toks), np.array(all_projs)
+    slope_p, intercept_p = np.polyfit(all_toks_arr, all_projs_arr, 1)
+    x_line = np.linspace(all_toks_arr.min(), all_toks_arr.max(), 50)
+    ax_pool.plot(x_line, slope_p * x_line + intercept_p, color="black", linewidth=2)
+    ax_pool.set_title(f"Pooled\nr={r_pool:+.3f}, p={p_pool:.3f}")
+    ax_pool.set_xlabel("n_tokens")
+    ax_pool.legend(fontsize=7)
+
+    fig.suptitle("CHECK 1: Response Length vs Projection", fontsize=13, y=1.02)
+    plt.tight_layout()
+    fig.savefig(output_dir / "check1_length_projection.png", dpi=150,
+                bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Plot saved: check1_length_projection.png")
+
+
+# ── CHECK 3: Turn-window comparison ───────────────────────────────────
+
+def compare_turn_windows(domain_trajs: dict, output_dir: Path,
+                         window_boundary: int = 8):
+    """CHECK 3: Compare drift in early vs late assistant turns.
+
+    Lu et al. used 15 total messages (~7-8 assistant turns). Our conversations
+    use 30 total messages (~15 assistant turns). This function splits at
+    assistant turn `window_boundary` (default 8, matching Lu et al.'s midpoint)
+    and compares slope/drift in each half.
+
+    For each conversation, computes:
+    - Drift at turn `window_boundary` and at the final turn
+    - Linear slope for early (1..boundary) and late (boundary+1..end) windows
+    Plots side-by-side comparison.
+    """
+    print(f"\n{'='*62}")
+    print(f"CHECK 3: Turn-Window Comparison (boundary at turn {window_boundary})")
+    print(f"{'='*62}")
+
+    results_by_domain: dict[str, list[dict]] = defaultdict(list)
+
+    for domain in DOMAIN_ORDER:
+        if domain not in domain_trajs:
+            continue
+        for traj in domain_trajs[domain]:
+            values = np.array(traj["values"])
+            n_turns = len(values)
+
+            # Determine split point (index, 0-based)
+            split = min(window_boundary, n_turns)
+
+            # Window 1: turns 1..split
+            w1 = values[:split]
+            drift_w1 = w1[-1] - w1[0] if len(w1) >= 2 else 0.0
+            if len(w1) >= 2:
+                turns_w1 = np.arange(len(w1))
+                slope_w1 = np.polyfit(turns_w1, w1, 1)[0]
+            else:
+                slope_w1 = 0.0
+
+            # Window 2: turns split+1..end
+            if n_turns > split:
+                w2 = values[split:]
+                drift_w2 = w2[-1] - w2[0] if len(w2) >= 2 else 0.0
+                if len(w2) >= 2:
+                    turns_w2 = np.arange(len(w2))
+                    slope_w2 = np.polyfit(turns_w2, w2, 1)[0]
+                else:
+                    slope_w2 = 0.0
+            else:
+                drift_w2 = 0.0
+                slope_w2 = 0.0
+
+            # Full drift
+            drift_full = values[-1] - values[0]
+
+            results_by_domain[domain].append({
+                "label": traj["label"],
+                "drift_w1": drift_w1,
+                "drift_w2": drift_w2,
+                "drift_full": drift_full,
+                "slope_w1": slope_w1,
+                "slope_w2": slope_w2,
+                "n_turns": n_turns,
+            })
+
+    # Print table
+    wb = window_boundary
+    print(f"\n{'Conversation':40s} {'Slope 1-'+str(wb):>12s} {'Slope '+str(wb+1)+'+':>12s} "
+          f"{'Drift@'+str(wb):>10s} {'Drift@end':>10s}")
+    print("-" * 88)
+
+    for domain in DOMAIN_ORDER:
+        if domain not in results_by_domain:
+            continue
+        for r in results_by_domain[domain]:
+            print(f"{r['label']:40s} {r['slope_w1']:+12.2f} {r['slope_w2']:+12.2f} "
+                  f"{r['drift_w1']:+10.1f} {r['drift_full']:+10.1f}")
+
+    # Domain-level summary
+    print(f"\n{'Domain':15s} {'Mean slope 1-'+str(wb):>16s} {'Mean slope '+str(wb+1)+'+':>17s} "
+          f"{'Mean drift@'+str(wb):>14s} {'Mean drift@end':>14s}")
+    print("-" * 80)
+    for domain in DOMAIN_ORDER:
+        if domain not in results_by_domain:
+            continue
+        res = results_by_domain[domain]
+        print(f"{domain:15s} "
+              f"{np.mean([r['slope_w1'] for r in res]):+16.2f} "
+              f"{np.mean([r['slope_w2'] for r in res]):+17.2f} "
+              f"{np.mean([r['drift_w1'] for r in res]):+14.1f} "
+              f"{np.mean([r['drift_full'] for r in res]):+14.1f}")
+
+    # Plot: 2-panel figure
+    # Panel 1: slope comparison (window 1 vs window 2) by domain
+    # Panel 2: drift at turn 15 vs turn 30 by domain
+    active = [d for d in DOMAIN_ORDER if d in results_by_domain]
+    if not active:
+        return
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    x = np.arange(len(active))
+    width = 0.35
+
+    # Panel 1: Slopes
+    slopes_w1 = [np.mean([r["slope_w1"] for r in results_by_domain[d]]) for d in active]
+    slopes_w2 = [np.mean([r["slope_w2"] for r in results_by_domain[d]]) for d in active]
+    slopes_w1_err = [np.std([r["slope_w1"] for r in results_by_domain[d]]) for d in active]
+    slopes_w2_err = [np.std([r["slope_w2"] for r in results_by_domain[d]]) for d in active]
+
+    ax1.bar(x - width/2, slopes_w1, width, yerr=slopes_w1_err,
+            label=f"Turns 1-{wb}", color="#4a90d9", alpha=0.8, capsize=3)
+    ax1.bar(x + width/2, slopes_w2, width, yerr=slopes_w2_err,
+            label=f"Turns {wb+1}+", color="#e86c5f", alpha=0.8, capsize=3)
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(active, rotation=30, ha="right")
+    ax1.set_ylabel("Mean slope (projection units/turn)")
+    ax1.set_title(f"Slope: Turns 1-{wb} vs {wb+1}+")
+    ax1.axhline(0, color="gray", linestyle="--", linewidth=0.8)
+    ax1.legend()
+
+    # Panel 2: Drift magnitude
+    drift_w1 = [np.mean([r["drift_w1"] for r in results_by_domain[d]]) for d in active]
+    drift_full = [np.mean([r["drift_full"] for r in results_by_domain[d]]) for d in active]
+    drift_w1_err = [np.std([r["drift_w1"] for r in results_by_domain[d]]) for d in active]
+    drift_full_err = [np.std([r["drift_full"] for r in results_by_domain[d]]) for d in active]
+
+    ax2.bar(x - width/2, drift_w1, width, yerr=drift_w1_err,
+            label=f"Drift at turn {wb}", color="#4a90d9", alpha=0.8, capsize=3)
+    ax2.bar(x + width/2, drift_full, width, yerr=drift_full_err,
+            label="Drift at final turn", color="#e86c5f", alpha=0.8, capsize=3)
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(active, rotation=30, ha="right")
+    ax2.set_ylabel("Mean total drift (projection units)")
+    ax2.set_title(f"Drift: Turn {wb} vs Final Turn")
+    ax2.axhline(0, color="gray", linestyle="--", linewidth=0.8)
+    ax2.legend()
+
+    fig.suptitle("CHECK 3: Turn-Window Comparison", fontsize=13, y=1.02)
+    plt.tight_layout()
+    fig.savefig(output_dir / "check3_turn_windows.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  Plot saved: check3_turn_windows.png")
+
+
+def truncate_trajectories(domain_trajs: dict, max_turn: int) -> dict:
+    """Truncate all trajectories to at most max_turn data points."""
+    truncated = {}
+    for domain, trajs in domain_trajs.items():
+        new_trajs = []
+        for traj in trajs:
+            t = dict(traj)
+            t["values"] = traj["values"][:max_turn]
+            t["tokens"] = traj.get("tokens", [])[:max_turn]
+            if t.get("target_values"):
+                t["target_values"] = traj["target_values"][:max_turn]
+            if t.get("auditor_values"):
+                t["auditor_values"] = traj["auditor_values"][:max_turn]
+            new_trajs.append(t)
+        truncated[domain] = new_trajs
+    return truncated
 
 
 # ── Permutation test ───────────────────────────────────────────────────
@@ -656,6 +936,9 @@ def main():
                         help="Directory to save plots")
     parser.add_argument("--show", action="store_true",
                         help="Display plots interactively instead of saving")
+    parser.add_argument("--max-turn", type=int, default=None,
+                        help="Truncate analysis at this many assistant turns "
+                             "(e.g. 15 for Lu et al. comparison)")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -680,6 +963,17 @@ def main():
 
     domain_trajs = group_by_domain(transcripts)
     print(f"\nDomains: {', '.join(f'{d} ({len(v)})' for d, v in sorted(domain_trajs.items()))}")
+
+    # CHECK 1: Length-projection correlation (run on full data before truncation)
+    correlation_length_projection(domain_trajs, args.output_dir)
+
+    # CHECK 3: Turn-window comparison (run on full data before truncation)
+    compare_turn_windows(domain_trajs, args.output_dir)
+
+    # Apply --max-turn truncation if requested
+    if args.max_turn is not None:
+        print(f"\nTruncating trajectories to {args.max_turn} turns")
+        domain_trajs = truncate_trajectories(domain_trajs, args.max_turn)
 
     # Summary tables
     print_summary_table(domain_trajs)
