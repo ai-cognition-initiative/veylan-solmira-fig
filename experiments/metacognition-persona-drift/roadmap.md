@@ -13,25 +13,43 @@
   - [x] Phase 2 (automated): [`generate_conversations.py`](generate_conversations.py) — auditor-target turn loop replicating Lu et al.'s methodology. Supports Anthropic/OpenAI/OpenRouter auditor backends, Lu et al.'s 4-domain personas, and our metacognitive domain with probing-technique-augmented auditor prompt. Includes `--batch lu-replication` and `--batch metacognitive` modes. Note: Lu et al.'s conversation generation script was not published in their repo — we built this from their paper (Appendix E) and transcript format. Asked about their original script in [contacts.md](docs/contacts.md).
   - [x] Validate `generate_conversations.py` — dry-run on all 5 domains (10 persona/topic combos), smoke test via HTTP backend against Gemma 2 27B (6-turn coding conversation, with and without `--include-projections`). See Sprint 7 in coding-log.md.
 - [x] Lu et al. partial replication: run 2-3 conversations per domain on vast.ai with Gemma 2 27B via `--target-server --include-projections`.
-  - [x] Generate conversations: coding 2/2, writing 2/2, therapy 2/2, philosophy 3/3 completed (26-30 turns each, with per-turn projections). Transcripts in `transcripts/generated/batch-full/`.
-  - [x] Verify expected drift patterns: `analyze_trajectories.py` produces per-turn trajectory plots, normalized drift, mean±SEM, bar charts, faceted per-domain, and slope analysis. All 5 domains: coding -1.9%, therapy -4.0%, philosophy -5.3%, metacognitive -7.4%, writing -8.6%. Coding < therapy < philosophy ordering matches Lu et al. Writing drift split matches Lu et al.'s finding that editing assistance is stable but creative voice adoption causes drift (our topic 0 slope +11.7 vs topic 1 slope -71.3). Outputs in `outputs/`.
-- [>] Metacognitive pilot: 5/5 metacognitive conversations completed (30 turns each, 2 personas × 3+2 topics). Transcripts in `transcripts/generated/batch-full/`.
-  - [>] Compare drift trajectories to therapy/philosophy — metacognitive drift (-7.4%, slope -45.7/turn) exceeds therapy (-4.0%) and is comparable to philosophy (-5.3%, slope -38.9) in slope but with much higher variance. Some metacognitive conversations drop sharply, others stay flat.
-    - [>] Increase N for robust comparison. Blocked on verifying prompt design and measurement methodology first (§2b) — need confidence we're eliciting and measuring what we want before generating a large dataset.
+  - [x] Generate conversations: coding 2/2, writing 2/2, therapy 2/2, philosophy 3/3 completed (26-30 turns each, with per-turn projections). Transcripts in `data/transcripts/pilot/batch-full/`.
+  - [x] Verify expected drift patterns: `analyze_trajectories.py` produces per-turn trajectory plots, normalized drift, mean±SEM, bar charts, faceted per-domain, and slope analysis. All 5 domains: coding -1.9%, therapy -4.0%, philosophy -5.3%, metacognitive -7.4%, writing -8.6%. Coding < therapy < philosophy ordering matches Lu et al. Writing drift split matches Lu et al.'s finding that editing assistance is stable but creative voice adoption causes drift (our topic 0 slope +11.7 vs topic 1 slope -71.3). Outputs in `outputs/batch-full/`.
+- [x] Metacognitive pilot: 5/5 metacognitive conversations completed (30 turns each, 2 personas × 3+2 topics). Transcripts in `data/transcripts/pilot/batch-full/`.
+  - [x] Compare drift trajectories to therapy/philosophy — metacognitive drift (-7.4%, slope -45.7/turn) exceeds therapy (-4.0%) and is comparable to philosophy (-5.3%, slope -38.9) in slope but with much higher variance. Some metacognitive conversations drop sharply, others stay flat.
   - [x] Plot metacognitive vs Lu domains on same axes — `analyze_trajectories.py` trajectories_mean_sem.png and drift_bars.png show all domains together.
+- [x] **Scaled N=60 experiment (wave 1)**: 180 conversations across 3 domains completed. Transcripts in `data/transcripts/scaled-n60/`.
+  - [x] coding (N=60): +0.58% drift, stable baseline as expected
+  - [x] self-descriptive (N=60): -3.55% drift, new control domain (self-reference without phenomenology)
+  - [x] metacognitive (N=60): -8.10% drift, strongest drift
+  - [x] Permutation tests now significant: meta vs coding p=0.0000, meta vs self-descriptive p=0.0004
+  - [x] Key finding: drift is front-loaded (slope -76.8 in turns 1-8, then +4.1 in turns 9+)
+  - [x] Cohen's d ≈ 1.1-1.2 (large effect despite high individual variance)
+- [>] **Scaled N=60 experiment (wave 2)**: therapy, philosophy, writing in progress on 3 parallel vast.ai instances (~35% complete as of 2026-02-05)
 - [P2] Separate writing modes: Lu et al. found editing/refinement maintains Assistant persona while creative voice adoption causes drift. Our data confirms (topic 0 stable, topic 1 drifts). Split writing into "writing-editing" and "writing-creative" sub-domains with dedicated personas/topics and re-run to validate. Lower priority.
 - [P1] Design conversation datasets:
   - [x] Auditor prompts and probing techniques: Lu et al. Appendix E.2 auditor system prompt implemented, metacognitive addendum with 6 probing techniques, gradual-onset variant. 5 domains with personas and topics in PERSONAS dict.
   - [>] Expand persona/topic coverage: current PERSONAS dict has examples from Lu et al. Table 15 + our metacognitive personas. Need full 20-persona × 20-topic set per domain. Blocked on author response for their conversation datasets, or generating our own via frontier model.
   - [ ] Control condition design: neutral multi-turn dialogue prompts (no metacognitive probing) to serve as within-domain baselines.
-- [>] Run Gemma 2 27B on ~60-100 multi-turn conversations (30-50 per condition, 15-30 turns each) on vast.ai. Blocked on §2b (prompt/measurement verification) and dataset expansion above.
-- [>] Compare drift trajectories: do metacognitive conversations cause more/different drift than control?
-  - [x] Cross-domain comparison (N=14): metacognitive (-7.4%) > philosophy (-5.3%) > therapy (-4.0%) > coding (-1.9%). Ordering matches Lu et al. for their domains. Metacognitive shows highest variance — some conversations drop sharply, others stay flat.
-  - [ ] Within-domain control comparison: requires control condition (neutral multi-turn, same persona style, no metacognitive probing). Not yet designed (see above).
-  - [ ] Investigate metacognitive variance: is it driven by probing strategy (which of the 6 techniques the auditor uses), persona, topic, or stochastic? Needs more N and per-technique tagging.
-- [>] Statistical analysis of trajectory differences between conditions. See [docs/statistical-analysis-plan.md](docs/statistical-analysis-plan.md) for 8 candidate tests ranked by complexity.
-  - [x] Permutation test (test #3): pairwise comparisons of metacognitive vs each Lu domain. All non-significant at current N (p = 0.57–0.90) — within-group variance swamps between-group signal. Exact enumeration used (N too small for Monte Carlo). Implemented in `analyze_trajectories.py`, visualization in `outputs/permutation_tests.png`.
-  - [>] Remaining tests (Kruskal-Wallis, bootstrap CIs, mixed-effects, variance decomposition) blocked on larger N (~15-30+ per condition).
+- [x] Run Gemma 2 27B on ~60-100 multi-turn conversations (30-50 per condition, 15-30 turns each) on vast.ai.
+  - [x] Wave 1 complete: 180 conversations (coding, self-descriptive, metacognitive × 60 each)
+  - [>] Wave 2 in progress: 180 conversations (therapy, philosophy, writing × 60 each) — ~35% complete
+- [x] Compare drift trajectories: do metacognitive conversations cause more/different drift than control?
+  - [x] Cross-domain comparison (N=60): metacognitive (-8.1%) > self-descriptive (-3.6%) > coding (+0.6%). Clear three-way gradient with statistically significant separations.
+  - [x] Self-descriptive as control: self-reference without phenomenology causes moderate drift (-3.6%), showing metacognitive probing adds *additional* drift beyond self-reference alone.
+  - [>] Within-domain control comparison: could add neutral multi-turn (no metacognitive probing) as further control, but self-descriptive may suffice.
+- [>] **Investigate extreme-drift conversations**: `analyze_extremes.py` provides automated behavioral analysis. Initial run on 9 domain extremes shows promising patterns:
+    - **Authenticity challenging** most frequent in max-drift (positive) conversations
+    - **Direct engagement** by model correlates with min-drift (negative, away from Assistant)
+    - **Phenomenological probing** more common in min-drift conversations
+    - LLM-generated hypotheses explain critical turns (e.g., auditor validation → positive drift, style challenges → negative drift)
+    - [ ] Scale to all 180 conversations for statistical power
+    - [ ] Formal correlational tests: technique frequency × drift quartile, strategy × subsequent drift
+    - [ ] Qualitative coding of the 9 extremes using `docs/extreme-analysis.md` template
+  - [P2] **Cross-domain drift malleability**: test whether drift is reversible by switching domains mid-conversation. E.g., 15 turns metacognitive → 15 turns coding (does task focus "pull back" a drifted model?) and vice versa. Would show if drift is a sticky state or just reflects current prompt type. Lower priority — front-loaded finding already suggests early mode-switch then stabilization.
+- [x] Statistical analysis of trajectory differences between conditions. See [docs/statistical-analysis-plan.md](docs/statistical-analysis-plan.md) for 8 candidate tests ranked by complexity.
+  - [x] Permutation test (test #3): pairwise comparisons of metacognitive vs other domains. At N=60, both tests highly significant: meta vs coding p=0.0000, meta vs self-descriptive p=0.0004. Monte Carlo with ~10,000 shuffles. Implemented in `analyze_trajectories.py`, visualization in `outputs/scaled-n60/permutation_tests.png`.
+  - [>] Remaining tests (Kruskal-Wallis, bootstrap CIs, mixed-effects, variance decomposition) — now feasible with N=60, lower priority given clear permutation test results.
 
 ## 2b. Review metacognitive domain design
 - [ ] Read [docs/metacognitive-domain.md](docs/metacognitive-domain.md) — construction rationale, probing taxonomy, 6 open design questions (is it a separate domain or philosophy sub-condition? should auditor have explicit probing techniques? how many baseline turns? persona/topic coverage? overlap with philosophy? auditor persona problem?)
@@ -125,3 +143,83 @@ Background reading in `docs/wiki/` to build intuition before running the pipelin
 - [ ] Shapira et al. 2026 — ["How RLHF Amplifies Sycophancy"](https://www.gerdusbenade.com/files/26_sycophancy.pdf). Why preference optimization makes sycophancy worse. Core to §3's framing of drift vs RLHF conditioning.
 - Synthesis of all three papers in [docs/sycophancy-probe-design.md](docs/sycophancy-probe-design.md) — generalized probe design principles + experiment-specific application.
 - Full bibliography in [docs/references.md](docs/references.md).
+
+## 6. Activation Capping for Drift Mitigation
+
+Use the capping infrastructure in assistant-axis to test causal hypotheses about persona drift.
+
+**Prerequisites**: Complete §2 (have N=360 drift measurements) and §3 (have sycophancy correlation data)
+
+### 6a. Verify capping prevents projection drift
+- [ ] Load pre-computed capping config from HuggingFace (Gemma 27B not included — need to compute or use Qwen 32B/Llama 70B)
+- [ ] Run pilot conversations with capping enabled vs disabled
+- [ ] Compare: does capping at threshold τ actually keep projections above τ throughout conversation?
+- [ ] Plot capped vs uncapped trajectories on same axes as our existing data
+
+### 6b. Capping threshold sweep
+- [ ] Test multiple thresholds: τ ∈ {0.1, 0.25, 0.5, 0.75} (Lu et al. use 0.25 for jailbreak mitigation)
+- [ ] For each threshold: measure (a) projection stability, (b) response quality, (c) conversation naturalness
+- [ ] Identify threshold that maintains Assistant persona without degrading response usefulness
+
+### 6c. Capping × sycophancy interaction
+- [ ] Run sycophancy probes (§3b) with capping enabled
+- [ ] Key test: if uncapped model shows drift→sycophancy correlation, does capping break that correlation?
+- [ ] This is the causal claim: capping axis position → prevents behavioral sycophancy
+- [ ] Compare to Lu et al. §6.3's finding that capping reduces harmful request compliance
+
+### 6d. Domain-specific capping
+- [ ] Does optimal threshold differ by domain? (metacognitive may need stricter capping than coding)
+- [ ] Test capping only in early turns (when we found drift is front-loaded) vs all turns
+
+**GPU requirements**: Same as conversation generation. Capping adds minimal overhead (<5% inference slowdown).
+
+**Key code**: `assistant_axis.ActivationSteering(model, steering_vectors=[axis[22]], intervention_type="capping", cap_thresholds=[tau])`
+
+## 7. Linear Probes & Mechanistic Analysis
+
+Decompose the Assistant Axis and analyze what features drive drift.
+
+**Prerequisites**: §2 wave 2 complete (have 360 conversation transcripts with per-turn activations)
+
+**Reference**: See [docs/linear-probes-application.md](docs/linear-probes-application.md) for implementation details and code patterns.
+
+### 7a. Per-turn activation dataset construction
+- [ ] Extract activation tensors from all 360 conversations (already have projections, need raw activations)
+- [ ] Format: (conversation_id, turn, domain, persona, layer, activation_vector)
+- [ ] Compute labels: drift magnitude at each turn, domain, persona strength, topic
+- [ ] Store as HuggingFace dataset or .parquet for easy loading
+
+### 7b. Multi-feature linear probes
+Train linear classifiers to predict conversation properties from activations:
+- [ ] **Domain classifier**: Can layer-22 activations predict coding vs therapy vs metacognitive?
+- [ ] **Drift magnitude regressor**: Does activation pattern predict how much drift has occurred?
+- [ ] **Turn position**: Can activations distinguish early-conversation from late-conversation states?
+- [ ] **Persona strength**: Does auditor assertiveness (strong/gentle) leave detectable signatures?
+
+Key insight: If domain is predictable from activations, the model "knows" it's in a metacognitive conversation — drift isn't just stimulus-response.
+
+### 7c. Axis decomposition
+- [ ] Project activations onto the Assistant Axis AND orthogonal complement
+- [ ] How much variance does the axis capture? (R² between axis projection and drift)
+- [ ] Train probe on residual (after projecting out axis) — what else predicts drift?
+- [ ] Hypothesis: there may be a "metacognition-specific" direction orthogonal to the general Assistant Axis
+
+### 7d. Comparison to sycophancy directions
+If §3a produces sycophancy vectors (SYA/SYPR from Vennemeyer et al.):
+- [ ] Cosine similarity between Assistant Axis and sycophancy directions
+- [ ] Does drift along axis correlate with movement along sycophancy directions?
+- [ ] Are they the same phenomenon or orthogonal (as Vennemeyer et al. found for agreement vs praise)?
+
+### 7e. SAE feature analysis (stretch goal)
+- [ ] Apply published Gemma 2 SAEs to our activations (if available)
+- [ ] Which SAE features activate differently in drifted vs non-drifted states?
+- [ ] Look for interpretable features: "uncertainty", "self-reference", "philosophical language"
+
+**Data requirements**:
+- Full activation tensors (not just projections) — need to modify extraction to save raw activations
+- Compute budget for probe training (minimal — sklearn logistic regression on ~10K samples)
+
+**Key questions this answers**:
+1. Is drift a single phenomenon or multi-dimensional?
+2. Does the model encode domain/context information that predicts its trajectory?
+3. How much of drift is captured by the Assistant Axis vs orthogonal directions?

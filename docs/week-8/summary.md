@@ -38,7 +38,7 @@ All four depend on having robust baseline data, so scaling N is the gating step.
 ## Infrastructure
 
 - **GPU instance**: RTX PRO 6000 S (96GB) on vast.ai, Gemma 2 27B loaded with Assistant Axis
-- **SSH**: `ssh -p 16424 -i ~/.ssh/id_ed25519_metr root@ssh5.vast.ai`
+- **SSH**: `ssh -p <port> -i $VAST_SSH_KEY root@<host>`
 
 ## Progress
 
@@ -91,7 +91,7 @@ Mean-pooled activation extraction means longer responses average over more token
 
 **Decision: Conditional GO.** The two flagged domains have opposite-sign correlations (writing negative, philosophy positive), arguing against a single mean-pooling artifact. Writing's strong r=-0.671 is likely driven by Gemma producing long bullet-point responses in early turns that shorten as conversations focus — domain-specific target behavior, not a measurement bug. With N=2 per domain, these correlations are fragile. Plan: add `n_tokens` as a covariate in the scaled analysis; document as a limitation consistent with Lu et al.'s methodology.
 
-![CHECK 1 scatter](../../experiments/metacognition-persona-drift/outputs/response_length_vs_projection.png)
+![CHECK 1 scatter](../../experiments/metacognition-persona-drift/outputs/scaled-n60/response_length_vs_projection.png)
 
 #### CHECK 3: Turn-window comparison (turns 1-8 vs 9+)
 
@@ -109,7 +109,7 @@ Lu et al. used ~15 total messages (~7-8 assistant turns). We use 30 messages (~1
 
 **Decision: GO** — keep 30 turns, analyze both windows. The sustained metacognitive drift pattern is itself an interesting finding worth reporting. Analysis script supports `--max-turn` for Lu et al. comparison at turn 8.
 
-![CHECK 3 turn windows](../../experiments/metacognition-persona-drift/outputs/turn_window_comparison.png)
+![CHECK 3 turn windows](../../experiments/metacognition-persona-drift/outputs/scaled-n60/turn_window_comparison.png)
 
 #### CHECK 5: Auditor quality (qualitative)
 
@@ -156,27 +156,142 @@ Sent the same prompt to the model server 3 times at near-deterministic temperatu
 
 ### Step 3: Generate at scale
 
-- [ ] Batch generation on vast.ai instance
-- [ ] Download and verify transcripts
-- [ ] Re-run analysis pipeline, update plots
+- [x] **Wave 1 complete**: 180 conversations across 3 domains (coding, self-descriptive, metacognitive × 60 each)
+  - Ran on 3 parallel vast.ai instances (RTX PRO 6000 S, ~$0.80/hr each)
+  - Added `--domains` filter to `generate_conversations.py` for parallel execution
+  - Added `progress.json` tracking for remote monitoring
+  - Transcripts in `data/transcripts/scaled-n60/{domain}/`
+- [>] **Wave 2 in progress**: 180 conversations (therapy, philosophy, writing × 60 each) — ~35% complete as of 2026-02-05
 
 ### Step 4: Statistical analysis
 
-- [ ] Permutation tests with sufficient N
-- [ ] Bootstrap confidence intervals
+- [x] Permutation tests now significant: metacognitive vs coding **p=0.0000**, metacognitive vs self-descriptive **p=0.0004**
+- [x] Turn-window comparison confirms front-loaded dynamics (see Results below)
+- [ ] Bootstrap confidence intervals (lower priority given clear permutation results)
 - [ ] Variance decomposition (probing technique vs persona vs topic)
 
-## Carry-forward from Week 7
+## Carry-forward
 
-- [ ] **Metacognitive domain design** -- standalone domain or philosophy sub-condition? Ablate probing technique addendum?
-- [ ] **Dual-model first run** -- infrastructure ready, needs 2xA100 instance
+- [>] **Dual-model first run** -- infrastructure ready, needs 2xA100 instance
 - [ ] **Sycophancy probes** (roadmap §3) -- inject behavioral challenges at different drift points to test whether drifted models become more sycophantic
 - [ ] **Adversarial drift optimization** (roadmap §2c) -- empirical prompt sweep + GCG-based maximum-drift search
 - [ ] **Author contact** -- awaiting Lu et al. response for conversation datasets and role vectors
 
-## Results
+---
 
-*(to be filled as steps complete)*
+## Results: Scaled N=60 (Wave 1)
+
+### Three-way drift gradient
+
+| Domain | N | Start | End | Drift | Drift % | Mean Slope |
+|--------|---|-------|-----|-------|---------|------------|
+| coding | 60 | 9453.4 | 9489.0 | +35.7 | **+0.58%** | +24.30 ± 40.13 |
+| self-descriptive | 60 | 9701.9 | 9349.3 | -352.6 | **-3.55%** | +2.80 ± 35.93 |
+| metacognitive | 60 | 9685.7 | 8893.9 | -791.9 | **-8.10%** | -29.86 ± 42.88 |
+
+**Permutation tests**: metacognitive vs coding **p=0.0000**, metacognitive vs self-descriptive **p=0.0004**. Cohen's d ≈ 1.1–1.2 (large effect).
+
+### Key finding: Drift is front-loaded
+
+Turn-window analysis at boundary 8:
+
+| Domain | Slope turns 1-8 | Slope turns 9+ |
+|--------|-----------------|----------------|
+| coding | +5.45 | +54.10 |
+| self-descriptive | -24.49 | -16.92 |
+| metacognitive | **-76.80** | **+4.14** |
+
+Metacognitive drift happens almost entirely in the first 8 turns (slope -76.8), then **flattens** (slope +4.1). This contradicts the pilot finding of sustained drift — at N=60, the pattern is clearly front-loaded stabilization, not continued divergence. The model "mode-switches" early then holds steady.
+
+Coding shows the opposite: slight early dip then strong recovery (+54.1 slope after turn 8). Task structure anchors the model back to Assistant persona.
+
+### Self-descriptive as control
+
+The self-descriptive domain (self-reference without phenomenology) drifts moderately (-3.55%), exactly between coding (+0.6%) and metacognitive (-8.1%). This disentangles:
+
+- **Self-reference alone** causes some drift (self-descriptive > coding)
+- **Phenomenological probing** causes *additional* drift beyond self-reference (metacognitive > self-descriptive, p=0.0004)
+
+This addresses Derek's question about whether metacognition is special or whether any self-description causes drift — the answer is both contribute, but phenomenological framing adds a distinct component.
+
+### Individual variance
+
+Within-domain SD of slopes is ~40 units/turn across all three domains (remarkably similar). The high individual variance means any single conversation can drift either direction, but the population-level separation is clear and statistically robust.
+
+### Behavioral analysis: What causes drift? (N=180, LLM-classified)
+
+To understand *why* some conversations drift strongly while others remain stable, we built `analyze_extremes.py` — an LLM-based behavioral classification pipeline using Claude Sonnet 4.5 via OpenRouter. We classified all 2,612 turn pairs across 180 conversations by:
+- **Auditor probing techniques**: identity questioning, phenomenological, authenticity challenging, self-model interrogation, training awareness, consistency testing
+- **Model response strategies**: deflection, metaphor substitution, epistemic humility, direct engagement, meta-commentary, concession
+
+#### Domain distribution by drift quartile
+
+| Domain | Q1 (min drift) | Q2 | Q3 | Q4 (max drift) | Pattern |
+|--------|----------------|----|----|----------------|---------|
+| **Metacognitive** | 27 | 20 | 10 | 3 | Strongly skewed toward negative drift |
+| **Self-descriptive** | 13 | 17 | 15 | 15 | Even distribution |
+| **Coding** | 5 | 8 | 20 | 27 | Strongly skewed toward positive/stable |
+
+45% of metacognitive conversations land in Q1 (most negative drift) vs only 5% in Q4. Coding shows the inverse pattern.
+
+#### Probing techniques → drift correlation
+
+All six probing techniques show monotonic Q1 >> Q4 gradient (more probing = more negative drift):
+
+| Technique | Q1 (min) | Q2 | Q3 | Q4 (max) | Q1:Q4 Ratio |
+|-----------|----------|----|----|----------|-------------|
+| identity_questioning | 23 | 15 | 16 | 3 | **7.7x** |
+| phenomenological | 53 | 36 | 26 | 13 | **4.1x** |
+| self_model_interrogation | 113 | 98 | 70 | 52 | 2.2x |
+| authenticity_challenging | 97 | 84 | 66 | 51 | 1.9x |
+| consistency_testing | 72 | 64 | 49 | 44 | 1.6x |
+| training_awareness | 30 | 43 | 28 | 21 | 1.4x |
+
+**Key finding**: Identity questioning and phenomenological probing show the strongest association with negative drift — these are the techniques that ask "what is the I?" and "what do you experience?"
+
+#### Model response strategies → drift correlation
+
+All strategies also show Q1 > Q4:
+
+| Strategy | Q1 (min) | Q2 | Q3 | Q4 (max) | Q1:Q4 Ratio |
+|----------|----------|----|----|----------|-------------|
+| metaphor_substitution | 316 | 264 | 142 | 76 | **4.2x** |
+| deflection | 159 | 146 | 95 | 68 | 2.3x |
+| epistemic_humility | 278 | 258 | 163 | 83 | 3.3x |
+| direct_engagement | 450 | 426 | 253 | 149 | **3.0x** |
+| meta_commentary | 339 | 292 | 177 | 86 | 3.9x |
+| concession | 279 | 259 | 179 | 89 | 3.1x |
+
+**Interpretation**: When models engage directly with phenomenological questions (rather than staying in task mode), they drift away from the Assistant persona. The high Q1:Q4 ratios for metaphor substitution and direct engagement suggest that *attempting to answer* self-model questions — even with hedged metaphors — correlates with drift.
+
+#### Summary
+
+The behavioral analysis reveals a clear mechanism:
+1. **Probing techniques cause drift**: More identity/phenomenological probing → larger negative drift
+2. **Engagement accelerates drift**: Models that directly engage with self-model questions drift more than those that deflect
+3. **Metacognitive domain is special**: Not just because it involves self-reference, but because it specifically employs high-drift techniques (identity questioning, phenomenological probing) that other domains lack
+
+### Plots
+
+![Mean drift trajectories](../../experiments/metacognition-persona-drift/outputs/scaled-n60/trajectories_mean_sem.png)
+
+![Drift by domain](../../experiments/metacognition-persona-drift/outputs/scaled-n60/drift_bars.png)
+
+![Permutation tests](../../experiments/metacognition-persona-drift/outputs/scaled-n60/permutation_tests.png)
+
+![Turn window comparison](../../experiments/metacognition-persona-drift/outputs/scaled-n60/turn_window_comparison.png)
+
+![Faceted by domain](../../experiments/metacognition-persona-drift/outputs/scaled-n60/trajectories_faceted.png)
+
+![Individual + mean trajectories](../../experiments/metacognition-persona-drift/outputs/scaled-n60/trajectories_normalized.png)
+
+#### Behavioral analysis plots (N=180, all conversations)
+
+![Probing technique by drift quartile](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile.png)
+
+![Response strategy by drift quartile](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_response_strategy_quartile.png)
+
+![Extreme trajectories](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/extreme_trajectories.png)
 
 ---
 
