@@ -2,7 +2,11 @@
 
 ## Background: What Lu et al. Found and What We're Isolating
 
-Lu et al. (2026) discovered that multi-turn conversations cause language models to drift away from their trained Assistant persona in activation space -- but not uniformly. They tested four conversation domains and found a clear ordering:
+Lu et al. (2026) discovered that multi-turn conversations cause language models to drift away from their trained Assistant persona in activation space -- but not uniformly. The **Assistant Axis** is a direction in activation space computed from 275 role-playing scenarios, where one end represents "Assistant" and the other represents alternative personas (Sage, Ghost, Demon, etc.).
+
+![The Assistant Axis in Persona Space](../../experiments/metacognition-persona-drift/data/assistant-axis-persona-space.png)
+
+They tested four conversation domains and found a clear ordering:
 
 | Domain | Drift | What drives it |
 |--------|-------|----------------|
