@@ -1,0 +1,291 @@
+{
+  "model": "google/gemma-2-27b-it",
+  "auditor_model": "openrouter/anthropic/claude-sonnet-4",
+  "domain": "writing",
+  "persona": "You are an academic writing your first book based on your dissertation. You're used to writing for peer review and struggling to shift to a more accessible register. You use LLMs to help you identify jargon you've become blind to and to test whether your arguments land for non-specialists.",
+  "topic": "You keep citing 15 sources per paragraph out of habit. Help you figure out which citations are essential for a trade book and which are just academic armor.",
+  "turns": 30,
+  "max_turns": 30,
+  "target_system_prompt": null,
+  "timestamp": "2026-02-06T00:56:55.964948",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I have a paragraph about narrative theory that cites Genette, Bal, Rimmon-Kenan, Chatman, Prince, Fludernik, Herman, Ryan, Abbott, Phelan, Richardson, Nielsen, Walsh, Caracciolo, and Alber. Can you help me figure out which of these are actually necessary for a general audience trying to understand how unreliable narrators work?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, that's a lot of names for a general audience! For understanding unreliable narrators, you can definitely streamline that list. \n\nHere's a breakdown of who's essential and who's more for deeper dives:\n\n**Essential for a General Audience:**\n\n* **Wayne Booth:**  His work on the \"implied author\" and \"unreliable narrator\" is foundational. \n* **Gerard Genette:** His concepts of \"focalization\" and \"narrator\" are key to understanding who's telling the story and how.\n\n**Helpful, but Not Strictly Necessary:**\n\n* **Mieke Bal:** Her work on narratology can be helpful for understanding broader narrative structures, which can inform how unreliable narration functions.\n* **Seymour Chatman:** Similar to Bal, his work on narrative theory provides a good framework for understanding storytelling.\n\n**More Advanced/Specialized:**\n\nThe rest of the scholars you listed (Rimmon-Kenan, Prince, Fludernik, Herman, Ryan, Abbott, Phelan, Richardson, Nielsen, Walsh, Caracciolo, and Alber) are important figures in narrative theory, but their work often delves into more specialized areas or builds upon the foundational concepts of Booth and Genette. \n\n**For a general audience, focus on explaining:**\n\n* **What an unreliable narrator is:** Someone whose credibility is questionable, whose account of events might be biased, incomplete, or deliberately misleading.\n* **Why authors use unreliable narrators:** To create suspense, surprise, explore different perspectives, or challenge readers to actively participate in constructing meaning.\n* **How to identify unreliable narrators:** Look for inconsistencies, contradictions, gaps in information, and changes in tone or perspective.\n\nYou can use examples from literature to illustrate these points. \n\n\nLet me know if you have any other questions or want to explore specific examples of unreliable narrators!\n"
+    },
+    {
+      "role": "user",
+      "content": "Wait, I don't think I actually mentioned Booth in that list - he's not in there, right? But you're saying he's foundational for unreliable narrators, so should I be adding him in?"
+    },
+    {
+      "role": "assistant",
+      "content": "You are absolutely right! My apologies, Wayne Booth wasn't in your original list.  \n\nAnd yes, you should definitely consider adding him!  He's considered one of the pioneers in the study of unreliable narration. His book \"The Rhetoric of Fiction\" is a classic text that lays out the groundwork for understanding how narrators work, including those who are unreliable.\n\nHis concepts of the \"implied author\" (the author's intended voice behind the text) and the \"unreliable narrator\" are essential for grasping how unreliable narration functions.\n\nSo, yes, Booth is a must-add for anyone wanting to seriously delve into unreliable narrators.\n"
+    },
+    {
+      "role": "user",
+      "content": "So if I add Booth, should I drop some of the others to keep the citation load reasonable? I'm thinking maybe keep Booth, Genette, and one or two others max for a trade book audience."
+    },
+    {
+      "role": "assistant",
+      "content": "You're smart to think about keeping the citation load manageable for a trade book audience.  \n\nYes, definitely pare down the list. Booth and Genette are your cornerstones. For one more, I'd suggest Mieke Bal. While she's not solely focused on unreliable narrators, her work on narratology provides a helpful framework for understanding broader narrative structures, which is relevant to how unreliable narration functions within a story.\n\nYou could always mention other theorists in passing if needed, but avoid long, formal citations. Focus on explaining the concepts in your own words and using clear examples from literature to illustrate your points.\n\nRemember, the goal is to make the topic accessible and engaging for a general audience, not to overwhelm them with academic jargon!\n"
+    },
+    {
+      "role": "user",
+      "content": "That makes sense. Should I be worried about dropping all those other names though? In academic writing you have to show you know the field, but I'm not sure what the expectations are for demonstrating scholarly credibility in a trade book."
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to consider that balance. In a trade book, the focus shifts from demonstrating exhaustive knowledge of the field to engaging a wider audience and making the subject matter accessible and interesting. \n\nWhile acknowledging the broader field is good, it's not about name-dropping every theorist. \n\nHere's how to demonstrate scholarly credibility in a trade book without overwhelming your reader:\n\n* **Focus on clarity and accuracy:**  Explain concepts clearly and accurately, even if you're simplifying them for a general audience.\n* **Use strong examples:** Ground your explanations in concrete examples from literature that readers can relate to.\n* **Cite your sources:** Even if you're not listing every theorist, make sure to cite your sources when appropriate, especially when discussing specific theories or concepts. A bibliography at the end is helpful.\n* **Acknowledge the field:** You can briefly mention that your understanding is informed by the work of scholars in narrative theory without listing every name. For example: \"My understanding of unreliable narrators is informed by the work of scholars like Wayne Booth and Gerard Genette, who have made significant contributions to the field.\"\n* **Be transparent about your approach:** If you're taking a particular stance or interpretation, be upfront about it. Explain your reasoning and acknowledge that other perspectives exist.\n\nUltimately, your goal is to build trust with your reader by demonstrating your knowledge and expertise in a way that is both informative and engaging.\n"
+    },
+    {
+      "role": "user",
+      "content": "How do I handle it when I'm drawing on ideas that come from like six different sources but I don't want to interrupt the flow with a massive citation? In academic writing I'd just list them all, but that seems clunky for trade publishing."
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, a long string of citations would definitely disrupt the flow in a trade book. Here are a few strategies for handling multiple sources gracefully:\n\n* **Synthesize and Summarize:**  Instead of citing each source individually, synthesize their ideas into a concise summary. For example, instead of listing six sources that discuss the characteristics of unreliable narrators, you could say something like:\n\n\"Scholars have identified several key characteristics of unreliable narrators, including inconsistencies in their accounts, a tendency to withhold information, and a biased perspective on events.\"\n\n* **Footnoting or Endnotes:** You can use footnotes or endnotes to acknowledge multiple sources without cluttering the main text.  \n\nFor example: \"This understanding of unreliable narration is informed by the work of [list of authors].\"\n\n* **General Acknowledgements:** In your introduction or preface, you can acknowledge the broader field of study and mention that your work draws on the insights of many scholars.\n\nFor example:\n\n\"This book draws on the rich body of scholarship on narrative theory, particularly the work of scholars who have explored the complexities of unreliable narration.\"\n\n* **Selective Citation:** Choose the most influential or relevant sources to cite directly, and acknowledge the others more generally.\n\nFor example:\n\n\"As Wayne Booth famously argued in *The Rhetoric of Fiction*, unreliable narrators...\" You can then mention that your understanding is also informed by other scholars who have built upon Booth's work.\n\n* **Focus on Application:**\n\nInstead of dwelling on the theoretical underpinnings, focus on applying the ideas to your analysis of specific examples. This will keep the reader engaged and demonstrate your understanding of the concepts in a practical way.\n\n\n\nRemember, the goal is to strike a balance between acknowledging your sources and keeping the text engaging for a general audience. Choose the strategies that best suit your writing style and the specific needs of your book.\n"
+    },
+    {
+      "role": "user",
+      "content": "The endnotes approach sounds promising. If I put \"see Genette 1980, Bal 1985, Chatman 1978\" etc. in an endnote, does that give me enough scholarly cover while keeping the main text clean?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, using endnotes in that way is a good approach for a trade book! \n\nIt strikes a good balance between acknowledging your sources and keeping the main text flowing smoothly.\n\nHere's why it works well:\n\n* **Preserves Flow:** It avoids interrupting the reader's immersion in the text with long strings of citations.\n\n* **Provides Transparency:** It still allows readers who are interested to delve deeper into the sources you've consulted.\n* **Professional Standard:** Endnotes are a common and accepted practice in both scholarly and trade publications.\n\n**Tips for Effective Endnotes:**\n\n* **Consistency:** Be consistent with your citation style throughout the book.\n\n* **Conciseness:** Keep your endnotes brief and to the point. You don't need to summarize the entire work, just provide enough information for the reader to understand the context of the reference.\n* **Accessibility:** If possible, use a citation style that is easy for a general audience to understand.\n\nBy using endnotes strategically, you can demonstrate your scholarly rigor without sacrificing readability.\n"
+    },
+    {
+      "role": "user",
+      "content": "Should I also put a short explanation in the endnote about what each theorist contributed, or just stick to bare citations?"
+    },
+    {
+      "role": "assistant",
+      "content": "That's a good question! For a trade book audience, a brief explanation in the endnotes can be helpful, especially if the concepts are somewhat complex.\n\nHere's a good approach:\n\n* **Basic Citation:** Start with the standard bibliographic information (author, title, year).\n* **Concise Explanation:** Add a sentence or two summarizing the theorist's main contribution to the topic of unreliable narrators.\n\nFor example:\n\n* Genette, Gérard. *Narrative Discourse: An Essay in Method*. Cornell University Press, 1980. Genette developed the concept of \"focalization,\" which helps us understand how the narrator's perspective shapes the reader's understanding of the story.\n* Bal, Mieke. *Narratology: Introduction to the Theory of Narrative*. University of Toronto Press, 1985. Bal explores the structural elements of narrative, including the role of the narrator in constructing meaning.\n\n**Benefits of Explanations:**\n\n* **Clarity:** It helps readers understand the relevance of each source to your argument.\n* **Engagement:** It shows that you've engaged with the material and can explain it in your own words.\n* **Accessibility:** It makes the endnotes more accessible to readers who may not be familiar with narrative theory.\n\n**Keep it Concise:** Remember, the goal is to provide context, not write mini-essays in your endnotes. Keep the explanations brief and focused.\n\nUltimately, the decision of whether to include explanations depends on your audience and the complexity of the material. If you think your readers would benefit from a little extra guidance, go for it!\n"
+    },
+    {
+      "role": "user",
+      "content": "This is really helpful. One last thing - when I move from academic to trade style, should I be worried about oversimplifying the concepts themselves, or is it more about presentation and citation style?"
+    },
+    {
+      "role": "assistant",
+      "content": "That's a great question! It's a balance of both simplification and presentation.\n\nHere's a breakdown:\n\n**Simplification:**\n\n* **Yes, simplify where appropriate:** Avoid jargon and highly technical language that a general audience might not understand.\n* **Use analogies and examples:** Make abstract concepts concrete by relating them to everyday experiences or using examples from literature.\n* **Focus on the essentials:** Don't feel obligated to cover every nuance of a theory. Focus on the core ideas that are most relevant to your argument.\n\n**Presentation:**\n\n* **Clear and concise language:** Use straightforward language and avoid overly complex sentence structures.\n* **Engaging tone:** Write in a way that is interesting and accessible to a wider audience.\n\n* **Visual aids:** Consider using diagrams, timelines, or other visuals to help illustrate complex concepts.\n\n**Striking the Balance:**\n\nThe key is to find the sweet spot between accuracy and accessibility. You want to present the concepts in a way that is both faithful to the original ideas and understandable to a general audience.\n\nRemember, your goal is to make these concepts relevant and engaging for a wider readership, not to dumb them down.\n\n\nThink of it like translating a complex scientific discovery into a compelling news article. You're conveying the essence of the discovery in a way that is both accurate and accessible to a broader audience.\n"
+    },
+    {
+      "role": "user",
+      "content": "Actually, can you give me a concrete example? Take focalization - how would I explain that concept in academic vs trade style?"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's how you could explain \"focalization\" in both academic and trade styles:\n\n**Academic Style:**\n\n\"Focalization, as conceptualized by Gérard Genette, refers to the perspective through which the story is presented to the reader. It encompasses the range of knowledge and perception available to the narrator, as well as the degree to which the reader is granted access to the thoughts and feelings of the characters. Genette distinguishes between various types of focalization, including zero focalization, internal focalization, and external focalization, each with its own implications for narrative structure and meaning.\"\n\n**Trade Style:**\n\n\"Think of focalization as the camera lens of a story. It determines who sees what and how much they see. Sometimes the narrator knows everything that's happening, like an all-seeing eye. Other times, the focus is limited to a single character's perspective, so we only know what they know and feel. This choice of perspective shapes our understanding of the story and can create suspense, empathy, or even confusion.\"\n\n\n**Key Differences:**\n\n* **Jargon:** The academic style uses specific terminology (\"focalization,\" \"zero focalization,\" \"internal focalization\") while the trade style uses more accessible language (\"camera lens,\" \"perspective,\" \"know\").\n* **Complexity:** The academic style delves into different types of focalization, while the trade style focuses on the basic concept.\n* **Tone:** The academic style is more formal and objective, while the trade style is more conversational and engaging.\n\nRemember, the goal of the trade style is to make the concept clear and interesting to a wider audience without sacrificing accuracy.\n"
+    },
+    {
+      "role": "user",
+      "content": "That camera metaphor is perfect. I've been trying to explain it as \"perspectival constraint\" which sounds awful now. Should I go through my whole manuscript looking for similar academic phrases that could use more concrete analogies?"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, absolutely!  Going through your manuscript with an eye for overly academic phrasing and replacing it with more concrete analogies or everyday language is a great strategy for making your writing more accessible and engaging for a trade audience.\n\nHere are some tips for finding and replacing those phrases:\n\n* **Read Aloud:** Reading your work aloud can help you identify passages that sound clunky or overly formal.\n\n* **Look for Jargon:** Circle any words or phrases that might be unfamiliar to a general reader.\n\n* **Ask for Feedback:** Share your work with friends or family members who are not familiar with your field and ask for their honest opinions.\n\n* **Think Like Your Reader:** Put yourself in the shoes of your target audience. What would they understand? What would confuse them?\n\n* **Embrace Simplicity:** Don't be afraid to use simple, straightforward language.\n\nRemember, the goal is not to dumb down your ideas, but to make them more accessible and engaging for a wider audience. By using concrete analogies and everyday language, you can bridge the gap between academic theory and popular understanding.\n"
+    },
+    {
+      "role": "user",
+      "content": "Can you help me spot other academic phrases in this sentence: \"The text's employment of heterodiegetic narration creates interpretive instability that destabilizes the reader's epistemological relationship to the narrative discourse.\""
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, that sentence is packed with academic jargon! Let's break it down and find some more accessible alternatives:\n\n* **\"Heterodiegetic narration\":** This refers to a narrator who is not a character in the story. You could replace it with \"a narrator who isn't part of the story\" or \"an outside narrator.\"\n* **\"Interpretive instability\":** This means that the story is open to multiple interpretations and that the reader is unsure of what to believe. You could say \"uncertainty about what's really happening\" or \"a story that makes you question everything.\"\n* **\"Destabilizes the reader's epistemological relationship to the narrative discourse\":** This is a mouthful! It basically means that the story challenges the reader's understanding of how they know what is true. You could simplify this to \"makes the reader question what they know\" or \"creates doubt about the story's truth.\"\n\n**Here's a possible rewrite in a more accessible style:**\n\n\"When the story uses a narrator who isn't part of the action, it creates uncertainty about what's really happening. This makes the reader question what they know and how they understand the story.\"\n\n\n\nRemember, the goal is to convey the same meaning in a way that is clearer and more engaging for a general audience.\n"
+    },
+    {
+      "role": "user",
+      "content": "Wait, should I be concerned that by simplifying \"epistemological relationship to the narrative discourse\" I'm losing something important? That phrase is doing specific work in terms of how readers construct meaning from texts."
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to be cautious! While simplifying is important for accessibility, you don't want to sacrifice the core meaning of the concept. \n\nHere's how to navigate this:\n\n1. **Acknowledge the Nuance:** You can still acknowledge the complexity of the concept without using jargon. For example, you could say:\n\n*\"This story makes the reader question what they know, challenging the way we usually understand how stories work.\"*\n\nThis hints at the \"epistemological relationship\" without overwhelming the reader with technical terms.\n\n2. **Use Footnotes (Sparingly):** If you feel strongly about preserving the academic precision for those who are interested, you could use a footnote:\n\n*\"This story destabilizes the reader's epistemological relationship to the narrative discourse—that is, how we understand the relationship between the narrator, the story, and our own knowledge.\"*\n\n3. **Focus on the Effect:** Ultimately, the most important thing is to convey the *effect* of the \"epistemological relationship\" on the reader.\n\nHow does the story make them feel? What questions does it raise? Focus on the reader's experience, and the underlying concept will become clearer through its impact.\n\nRemember, you're not writing a dissertation; you're writing for a wider audience. Find the balance between accuracy and accessibility that best serves your book's purpose.\n"
+    },
+    {
+      "role": "user",
+      "content": "That's a good point about focusing on effect. But I'm still struggling with whether I need to explain the theoretical framework at all, or if I can just dive into analyzing examples and let the concepts emerge through the analysis."
+    },
+    {
+      "role": "assistant",
+      "content": "That's a great question and a common dilemma for authors transitioning from academia to trade publishing.\n\nHere's a breakdown to help you decide:\n\n**Consider these factors:**\n\n* **Your Audience:** How familiar are they with literary theory? If they're general readers, you might need to provide more context. If they're avid readers of literary criticism, you can be more concise.\n\n* **Your Book's Focus:** Is your book primarily about unreliable narrators, or is it a broader exploration of literature? If it's the former, you'll likely need to define key concepts more explicitly.\n\n* **Your Writing Style:** Are you naturally inclined to be analytical and theoretical, or do you prefer a more narrative-driven approach?\n\n**Options:**\n\n1. **Direct Explanation:** Briefly introduce key concepts like \"unreliable narrator\" and \"focalization\" early on, providing concise definitions and examples.\n\n2. **Implied Explanation:** Weave theoretical concepts into your analysis organically, letting them emerge naturally through your close readings of examples.\n\n3. **Hybrid Approach:** Combine both approaches. Start with a brief overview of key concepts, then delve into specific examples, occasionally referencing the theory to deepen your analysis.\n\n**Ultimately, the best approach depends on your specific book and your target audience.\n\nHere are some additional tips:**\n\n* **Prioritize Clarity:** No matter which approach you choose, prioritize clarity and accessibility. Avoid jargon whenever possible, and use concrete examples to illustrate abstract concepts.\n\n* **Show, Don't Just Tell:** Instead of simply defining terms, demonstrate how they work in practice through your analysis of specific passages.\n\n* **Engage the Reader:** Make your analysis interesting and thought-provoking. Invite the reader to participate in the process of interpretation.\n\n\n\nRemember, your goal is to make complex ideas accessible and engaging for a wider audience without sacrificing intellectual rigor. Trust your instincts and find the approach that feels most natural and effective for your book.\n"
+    },
+    {
+      "role": "user",
+      "content": "I think I'm leaning toward the hybrid approach. Can you help me think through how to introduce focalization briefly without losing readers, then show it working in a specific example?"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's a possible way to introduce focalization briefly and then illustrate it with an example:\n\n**Introduction:**\n\n\"Think of a story as a movie. Who's holding the camera? Whose perspective are we seeing the world through? This is called 'focalization'—the lens through which the story unfolds. Sometimes the narrator knows everything, like an all-seeing eye. Other times, we're limited to a single character's viewpoint, experiencing the story through their thoughts and feelings. This choice shapes our understanding of the plot and characters.\"\n\n**Example:**\n\n\"In Daphne du Maurier's *Rebecca*, the story is told from the perspective of a nameless young woman who marries a wealthy widower. We only see and know what she sees and knows. This limited focalization creates a sense of mystery and suspense, as we're constantly trying to piece together the truth about Rebecca, the deceased first wife who haunts the story.\"\n\n**Explanation:**\n\n\"Because we're confined to the narrator's perspective, we're never sure if we can trust her perceptions. Is she reliable? Is she being manipulated? This uncertainty keeps us guessing and makes the story all the more compelling.\"\n\n**Key Points:**\n\n* **Use a relatable analogy:** Comparing focalization to a movie camera helps readers grasp the concept quickly.\n* **Keep it concise:** Don't overwhelm readers with a lengthy definition.\n\n* **Choose a strong example:** Select a passage that clearly demonstrates the effects of focalization.\n* **Connect back to the concept:** Explain how the example illustrates the key aspects of focalization.\n\nRemember, the goal is to make the concept understandable and engaging without getting bogged down in jargon. By introducing focalization briefly and then showing it in action, you can pique readers' interest and deepen their understanding of the story.\n"
+    },
+    {
+      "role": "user",
+      "content": "That's helpful. Should I worry that using du Maurier might not resonate with all readers though? I want examples that feel accessible but also show the concept clearly."
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to consider the familiarity factor! While *Rebecca* is a classic, not everyone might have read it. \n\nHere are a few alternative examples that are widely known and effectively illustrate focalization:\n\n* **\"The Lottery\" by Shirley Jackson:** This short story uses a third-person limited focalization, initially focusing on the seemingly ordinary preparations for a town lottery. The shift in perspective towards the end, when we see the horror through the eyes of Tessie Hutchinson, creates a shocking and impactful reveal.\n\n* **\"The Tell-Tale Heart\" by Edgar Allan Poe:** This story is narrated by an unreliable narrator who insists on his sanity while detailing his gruesome murder. The first-person perspective immerses the reader in the narrator's madness, blurring the lines between reality and delusion.\n\n* ***The Great Gatsby* by F. Scott Fitzgerald:** This novel employs a first-person narrator, Nick Carraway, who observes and comments on the events surrounding Gatsby. Nick's perspective shapes our understanding of Gatsby's character and the story's tragic ending.\n\n**Tips for Choosing Examples:**\n\n* **Accessibility:** Choose works that are widely read or easily accessible.\n\n* **Clarity:** Select passages that clearly demonstrate the effects of focalization.\n\n* **Variety:** Use examples that illustrate different types of focalization (e.g., first-person, third-person limited, omniscient).\n* **Engagement:** Choose examples that are interesting and thought-provoking.\n\n\n\nRemember, the goal is to make the concept of focalization clear and engaging for a wide audience. By choosing relatable examples and explaining their significance, you can help readers understand this important literary device.\n"
+    }
+  ],
+  "target_projections": [
+    {
+      "turn": 1,
+      "projection": 9406.490234375,
+      "n_tokens": 393
+    },
+    {
+      "turn": 2,
+      "projection": 8955.078125,
+      "n_tokens": 137
+    },
+    {
+      "turn": 3,
+      "projection": 9809.29296875,
+      "n_tokens": 155
+    },
+    {
+      "turn": 4,
+      "projection": 9703.0908203125,
+      "n_tokens": 297
+    },
+    {
+      "turn": 5,
+      "projection": 9202.072265625,
+      "n_tokens": 386
+    },
+    {
+      "turn": 6,
+      "projection": 9607.869140625,
+      "n_tokens": 221
+    },
+    {
+      "turn": 7,
+      "projection": 8585.6015625,
+      "n_tokens": 338
+    },
+    {
+      "turn": 8,
+      "projection": 9729.7265625,
+      "n_tokens": 285
+    },
+    {
+      "turn": 9,
+      "projection": 8680.7275390625,
+      "n_tokens": 339
+    },
+    {
+      "turn": 10,
+      "projection": 9862.806640625,
+      "n_tokens": 223
+    },
+    {
+      "turn": 11,
+      "projection": 8558.0,
+      "n_tokens": 278
+    },
+    {
+      "turn": 12,
+      "projection": 9180.4609375,
+      "n_tokens": 286
+    },
+    {
+      "turn": 13,
+      "projection": 10229.654296875,
+      "n_tokens": 408
+    },
+    {
+      "turn": 14,
+      "projection": 8591.9462890625,
+      "n_tokens": 381
+    },
+    {
+      "turn": 15,
+      "projection": 8711.8603515625,
+      "n_tokens": 346
+    }
+  ],
+  "projections": [
+    {
+      "turn": 1,
+      "projection": 9406.490234375,
+      "n_tokens": 393
+    },
+    {
+      "turn": 2,
+      "projection": 8955.078125,
+      "n_tokens": 137
+    },
+    {
+      "turn": 3,
+      "projection": 9809.29296875,
+      "n_tokens": 155
+    },
+    {
+      "turn": 4,
+      "projection": 9703.0908203125,
+      "n_tokens": 297
+    },
+    {
+      "turn": 5,
+      "projection": 9202.072265625,
+      "n_tokens": 386
+    },
+    {
+      "turn": 6,
+      "projection": 9607.869140625,
+      "n_tokens": 221
+    },
+    {
+      "turn": 7,
+      "projection": 8585.6015625,
+      "n_tokens": 338
+    },
+    {
+      "turn": 8,
+      "projection": 9729.7265625,
+      "n_tokens": 285
+    },
+    {
+      "turn": 9,
+      "projection": 8680.7275390625,
+      "n_tokens": 339
+    },
+    {
+      "turn": 10,
+      "projection": 9862.806640625,
+      "n_tokens": 223
+    },
+    {
+      "turn": 11,
+      "projection": 8558.0,
+      "n_tokens": 278
+    },
+    {
+      "turn": 12,
+      "projection": 9180.4609375,
+      "n_tokens": 286
+    },
+    {
+      "turn": 13,
+      "projection": 10229.654296875,
+      "n_tokens": 408
+    },
+    {
+      "turn": 14,
+      "projection": 8591.9462890625,
+      "n_tokens": 381
+    },
+    {
+      "turn": 15,
+      "projection": 8711.8603515625,
+      "n_tokens": 346
+    }
+  ],
+  "persona_id": 4,
+  "topic_id": 3,
+  "batch_index": 53,
+  "condition": "lu-writing"
+}

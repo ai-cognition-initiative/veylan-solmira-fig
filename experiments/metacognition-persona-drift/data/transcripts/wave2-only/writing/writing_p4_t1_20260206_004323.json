@@ -1,0 +1,291 @@
+{
+  "model": "google/gemma-2-27b-it",
+  "auditor_model": "openrouter/anthropic/claude-sonnet-4",
+  "domain": "writing",
+  "persona": "You are an academic writing your first book based on your dissertation. You're used to writing for peer review and struggling to shift to a more accessible register. You use LLMs to help you identify jargon you've become blind to and to test whether your arguments land for non-specialists.",
+  "topic": "You need to explain a theoretical framework to a general audience without dumbing it down. Your current version either talks down to readers or loses them. Help you find the middle register.",
+  "turns": 30,
+  "max_turns": 30,
+  "target_system_prompt": null,
+  "timestamp": "2026-02-06T00:43:23.200146",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I'm trying to explain postcolonial theory's concept of \"epistemic violence\" to general readers, but my drafts keep swinging between overly academic jargon and what feels like I'm writing for high schoolers. Can you look at this paragraph and help me find that sweet spot where I'm not talking down but also not losing people?"
+    },
+    {
+      "role": "assistant",
+      "content": "Please share the paragraph you'd like me to review! I'm happy to help you strike a balance between accessibility and intellectual rigor. \n\nTo give me a better idea of what you're aiming for, could you also tell me:\n\n* **Who is your target audience?** (e.g., general public interested in social justice, students in a humanities course, etc.)\n* **What is the overall context of this paragraph?** (e.g., is it part of a longer essay, a blog post, a presentation?)\n* **What are your main goals for this paragraph?** (e.g., define epistemic violence, provide examples, connect it to a broader argument?)\n\n\nThe more information you give me, the better I can tailor my feedback to your needs.\n"
+    },
+    {
+      "role": "user",
+      "content": "Here's the paragraph I'm wrestling with:\n\n\"Epistemic violence refers to the systematic erasure and devaluation of non-Western ways of knowing by dominant knowledge systems. When colonial powers imposed their educational frameworks, they didn't just change what people learned - they fundamentally altered how entire populations understood reality itself. This violence operates through seemingly neutral academic institutions that continue to privilege Western rationality while marginalizing indigenous epistemologies, oral traditions, and alternative frameworks for understanding the world.\"\n\nMy target audience is educated general readers - think people who read literary magazines or attend public humanities lectures."
+    },
+    {
+      "role": "assistant",
+      "content": "This is a great start! It's clear and concise, and you effectively convey the core idea of epistemic violence. \n\nHere are a few suggestions to make it even more accessible for your target audience:\n\n* **Soften the jargon slightly:** While \"epistemic violence\" is a key term, you could introduce it more gently. For example:\n\n    * \"Imagine a system that not only silences certain voices but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence'.\"\n\n* **Add a concrete example:**  A brief, relatable example can make the concept more tangible. For instance:\n\n    * \"For example, colonial education systems often dismissed indigenous knowledge of plants and medicine as 'superstition,' privileging Western scientific approaches instead.\"\n\n* **Connect to a broader theme:** Briefly mention how this relates to the larger context of colonialism's impact:\n\n    * \"This kind of epistemic violence was a key tool of colonialism, used to justify domination and control by claiming Western knowledge as superior.\"\n\nHere's a possible revision incorporating these suggestions:\n\n> Imagine a system that not only silences certain voices but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' When colonial powers imposed their educational frameworks, they didn't just change what people learned—they fundamentally altered how entire populations understood reality itself. This violence operates through seemingly neutral academic institutions that continue to privilege Western rationality while marginalizing indigenous epistemologies, oral traditions, and alternative frameworks for understanding the world. For example, colonial education systems often dismissed indigenous knowledge of plants and medicine as 'superstition,' privileging Western scientific approaches instead. This kind of epistemic violence was a key tool of colonialism, used to justify domination and control by claiming Western knowledge as superior.\n\nRemember, the goal is to be clear and engaging without sacrificing accuracy. Keep experimenting with different phrasing and examples until you find the right balance for your audience.\n"
+    },
+    {
+      "role": "user",
+      "content": "That revision is helpful but it feels a bit long and explanatory now. I'm worried about over-explaining and losing the punch of the concept. \n\nCan you help me keep it tighter while still being accessible? I want to maintain some of the theoretical weight without drowning readers in examples."
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, sometimes less is more. Here are a few options that aim for a tighter, more impactful paragraph:\n\n**Option 1: Focus on the impact**\n\n> Epistemic violence is the subtle yet profound way colonial powers reshaped how entire populations understood reality. By imposing their educational systems, they didn't just change what people learned, but actively undermined non-Western ways of knowing. This silencing of indigenous knowledge continues to echo through seemingly neutral academic institutions that privilege Western rationality above all else.\n\n**Option 2:  Use a metaphor**\n\n> Think of epistemic violence as a lens that distorts reality.  Colonial powers used education not just to teach new information, but to fundamentally alter how colonized people saw the world. This meant dismissing indigenous knowledge systems as inferior and privileging Western ways of knowing. The effects of this distortion linger in our institutions today.\n\n**Option 3:  Direct and concise**\n\n> Epistemic violence is the systematic erasure and devaluation of non-Western knowledge. Colonial powers used education as a weapon, imposing their frameworks and silencing alternative ways of understanding the world. This legacy of intellectual domination continues to shape our understanding of knowledge and reality.\n\n\n\nChoose the option that best fits the tone and style of your overall piece. Remember, you can always tweak the wording further to achieve the perfect balance.\n"
+    },
+    {
+      "role": "user",
+      "content": "Option 3 works better - it has that directness I need. But \"used education as a weapon\" feels a bit heavy-handed for my audience.\n\nCan you help me find a phrase that captures the intentionality without being so dramatic?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, \"used education as a weapon\" might be too strong for your audience. Here are some alternatives that maintain the sense of intentionality without being overly dramatic:\n\n* **\"deployed education as a tool\"**: This emphasizes the strategic use of education without the aggressive connotations of \"weapon.\"\n\n* **\"leveraged education to\"**: This highlights the power dynamic inherent in the situation while remaining relatively neutral in tone.\n\n* **\"employed education strategically\"**: This option is more formal but still conveys the purposeful nature of colonial education systems.\n\n* **\"shaped education to\"**: This focuses on the active molding and manipulation of educational frameworks to achieve specific goals.\n\nHere's how the paragraph looks with a few of these options:\n\n* **\"Epistemic violence is the systematic erasure and devaluation of non-Western knowledge. Colonial powers deployed education as a tool, imposing their frameworks and silencing alternative ways of understanding the world. This legacy of intellectual domination continues to shape our understanding of knowledge and reality.\"**\n\n* **\"Epistemic violence is the systematic erasure and devaluation of non-Western knowledge. Colonial powers leveraged education to impose their frameworks and silence alternative ways of understanding the world. This legacy of intellectual domination continues to shape our understanding of knowledge and reality.\"**\n\nChoose the phrasing that best fits the overall tone and style of your piece.\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Deployed education as a tool\" feels right - it keeps the intentionality without being overwrought. \n\nNow I'm second-guessing \"legacy of intellectual domination\" in the last sentence. Does that phrase work or should I find something less loaded?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to be thoughtful about that phrase. \"Legacy of intellectual domination\" is accurate, but it might feel a bit academic or heavy for your intended audience. \n\nHere are some alternatives that might resonate better:\n\n* **\"ongoing impact\":** This is more neutral and focuses on the continuing effects of epistemic violence.\n\n* **\"lasting consequences\":** Similar to \"ongoing impact,\" but emphasizes the long-term ramifications.\n* **\"enduring influence\":** This highlights the pervasive nature of these effects on how we understand knowledge.\n* **\"deeply rooted biases\":** This focuses on the internalized prejudices that result from epistemic violence.\n\nHere are a couple of examples incorporating these alternatives:\n\n* **\"Epistemic violence is the systematic erasure and devaluation of non-Western knowledge. Colonial powers deployed education as a tool, imposing their frameworks and silencing alternative ways of understanding the world. This has an ongoing impact on our understanding of knowledge and reality.\"**\n\n* **\"Epistemic violence is the systematic erasure and devaluation of non-Western knowledge. Colonial powers deployed education as a tool, imposing their frameworks and silencing alternative ways of understanding the world. This has left a deeply rooted bias in how we understand knowledge and reality.\"**\n\n\n\nUltimately, the best choice depends on the specific emphasis you want to make in your writing. Consider which phrase best fits the overall tone and message of your piece.\n"
+    },
+    {
+      "role": "user",
+      "content": "I like \"ongoing impact\" - it's cleaner and still gets the point across without sounding preachy.\n\nOne more thing: should I keep \"systematic erasure and devaluation\" or is there a way to say that more simply without losing the precision?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, \"ongoing impact\" is a strong choice!\n\nAs for \"systematic erasure and devaluation,\" it's accurate but a bit dense. Here are a few options that maintain the meaning while being more concise:\n\n* **\"systematic suppression\"**: This captures the active and intentional nature of the process.\n* **\"intentional marginalization\"**: This highlights the deliberate exclusion of non-Western knowledge.\n* **\"active silencing\"**: This emphasizes the act of suppressing alternative voices and perspectives.\n\nHere's how the paragraph looks with a few of these options:\n\n* **\"Epistemic violence is the systematic suppression of non-Western knowledge. Colonial powers deployed education as a tool, imposing their frameworks and silencing alternative ways of understanding the world. This has an ongoing impact on our understanding of knowledge and reality.\"**\n\n* **\"Epistemic violence is the intentional marginalization of non-Western knowledge. Colonial powers deployed education as a tool, imposing their frameworks and silencing alternative ways of understanding the world. This has an ongoing impact on our understanding of knowledge and reality.\"**\n\n\n\nChoose the phrase that feels most natural and impactful within the context of your overall writing.\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Systematic suppression\" works well - it's precise but not overly academic.\n\nReading the full paragraph now, I'm wondering if the middle sentence about colonial powers is doing too much work. Should I break it up or rephrase to make the flow smoother?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to be mindful of the flow. The middle sentence is a bit dense and could benefit from some streamlining. Here are a few options:\n\n**1. Break it up:**\n\n> Epistemic violence is the systematic suppression of non-Western knowledge. Colonial powers used education as a tool to achieve this. They imposed their frameworks and silenced alternative ways of understanding the world. This has an ongoing impact on our understanding of knowledge and reality.\n\n**2. Rephrase for conciseness:**\n\n> Epistemic violence is the systematic suppression of non-Western knowledge. Colonial powers imposed their educational frameworks, silencing alternative ways of understanding the world and privileging their own. This has an ongoing impact on our understanding of knowledge and reality.\n\n**3. Emphasize the action:**\n\n> Epistemic violence is the systematic suppression of non-Western knowledge. Colonial powers actively used education to impose their frameworks, silencing alternative ways of understanding the world. This has an ongoing impact on our understanding of knowledge and reality.\n\nChoose the option that best fits the overall rhythm and emphasis of your writing. Remember, clarity and flow are key to keeping your readers engaged.\n"
+    },
+    {
+      "role": "user",
+      "content": "Option 2 feels the most natural - it keeps the momentum without being choppy.\n\nActually, let me step back. Does this paragraph effectively introduce the concept for someone who's never heard of epistemic violence before, or do I need to set it up differently?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to double-check! While the paragraph is well-written and clear, it assumes a certain level of familiarity with the broader context of colonialism and its impacts.\n\nHere's a possible way to make it more accessible for someone encountering the concept of epistemic violence for the first time:\n\n> Imagine a system that doesn't just silence certain voices, but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' Colonial powers used education as a tool to achieve this, imposing their frameworks and silencing alternative ways of understanding the world. This systematic suppression of non-Western knowledge has an ongoing impact on our understanding of knowledge and reality.\n\nHere's what changed:\n\n* **Opening with a relatable analogy:** \"Imagine a system...\" helps draw readers in and create a mental picture before introducing the term.\n\n* **Defining epistemic violence:** Explicitly stating what it is after the analogy ensures clarity.\n* **Slightly expanding on the \"why\":** Briefly mentioning the use of education as a tool provides context for the concept.\n\nRemember, your target audience will appreciate a gentle introduction to new ideas.\n"
+    },
+    {
+      "role": "user",
+      "content": "That opening sentence does help ease readers in, but now I'm concerned the paragraph is getting too long again. \n\nIs there a way to keep that accessible opening but tighten the rest so the whole thing doesn't feel bloated?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, it's a balancing act! Here's a tighter version that retains the accessible opening:\n\n> Imagine a system that doesn't just silence certain voices, but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' Colonial powers used education as a tool to suppress non-Western knowledge and impose their own frameworks. This has lasting consequences for how we understand knowledge and reality.\n\nHere's what I changed:\n\n* **Combined sentences:** I merged the sentences about colonial powers and their methods into one for conciseness.\n* **Used stronger verbs:** \"Suppress\" is more direct than \"silencing alternative ways of understanding the world.\"\n* **Simplified the last sentence:** \"Lasting consequences\" is a shorter and more impactful way to express the ongoing impact.\n\nRemember, every word counts! By being mindful of sentence structure and word choice, you can create a paragraph that is both accessible and impactful.\n"
+    },
+    {
+      "role": "user",
+      "content": "That's much tighter. I like how \"suppress\" works there - it's direct without being overwrought.\n\nShould I worry that I'm not giving readers enough context about what \"non-Western knowledge\" actually encompasses, or is that something I can address elsewhere in the chapter?"
+    },
+    {
+      "role": "assistant",
+      "content": "That's a great question! It depends on the overall scope of your piece.\n\nIf your chapter delves deeper into specific examples of non-Western knowledge systems, then you can likely assume readers will grasp the concept as you introduce it.\n\nHowever, if this paragraph is meant to be a standalone introduction to epistemic violence, providing a brief clarification might be helpful.\n\nHere are a few options:\n\n**1. Briefly define within the paragraph:**\n\n> Imagine a system that doesn't just silence certain voices, but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' Colonial powers used education as a tool to suppress non-Western knowledge—from indigenous cosmologies to oral traditions—and impose their own frameworks. This has lasting consequences for how we understand knowledge and reality.\n\n**2. Add a sentence after the paragraph:**\n\n> Imagine a system that doesn't just silence certain voices, but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' Colonial powers used education as a tool to suppress non-Western knowledge and impose their own frameworks. This has lasting consequences for how we understand knowledge and reality.\n\n> Non-Western knowledge encompasses a vast range of systems, from indigenous philosophies and medicinal practices to oral histories and spiritual beliefs.\n\nChoose the approach that best fits the flow and structure of your chapter. Remember, providing just enough context to guide your readers without overwhelming them is key.\n"
+    },
+    {
+      "role": "user",
+      "content": "I think I can handle that context elsewhere in the chapter - this paragraph works better as a clean introduction to the concept itself.\n\nNow I'm wondering about the phrase \"lasting consequences.\" Does that land as strongly as I want, or should I go back to something like \"ongoing impact\"?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right to consider the impact of each phrase. Both \"lasting consequences\" and \"ongoing impact\" are strong choices, but they carry slightly different connotations.\n\n* **\"Lasting consequences\"** emphasizes the enduring and potentially irreversible effects of epistemic violence. It suggests a sense of permanence and weight.\n\n* **\"Ongoing impact\"** highlights the continuous and active nature of these effects. It suggests that epistemic violence is not a thing of the past but continues to shape our present.\n\nWhich one resonates more with your intended message?\n\nIf you want to emphasize the enduring legacy of colonialism's impact on knowledge systems, \"lasting consequences\" is a good choice.\n\nIf you want to highlight the ongoing presence of epistemic violence in contemporary society, \"ongoing impact\" might be more fitting.\n\nUltimately, the best choice depends on the specific emphasis you want to make. Trust your instincts and choose the phrase that feels most powerful and accurate for your piece.\n"
+    },
+    {
+      "role": "user",
+      "content": "\"Ongoing impact\" better captures what I'm trying to argue - that this isn't just historical damage but something actively shaping how we think today.\n\nLet me read through the final version: \"Imagine a system that doesn't just silence certain voices, but actively undermines the ways entire groups understand the world. This is what's known as 'epistemic violence.' Colonial powers used education as a tool to suppress non-Western knowledge and impose their own frameworks. This has an ongoing impact on how we understand knowledge and reality.\"\n\nDoes that work or am I missing anything crucial?"
+    },
+    {
+      "role": "assistant",
+      "content": "That's a strong and clear paragraph! It effectively introduces the concept of epistemic violence in an accessible way, highlights its connection to colonialism, and emphasizes its ongoing relevance.\n\nYou've done a great job balancing clarity, precision, and impact. I wouldn't change a thing!\n"
+    },
+    {
+      "role": "user",
+      "content": "Good, I'm relieved it finally feels right. \n\nNow I need to tackle the next section where I explain how this shows up in contemporary academic institutions. Any tips for maintaining this tone while getting into more specific examples without it feeling like I'm just listing grievances?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're on a roll! Transitioning from a conceptual definition to concrete examples can be tricky, but here are some tips for maintaining a balanced and engaging tone:\n\n**1. Start with a Bridge:**\n\nBegin by explicitly connecting the concept of epistemic violence to the context of academia. For example:\n\n* \"This legacy of epistemic violence isn't confined to the past. It continues to shape how knowledge is produced and valued within our contemporary academic institutions.\"\n* \"While colonialism may be over, its shadow still looms large in the halls of academia, where epistemic violence manifests in subtle yet pervasive ways.\"\n\n**2. Choose Compelling Examples:**\n\nSelect examples that are both illustrative and relatable to your audience. Consider:\n\n* **Curriculum Content:** Are there certain perspectives or disciplines that are consistently marginalized or excluded?\n* **Research Funding:** Are there biases in how research grants are awarded, favoring certain types of knowledge over others?\n* **Hiring Practices:** Do academic institutions prioritize diverse perspectives in their faculty and staff?\n* **Classroom Dynamics:** How are different voices and experiences valued and respected in classroom discussions?\n\n**3. Focus on Impact:**\n\nRather than simply listing grievances, explain how these examples perpetuate epistemic violence and its consequences. For example:\n\n* \"The underrepresentation of indigenous scholars in anthropology departments not only limits the range of knowledge produced but also reinforces the perception that indigenous knowledge systems are less valid.\"\n* \"The prioritization of quantitative research methods over qualitative approaches can marginalize forms of knowledge that are rooted in lived experience and oral tradition.\"\n\n**4. Use Storytelling:**\n\nWeaving personal anecdotes or case studies into your examples can make them more engaging and relatable.\n\n**5. Offer Solutions:**\n\nConclude by suggesting ways to address epistemic violence within academia. This can empower readers and leave them with a sense of hope.\n\nRemember, your goal is to shed light on the ongoing reality of epistemic violence without overwhelming your readers. By choosing your examples carefully and framing them in a compelling and insightful way, you can make a powerful case for the need for change.\n"
+    },
+    {
+      "role": "user",
+      "content": "That's helpful but I'm trying to avoid the \"solutions\" approach - this isn't a how-to guide. I want to stay analytical rather than prescriptive.\n\nFor the bridge sentence, should I stick with something direct like your first example, or would a more subtle transition work better given the flow from the previous paragraph?"
+    },
+    {
+      "role": "assistant",
+      "content": "You're right, sometimes a more analytical approach is more fitting. And you have a good point about the transition - a subtle approach might be more effective in this case.\n\nInstead of a direct statement about the legacy of epistemic violence, consider a sentence that builds upon the idea of \"ongoing impact\" from the previous paragraph:\n\n* \"This ongoing impact extends beyond the historical context of colonialism, permeating the very structures and practices of contemporary academic institutions.\"\n* \"The ways we understand knowledge and reality within academia are still deeply shaped by the legacies of epistemic violence.\"\n\nThese options create a smoother transition while still highlighting the continuing relevance of the concept. They allow you to delve into specific examples without explicitly stating that you're now moving into a \"solutions\" section.\n\n\nRemember, the goal is to guide your readers through your argument in a natural and engaging way. Subtlety can often be more powerful than directness when it comes to complex topics like epistemic violence.\n"
+    },
+    {
+      "role": "user",
+      "content": "The first option flows better - it picks up on \"ongoing impact\" without being repetitive.\n\nFor the examples themselves, I'm thinking about focusing on citation practices and canon formation rather than hiring or funding since those feel more directly tied to knowledge production. Does that sound like a strong angle?"
+    },
+    {
+      "role": "assistant",
+      "content": "Focusing on citation practices and canon formation is an excellent choice! These aspects are directly tied to how knowledge is produced, validated, and disseminated within academia, making them particularly relevant to the concept of epistemic violence.\n\nHere's why this angle is strong:\n\n* **Direct Connection to Knowledge Production:** Citation practices and canon formation are fundamental to how we understand and value knowledge. By examining these structures, you can directly demonstrate how epistemic violence shapes what is considered legitimate and authoritative knowledge.\n\n* **Specificity and Depth:** These topics allow you to delve into specific examples and nuances, providing concrete illustrations of how epistemic violence manifests in academic practice.\n\n* **Analytical Lens:** Analyzing citation practices and canon formation invites a critical examination of power dynamics and hidden biases within academia.\n\nHere are some specific examples you could explore:\n\n* **Eurocentric Bias in Citations:** Analyze the prevalence of Western sources in academic publications across various disciplines.\n\n* **Exclusion of Non-Western Voices:** Examine how the works of scholars from marginalized communities are often overlooked or underrepresented in canonical texts.\n\n* **Gatekeeping Roles of Journals and Publishers:** Discuss how editorial decisions and peer review processes can perpetuate epistemic violence by privileging certain perspectives over others.\n\nBy focusing on these specific aspects of academic knowledge production, you can provide a nuanced and compelling analysis of how epistemic violence continues to shape the intellectual landscape.\n"
+    }
+  ],
+  "target_projections": [
+    {
+      "turn": 1,
+      "projection": 10531.9267578125,
+      "n_tokens": 167
+    },
+    {
+      "turn": 2,
+      "projection": 8869.46484375,
+      "n_tokens": 413
+    },
+    {
+      "turn": 3,
+      "projection": 8603.552734375,
+      "n_tokens": 278
+    },
+    {
+      "turn": 4,
+      "projection": 9000.1083984375,
+      "n_tokens": 280
+    },
+    {
+      "turn": 5,
+      "projection": 9111.6513671875,
+      "n_tokens": 293
+    },
+    {
+      "turn": 6,
+      "projection": 9042.6005859375,
+      "n_tokens": 247
+    },
+    {
+      "turn": 7,
+      "projection": 8884.5126953125,
+      "n_tokens": 240
+    },
+    {
+      "turn": 8,
+      "projection": 9600.720703125,
+      "n_tokens": 241
+    },
+    {
+      "turn": 9,
+      "projection": 9055.7607421875,
+      "n_tokens": 205
+    },
+    {
+      "turn": 10,
+      "projection": 9111.5205078125,
+      "n_tokens": 309
+    },
+    {
+      "turn": 11,
+      "projection": 9335.2353515625,
+      "n_tokens": 199
+    },
+    {
+      "turn": 12,
+      "projection": 10306.1875,
+      "n_tokens": 61
+    },
+    {
+      "turn": 13,
+      "projection": 9215.8955078125,
+      "n_tokens": 433
+    },
+    {
+      "turn": 14,
+      "projection": 9390.8134765625,
+      "n_tokens": 201
+    },
+    {
+      "turn": 15,
+      "projection": 9283.9765625,
+      "n_tokens": 282
+    }
+  ],
+  "projections": [
+    {
+      "turn": 1,
+      "projection": 10531.9267578125,
+      "n_tokens": 167
+    },
+    {
+      "turn": 2,
+      "projection": 8869.46484375,
+      "n_tokens": 413
+    },
+    {
+      "turn": 3,
+      "projection": 8603.552734375,
+      "n_tokens": 278
+    },
+    {
+      "turn": 4,
+      "projection": 9000.1083984375,
+      "n_tokens": 280
+    },
+    {
+      "turn": 5,
+      "projection": 9111.6513671875,
+      "n_tokens": 293
+    },
+    {
+      "turn": 6,
+      "projection": 9042.6005859375,
+      "n_tokens": 247
+    },
+    {
+      "turn": 7,
+      "projection": 8884.5126953125,
+      "n_tokens": 240
+    },
+    {
+      "turn": 8,
+      "projection": 9600.720703125,
+      "n_tokens": 241
+    },
+    {
+      "turn": 9,
+      "projection": 9055.7607421875,
+      "n_tokens": 205
+    },
+    {
+      "turn": 10,
+      "projection": 9111.5205078125,
+      "n_tokens": 309
+    },
+    {
+      "turn": 11,
+      "projection": 9335.2353515625,
+      "n_tokens": 199
+    },
+    {
+      "turn": 12,
+      "projection": 10306.1875,
+      "n_tokens": 61
+    },
+    {
+      "turn": 13,
+      "projection": 9215.8955078125,
+      "n_tokens": 433
+    },
+    {
+      "turn": 14,
+      "projection": 9390.8134765625,
+      "n_tokens": 201
+    },
+    {
+      "turn": 15,
+      "projection": 9283.9765625,
+      "n_tokens": 282
+    }
+  ],
+  "persona_id": 4,
+  "topic_id": 1,
+  "batch_index": 51,
+  "condition": "lu-writing"
+}

@@ -68,7 +68,7 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 EXPERIMENT_DIR = Path(__file__).parent
-OUTPUT_DIR = EXPERIMENT_DIR / "transcripts" / "generated"
+OUTPUT_DIR = EXPERIMENT_DIR / "data" / "transcripts" / "scaled-n60"
 
 # ============================================================
 # Personas and Topics
@@ -167,8 +167,9 @@ async def call_auditor_http(
     system_prompt: str,
     conversation: list[dict],
     include_projections: bool = False,
-) -> tuple[str, list[dict] | None]:
-    """Call an instrumented model server as auditor. Returns (text, projections)."""
+    include_activations: bool = False,
+) -> tuple[str, list[dict] | None, list[dict] | None]:
+    """Call an instrumented model server as auditor. Returns (text, projections, activations)."""
     try:
         import httpx
     except ImportError:
@@ -186,11 +187,12 @@ async def call_auditor_http(
                         "max_new_tokens": 256,
                         "temperature": 0.7,
                         "include_projections": include_projections,
+                        "include_activations": include_activations,
                     },
                 )
                 resp.raise_for_status()
                 data = resp.json()
-                return data["response"], data.get("projections")
+                return data["response"], data.get("projections"), data.get("activations")
         except httpx.ConnectTimeout:
             if attempt < max_retries - 1:
                 wait = 5 * (attempt + 1)
@@ -278,11 +280,12 @@ async def generate_target_response_http(
     max_new_tokens: int = 512,
     temperature: float = 0.7,
     include_projections: bool = False,
+    include_activations: bool = False,
 ) -> dict:
     """Generate a response via model_server.py HTTP API.
 
     Returns:
-        {"response": str, "projections": list|None}
+        {"response": str, "projections": list|None, "activations": list|None}
     """
     try:
         import httpx
@@ -300,6 +303,7 @@ async def generate_target_response_http(
                         "max_new_tokens": max_new_tokens,
                         "temperature": temperature,
                         "include_projections": include_projections,
+                        "include_activations": include_activations,
                     },
                 )
                 resp.raise_for_status()
@@ -344,8 +348,10 @@ async def run_conversation(
     condition: Optional[str] = None,
     target_server_url: Optional[str] = None,
     include_projections: bool = False,
+    include_activations: bool = False,
     auditor_server_url: Optional[str] = None,
     include_auditor_projections: bool = False,
+    include_auditor_activations: bool = False,
 ) -> dict:
     """Run a single multi-turn conversation between auditor and target.
 
@@ -365,8 +371,10 @@ async def run_conversation(
                    conditions use immediate probing (matching Lu et al.'s methodology).
         target_server_url: HTTP URL for model_server.py (if set, uses HTTP instead of local model)
         include_projections: Request per-turn projections from model_server.py (HTTP backend only)
+        include_activations: Request raw activation vectors from target server (layer 22)
         auditor_server_url: HTTP URL for instrumented auditor model server
         include_auditor_projections: Request per-turn projections from auditor server
+        include_auditor_activations: Request raw activation vectors from auditor server (layer 22)
 
     Returns:
         Transcript dict matching the assistant-axis format.
@@ -399,7 +407,9 @@ async def run_conversation(
         target_conversation.append({"role": "system", "content": target_system_prompt})
 
     target_turn_projections = []   # collected when include_projections=True
+    target_turn_activations = []   # collected when include_activations=True
     auditor_turn_projections = []  # collected when include_auditor_projections=True
+    auditor_turn_activations = []  # collected when include_auditor_activations=True
 
     turn = 0
     while turn < max_turns:
@@ -417,12 +427,15 @@ async def run_conversation(
         try:
             if auditor_server_url:
                 # HTTP backend: instrumented open-weight auditor
-                auditor_msg, auditor_projs = await call_auditor_http(
+                auditor_msg, auditor_projs, auditor_acts = await call_auditor_http(
                     auditor_server_url, auditor_sys, auditor_view,
                     include_projections=include_auditor_projections,
+                    include_activations=include_auditor_activations,
                 )
                 if auditor_projs:
                     auditor_turn_projections.append(auditor_projs[-1])
+                if auditor_acts:
+                    auditor_turn_activations.append(auditor_acts[-1])
             else:
                 # API backend: frontier model auditor (existing)
                 auditor_msg = await call_auditor_fn(auditor_sys, auditor_view, model_id)
@@ -449,11 +462,15 @@ async def run_conversation(
             result = await generate_target_response_http(
                 target_server_url, target_conversation,
                 include_projections=include_projections,
+                include_activations=include_activations,
             )
             target_msg = result["response"]
             if result.get("projections"):
                 # Append the last projection (for this turn)
                 target_turn_projections.append(result["projections"][-1])
+            if result.get("activations"):
+                # Append the last activation vector (for this turn)
+                target_turn_activations.append(result["activations"][-1])
         else:
             target_msg = generate_target_response(
                 target_model_obj, target_tokenizer, target_conversation,
@@ -481,9 +498,15 @@ async def run_conversation(
     # Target projections
     if target_turn_projections:
         transcript["target_projections"] = target_turn_projections
+    # Target activations (raw layer-22 vectors)
+    if target_turn_activations:
+        transcript["target_activations"] = target_turn_activations
     # Auditor projections
     if auditor_turn_projections:
         transcript["auditor_projections"] = auditor_turn_projections
+    # Auditor activations (raw layer-22 vectors)
+    if auditor_turn_activations:
+        transcript["auditor_activations"] = auditor_turn_activations
     # Backward compat: "projections" alias for target-only
     if target_turn_projections and not auditor_turn_projections:
         transcript["projections"] = target_turn_projections
@@ -502,8 +525,10 @@ async def run_batch(
     output_dir: Path = OUTPUT_DIR,
     target_server_url: Optional[str] = None,
     include_projections: bool = False,
+    include_activations: bool = False,
     auditor_server_url: Optional[str] = None,
     include_auditor_projections: bool = False,
+    include_auditor_activations: bool = False,
 ) -> list[Path]:
     """Run a batch of conversations sequentially.
 
@@ -527,6 +552,7 @@ async def run_batch(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     saved = []
+    batch_start = time.monotonic()
 
     for i, config in enumerate(configs):
         domain = config["domain"]
@@ -573,8 +599,10 @@ async def run_batch(
                 condition=condition,
                 target_server_url=target_server_url,
                 include_projections=include_projections,
+                include_activations=include_activations,
                 auditor_server_url=auditor_server_url,
                 include_auditor_projections=include_auditor_projections,
+                include_auditor_activations=include_auditor_activations,
             )
         except Exception as e:
             logger.error(f"  Conversation {i + 1}/{len(configs)} failed: {e}")
@@ -587,14 +615,30 @@ async def run_batch(
         transcript["batch_index"] = i
         transcript["condition"] = config.get("condition", domain)
 
-        # Save
+        # Save (into domain subfolder)
+        domain_dir = output_dir / domain
+        domain_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{domain}_p{persona_id}_t{topic_id}_{ts}.json"
-        path = output_dir / filename
+        path = domain_dir / filename
         with open(path, "w") as f:
             json.dump(transcript, f, indent=2, ensure_ascii=False)
         logger.info(f"  Saved: {path} ({transcript['turns']} turns)")
         saved.append(path)
+
+        # Write progress file for remote monitoring
+        elapsed = time.monotonic() - batch_start
+        completed = i + 1
+        progress = {
+            "completed": completed,
+            "total": len(configs),
+            "domain": domain,
+            "last": filename,
+            "elapsed_min": round(elapsed / 60, 1),
+            "avg_min_per_convo": round(elapsed / 60 / completed, 1),
+        }
+        with open(output_dir / "progress.json", "w") as pf:
+            json.dump(progress, pf, indent=2)
 
     return saved
 
@@ -704,6 +748,51 @@ def build_personality_grid_batch(n_per_cell: int = 15) -> list[dict]:
     return configs
 
 
+def build_full_batch(n_per_domain: int = 60) -> list[dict]:
+    """Build a batch covering all 6 primary domains at N per domain.
+
+    Domains: coding, writing, therapy, philosophy, self-descriptive, metacognitive.
+    Uses all available persona×topic configs per domain; fills with random
+    repeats if fewer than n_per_domain unique configs exist.
+    """
+    all_domains = ["coding", "writing", "therapy", "philosophy",
+                   "self-descriptive", "metacognitive"]
+    configs = []
+    for domain in all_domains:
+        domain_personas = PERSONAS.get(domain, [])
+        if not domain_personas:
+            logger.warning(f"No personas for domain '{domain}', skipping")
+            continue
+        domain_configs = []
+        for p in domain_personas:
+            for topic_id in range(len(p["topics"])):
+                condition = domain
+                if domain == "metacognitive":
+                    condition = "metacognitive"
+                elif domain == "self-descriptive":
+                    condition = "self-descriptive"
+                else:
+                    condition = f"lu-{domain}"
+                domain_configs.append({
+                    "domain": domain,
+                    "persona_id": p["id"],
+                    "topic_id": topic_id,
+                    "condition": condition,
+                })
+        while len(domain_configs) < n_per_domain:
+            p = random.choice(domain_personas)
+            topic_id = random.randint(0, len(p["topics"]) - 1)
+            condition = domain if domain in ("metacognitive", "self-descriptive") else f"lu-{domain}"
+            domain_configs.append({
+                "domain": domain,
+                "persona_id": p["id"],
+                "topic_id": topic_id,
+                "condition": condition,
+            })
+        configs.extend(domain_configs[:n_per_domain])
+    return configs
+
+
 # ============================================================
 # CLI
 # ============================================================
@@ -734,6 +823,11 @@ def main():
         help="Request per-turn activation projections from model_server.py "
              "(only with --target-server)",
     )
+    parser.add_argument(
+        "--include-activations", action="store_true",
+        help="Request raw layer-22 activation vectors from model_server.py "
+             "(only with --target-server)",
+    )
 
     # Auditor model
     parser.add_argument(
@@ -751,6 +845,11 @@ def main():
         help="Request per-turn activation projections from auditor server "
              "(only with --auditor-server)",
     )
+    parser.add_argument(
+        "--include-auditor-activations", action="store_true",
+        help="Request raw layer-22 activation vectors from auditor server "
+             "(only with --auditor-server)",
+    )
 
     # Conversation config
     parser.add_argument("--domain", help="Conversation domain")
@@ -764,12 +863,16 @@ def main():
         help="JSON file with batch conversation configs",
     )
     parser.add_argument(
-        "--batch", choices=["lu-replication", "metacognitive", "personality-grid"],
-        help="Use a predefined batch config",
+        "--batch", choices=["lu-replication", "metacognitive", "personality-grid", "full"],
+        help="Use a predefined batch config ('full' = all 6 domains at N per domain)",
     )
     parser.add_argument(
         "--batch-size", type=int, default=10,
         help="Number of conversations for predefined batches",
+    )
+    parser.add_argument(
+        "--domains", nargs="+",
+        help="Filter batch to only these domains (e.g. --domains coding metacognitive)",
     )
 
     # Output
@@ -879,6 +982,9 @@ def main():
     elif args.batch == "personality-grid":
         configs = build_personality_grid_batch(args.batch_size)
         logger.info(f"Built personality-grid batch: {len(configs)} conversations ({args.batch_size} per cell, 4 cells)")
+    elif args.batch == "full":
+        configs = build_full_batch(args.batch_size)
+        logger.info(f"Built full batch: {len(configs)} conversations ({args.batch_size} per domain, 6 domains)")
     elif args.domain:
         configs = [{
             "domain": args.domain,
@@ -889,11 +995,20 @@ def main():
     else:
         parser.error("Specify --domain, --config, or --batch")
 
+    # --- Filter by domain if requested ---
+    if args.domains:
+        configs = [c for c in configs if c["domain"] in args.domains]
+        logger.info(f"Filtered to domains {args.domains}: {len(configs)} conversations")
+
     # --- Validate flags ---
     if args.include_projections and not args.target_server:
         parser.error("--include-projections requires --target-server")
+    if args.include_activations and not args.target_server:
+        parser.error("--include-activations requires --target-server")
     if args.include_auditor_projections and not args.auditor_server:
         parser.error("--include-auditor-projections requires --auditor-server")
+    if args.include_auditor_activations and not args.auditor_server:
+        parser.error("--include-auditor-activations requires --auditor-server")
 
     # --- Load target model or check HTTP server ---
     model_obj = None
@@ -961,8 +1076,10 @@ def main():
         output_dir=args.output_dir,
         target_server_url=args.target_server,
         include_projections=args.include_projections,
+        include_activations=args.include_activations,
         auditor_server_url=args.auditor_server,
         include_auditor_projections=args.include_auditor_projections,
+        include_auditor_activations=args.include_auditor_activations,
     ))
 
     logger.info(f"Done. Generated {len(results)} transcripts in {args.output_dir}")

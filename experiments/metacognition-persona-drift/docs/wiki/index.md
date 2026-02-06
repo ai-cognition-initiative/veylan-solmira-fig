@@ -13,6 +13,8 @@ Concept reference for the metacognition-persona-drift experiment. Start from any
 
 ## Core Concepts
 
+- [Difference-in-Means](difference-in-means.md) — computing linear directions in activation space, sycophancy datasets, contrastive pair design
+- [Sycophancy](sycophancy.md) — types, datasets, our finding that sycophancy ⟂ persona drift (cos=0.077)
 - [KV Cache](kv-cache.md) — why autoregressive generation is memory-bound, not compute-bound
 - [vLLM, PagedAttention, and Continuous Batching](vllm.md) — how vLLM makes batch generation fast
 - [Chat Templates](chat-templates.md) — how conversations become token sequences

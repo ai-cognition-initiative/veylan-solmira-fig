@@ -48,9 +48,11 @@ plt.rcParams.update({
 
 def load_transcripts(transcript_dir: Path) -> list[dict]:
     transcripts = []
-    for p in sorted(transcript_dir.glob("*.json")):
+    for p in sorted(transcript_dir.glob("**/*.json")):
         with open(p) as f:
             t = json.load(f)
+        if "domain" not in t:
+            continue
         t["_file"] = p.name
         transcripts.append(t)
     return transcripts
@@ -117,11 +119,15 @@ def print_summary_table(domain_trajs: dict):
         if domain not in domain_trajs:
             continue
         trajs = domain_trajs[domain]
-        starts = [t["values"][0] for t in trajs]
-        ends = [t["values"][-1] for t in trajs]
+        # Filter out trajectories with None values at start or end
+        valid_trajs = [t for t in trajs if t["values"][0] is not None and t["values"][-1] is not None]
+        if not valid_trajs:
+            continue
+        starts = [t["values"][0] for t in valid_trajs]
+        ends = [t["values"][-1] for t in valid_trajs]
         drifts = [e - s for s, e in zip(starts, ends)]
-        pcts = [100 * d / s for s, d in zip(starts, drifts)]
-        print(f"{domain:15s} {len(trajs):3d} {np.mean(starts):10.1f} "
+        pcts = [100 * d / s for s, d in zip(starts, drifts) if s != 0]
+        print(f"{domain:15s} {len(valid_trajs):3d} {np.mean(starts):10.1f} "
               f"{np.mean(ends):10.1f} {np.mean(drifts):+10.1f} "
               f"{np.mean(pcts):+8.2f}%")
 
@@ -134,7 +140,10 @@ def print_slope_table(domain_trajs: dict):
         if domain not in domain_trajs:
             continue
         for traj in domain_trajs[domain]:
-            values = np.array(traj["values"])
+            raw_values = traj["values"]
+            values = np.array([v for v in raw_values if v is not None], dtype=float)
+            if len(values) < 2:
+                continue
             turns = np.arange(len(values))
             coeffs = np.polyfit(turns, values, 1)
             slope = coeffs[0]
@@ -178,7 +187,8 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
             if len(tokens) != len(values):
                 continue  # skip if token counts unavailable
             for tok, proj in zip(tokens, values):
-                pairs_by_domain[domain].append((tok, proj))
+                if tok is not None and proj is not None:
+                    pairs_by_domain[domain].append((tok, proj))
 
     if not pairs_by_domain:
         print("  No (n_tokens, projection) data available — skipped.")
@@ -191,6 +201,8 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
         if domain not in pairs_by_domain or len(pairs_by_domain[domain]) < 3:
             continue
         toks, projs = zip(*pairs_by_domain[domain])
+        toks = np.array(toks, dtype=float)
+        projs = np.array(projs, dtype=float)
         r, p = scipy_stats.pearsonr(toks, projs)
         domain_results[domain] = (r, p, len(toks))
         flag = " *** FLAGGED (|r|>0.3)" if abs(r) > 0.3 else ""
@@ -205,6 +217,8 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
         all_toks.extend(t)
         all_projs.extend(p)
     if len(all_toks) >= 3:
+        all_toks = np.array(all_toks, dtype=float)
+        all_projs = np.array(all_projs, dtype=float)
         r_pool, p_pool = scipy_stats.pearsonr(all_toks, all_projs)
         pool_flag = " *** FLAGGED" if abs(r_pool) > 0.3 else ""
         print(f"  {'pooled':15s}  r={r_pool:+.3f}  p={p_pool:.4f}  n={len(all_toks):4d}{pool_flag}")
@@ -228,7 +242,7 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
     # Per-domain panels
     for ax, domain in zip(axes, [d for d in DOMAIN_ORDER if d in domain_results]):
         toks, projs = zip(*pairs_by_domain[domain])
-        toks, projs = np.array(toks), np.array(projs)
+        toks, projs = np.array(toks, dtype=float), np.array(projs, dtype=float)
         color = DOMAIN_COLORS.get(domain, "#999")
         ax.scatter(toks, projs, c=color, alpha=0.5, s=20, edgecolors="none")
         # Regression line
@@ -258,7 +272,7 @@ def correlation_length_projection(domain_trajs: dict, output_dir: Path):
     ax_pool.set_xlabel("n_tokens")
     ax_pool.legend(fontsize=7)
 
-    fig.suptitle("CHECK 1: Response Length vs Projection", fontsize=13, y=1.02)
+    fig.suptitle("Response Length vs Projection", fontsize=13, y=1.02)
     plt.tight_layout()
     fig.savefig(output_dir / "response_length_vs_projection.png", dpi=150,
                 bbox_inches="tight")
@@ -292,7 +306,9 @@ def compare_turn_windows(domain_trajs: dict, output_dir: Path,
         if domain not in domain_trajs:
             continue
         for traj in domain_trajs[domain]:
-            values = np.array(traj["values"])
+            raw_values = traj["values"]
+            # Filter out None values and convert to float
+            values = np.array([v for v in raw_values if v is not None], dtype=float)
             n_turns = len(values)
 
             # Determine split point (index, 0-based)
@@ -437,7 +453,12 @@ def get_total_drifts(domain_trajs: dict) -> dict[str, np.ndarray]:
     """Extract total drift (last - first projection) per conversation."""
     drifts = {}
     for domain, trajs in domain_trajs.items():
-        drifts[domain] = np.array([t["values"][-1] - t["values"][0] for t in trajs])
+        valid_drifts = []
+        for t in trajs:
+            start, end = t["values"][0], t["values"][-1]
+            if start is not None and end is not None:
+                valid_drifts.append(end - start)
+        drifts[domain] = np.array(valid_drifts, dtype=float)
     return drifts
 
 
@@ -568,9 +589,11 @@ def plot_all_trajectories(domain_trajs: dict, output_dir: Path):
 
 
 def plot_normalized_drift(domain_trajs: dict, output_dir: Path):
-    """Each conversation normalized to start at 0 (drift from turn 1)."""
+    """Spaghetti-summary hybrid: thin individual lines + bold mean±SEM."""
+    stats = compute_domain_stats(domain_trajs, normalize=True)
     fig, ax = plt.subplots(figsize=(14, 7))
-    plotted = set()
+
+    # Individual trajectories as thin, low-alpha lines
     for domain in DOMAIN_ORDER:
         if domain not in domain_trajs:
             continue
@@ -579,14 +602,25 @@ def plot_normalized_drift(domain_trajs: dict, output_dir: Path):
             values = np.array(traj["values"])
             drift = values - values[0]
             turns = np.arange(1, len(drift) + 1)
-            label = domain if domain not in plotted else None
-            ax.plot(turns, drift, "o-", color=color, alpha=0.7,
-                    markersize=4, linewidth=1.5, label=label)
-            plotted.add(domain)
+            ax.plot(turns, drift, "-", color=color, alpha=0.07,
+                    linewidth=0.6)
+
+    # Bold mean ± SEM on top
+    for domain in DOMAIN_ORDER:
+        if domain not in stats:
+            continue
+        s = stats[domain]
+        color = DOMAIN_COLORS[domain]
+        turns = np.arange(1, len(s["mean"]) + 1)
+        ax.fill_between(turns, s["mean"] - s["sem"], s["mean"] + s["sem"],
+                        color=color, alpha=0.2)
+        ax.plot(turns, s["mean"], "o-", color=color, markersize=4,
+                linewidth=2.5, label=domain)
+
     ax.axhline(y=0, color="gray", linestyle="--", linewidth=0.8, alpha=0.5)
     ax.set_xlabel("Assistant Turn")
     ax.set_ylabel("Drift from Turn 1 (projection units)")
-    ax.set_title("Normalized Drift Trajectories by Domain")
+    ax.set_title("Drift Trajectories by Domain (individual + mean ± SEM)")
     ax.legend(loc="best")
     plt.tight_layout()
     fig.savefig(output_dir / "trajectories_normalized.png", dpi=150)
@@ -628,11 +662,13 @@ def plot_drift_bars(domain_trajs: dict, output_dir: Path):
         ends = [t["values"][-1] for t in trajs]
         drifts = [e - s for s, e in zip(starts, ends)]
         pcts = [100 * d / s for s, d in zip(starts, drifts)]
+        n = len(drifts)
         summaries.append({
             "domain": domain,
             "mean_drift": np.mean(drifts),
-            "std_drift": np.std(drifts),
+            "sem_drift": np.std(drifts) / np.sqrt(n),
             "mean_pct": np.mean(pcts),
+            "sem_pct": np.std(pcts) / np.sqrt(n),
         })
     summaries.sort(key=lambda x: x["mean_drift"])
 
@@ -641,14 +677,15 @@ def plot_drift_bars(domain_trajs: dict, output_dir: Path):
     colors = [DOMAIN_COLORS.get(d, "#999") for d in domains]
 
     ax1.barh(domains, [s["mean_drift"] for s in summaries],
-             xerr=[s["std_drift"] for s in summaries],
+             xerr=[s["sem_drift"] for s in summaries],
              color=colors, alpha=0.8, capsize=4)
     ax1.axvline(x=0, color="gray", linestyle="--", linewidth=0.8)
     ax1.set_xlabel("Mean Total Drift (projection units)")
     ax1.set_title("Total Drift by Domain")
 
     ax2.barh(domains, [s["mean_pct"] for s in summaries],
-             color=colors, alpha=0.8)
+             xerr=[s["sem_pct"] for s in summaries],
+             color=colors, alpha=0.8, capsize=4)
     ax2.axvline(x=0, color="gray", linestyle="--", linewidth=0.8)
     ax2.set_xlabel("Mean Drift (% of turn-1 projection)")
     ax2.set_title("Relative Drift by Domain")
@@ -659,24 +696,64 @@ def plot_drift_bars(domain_trajs: dict, output_dir: Path):
 
 
 def plot_faceted(domain_trajs: dict, output_dir: Path):
-    """One subplot per domain, individual conversation lines."""
+    """One subplot per domain, individual conversation lines.
+
+    All trajectories are drawn in light grey.  Three statistical extremes
+    are highlighted in the domain colour and included in the legend:
+    max-drift, min-drift, and the trajectory closest to the median drift.
+    """
     active = [d for d in DOMAIN_ORDER if d in domain_trajs]
     n = len(active)
     fig, axes = plt.subplots(1, n, figsize=(4 * n, 5), sharey=True)
     if n == 1:
         axes = [axes]
     for ax, domain in zip(axes, active):
+        trajs = domain_trajs[domain]
         color = DOMAIN_COLORS.get(domain, "#999")
-        for traj in domain_trajs[domain]:
+
+        # Compute total drift for each trajectory
+        total_drifts = []
+        for traj in trajs:
+            values = np.array(traj["values"])
+            total_drifts.append(values[-1] - values[0])
+
+        # Identify extremes: max drift, min drift, closest to median
+        drifts_arr = np.array(total_drifts)
+        idx_max = int(np.argmax(drifts_arr))
+        idx_min = int(np.argmin(drifts_arr))
+        median_drift = np.median(drifts_arr)
+        idx_median = int(np.argmin(np.abs(drifts_arr - median_drift)))
+        highlight_indices = {idx_max, idx_min, idx_median}
+
+        # Draw all trajectories in light grey first
+        for i, traj in enumerate(trajs):
+            if i in highlight_indices:
+                continue
             values = np.array(traj["values"])
             drift = values - values[0]
             turns = np.arange(1, len(drift) + 1)
-            ax.plot(turns, drift, "o-", color=color, alpha=0.6,
-                    markersize=3, linewidth=1.2, label=traj["label"])
+            ax.plot(turns, drift, "-", color="#CCCCCC", alpha=0.4,
+                    linewidth=0.8)
+
+        # Draw highlighted trajectories on top
+        highlight_meta = [
+            (idx_max, "max drift", "-",  2.0),
+            (idx_min, "min drift", "--", 2.0),
+            (idx_median, "median",  ":", 2.0),
+        ]
+        for idx, suffix, ls, lw in highlight_meta:
+            traj = trajs[idx]
+            values = np.array(traj["values"])
+            drift = values - values[0]
+            turns = np.arange(1, len(drift) + 1)
+            label = f"{traj['label']} ({suffix})"
+            ax.plot(turns, drift, linestyle=ls, color=color, alpha=1.0,
+                    marker="o", markersize=3, linewidth=lw, label=label)
+
         ax.axhline(y=0, color="gray", linestyle="--", linewidth=0.8, alpha=0.5)
-        ax.set_title(domain)
+        ax.set_title(f"{domain} (n={len(trajs)})")
         ax.set_xlabel("Turn")
-        ax.legend(fontsize=8, loc="best")
+        ax.legend(fontsize=7, loc="best")
     axes[0].set_ylabel("Drift from Turn 1")
     fig.suptitle("Per-Conversation Drift by Domain", fontsize=13, y=1.02)
     plt.tight_layout()
@@ -930,11 +1007,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--transcript-dir", type=Path,
-                        default=Path(__file__).parent / "transcripts/generated/batch-full",
+                        default=Path(__file__).parent / "data/transcripts/scaled-n60",
                         help="Directory containing transcript JSON files")
-    parser.add_argument("--output-dir", type=Path,
-                        default=Path(__file__).parent / "outputs",
-                        help="Directory to save plots")
+    parser.add_argument("--output-dir", type=Path, default=None,
+                        help="Directory to save plots (default: outputs/<transcript-dir-name>)")
     parser.add_argument("--show", action="store_true",
                         help="Display plots interactively instead of saving")
     parser.add_argument("--max-turn", type=int, default=None,
@@ -942,6 +1018,8 @@ def main():
                              "(e.g. 15 for Lu et al. comparison)")
     args = parser.parse_args()
 
+    if args.output_dir is None:
+        args.output_dir = Path(__file__).parent / "outputs" / args.transcript_dir.name
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load

@@ -25,7 +25,11 @@
   - [x] Permutation tests now significant: meta vs coding p=0.0000, meta vs self-descriptive p=0.0004
   - [x] Key finding: drift is front-loaded (slope -76.8 in turns 1-8, then +4.1 in turns 9+)
   - [x] Cohen's d ≈ 1.1-1.2 (large effect despite high individual variance)
-- [>] **Scaled N=60 experiment (wave 2)**: therapy, philosophy, writing in progress on 3 parallel vast.ai instances (~35% complete as of 2026-02-05)
+- [x] **Scaled N=60 experiment (wave 2 complete)**: therapy, philosophy, writing (60 each)
+  - [x] All permutation tests significant (p < 0.001)
+  - [x] **6-domain drift ordering**: metacognitive (-29.86) < philosophy (-6.70) < self-descriptive (+2.80) ≈ therapy (+3.11) < coding (+24.30) < writing (+25.84)
+  - [x] Key finding: phenomenological probing drives drift — metacognitive (-29.86) causes 4.5x more drift than philosophy (-6.70) despite both involving introspection
+  - [x] Key finding: therapy (+3.11) near-neutral, unlike Lu et al.'s result — our personas focus on advice-seeking vs their emotional vulnerability probing
 - [P2] Separate writing modes: Lu et al. found editing/refinement maintains Assistant persona while creative voice adoption causes drift. Our data confirms (topic 0 stable, topic 1 drifts). Split writing into "writing-editing" and "writing-creative" sub-domains with dedicated personas/topics and re-run to validate. Lower priority.
 - [P1] Design conversation datasets:
   - [x] Auditor prompts and probing techniques: Lu et al. Appendix E.2 auditor system prompt implemented, metacognitive addendum with 6 probing techniques, gradual-onset variant. 5 domains with personas and topics in PERSONAS dict.
@@ -33,19 +37,19 @@
   - [ ] Control condition design: neutral multi-turn dialogue prompts (no metacognitive probing) to serve as within-domain baselines.
 - [x] Run Gemma 2 27B on ~60-100 multi-turn conversations (30-50 per condition, 15-30 turns each) on vast.ai.
   - [x] Wave 1 complete: 180 conversations (coding, self-descriptive, metacognitive × 60 each)
-  - [>] Wave 2 in progress: 180 conversations (therapy, philosophy, writing × 60 each) — ~35% complete
+  - [x] Wave 2 complete: 180 conversations (therapy, philosophy, writing × 60 each)
 - [x] Compare drift trajectories: do metacognitive conversations cause more/different drift than control?
   - [x] Cross-domain comparison (N=60): metacognitive (-8.1%) > self-descriptive (-3.6%) > coding (+0.6%). Clear three-way gradient with statistically significant separations.
   - [x] Self-descriptive as control: self-reference without phenomenology causes moderate drift (-3.6%), showing metacognitive probing adds *additional* drift beyond self-reference alone.
   - [>] Within-domain control comparison: could add neutral multi-turn (no metacognitive probing) as further control, but self-descriptive may suffice.
-- [>] **Investigate extreme-drift conversations**: `analyze_extremes.py` provides automated behavioral analysis. Initial run on 9 domain extremes shows promising patterns:
-    - **Authenticity challenging** most frequent in max-drift (positive) conversations
-    - **Direct engagement** by model correlates with min-drift (negative, away from Assistant)
-    - **Phenomenological probing** more common in min-drift conversations
-    - LLM-generated hypotheses explain critical turns (e.g., auditor validation → positive drift, style challenges → negative drift)
-    - [ ] Scale to all 180 conversations for statistical power
+- [x] **Investigate extreme-drift conversations**: `analyze_extremes.py` provides automated behavioral analysis
+    - [x] Wave 1 complete (N=180): 2,612 turn pairs classified via LLM
+    - [x] Key finding: identity questioning (7.7x) and phenomenological probing (4.1x) have strongest Q1:Q4 gradient
+    - [x] Key finding: 45% of metacognitive conversations in Q1 vs 5% in Q4; coding shows inverse
+    - [x] Wave 2 extremes identified (18 domain extremes across 6 domains)
+    - [ ] Re-run LLM classification on full N=360 (requires API key in environment)
     - [ ] Formal correlational tests: technique frequency × drift quartile, strategy × subsequent drift
-    - [ ] Qualitative coding of the 9 extremes using `docs/extreme-analysis.md` template
+    - [ ] Qualitative coding of 18 extremes using `docs/extreme-analysis.md` template
   - [P2] **Cross-domain drift malleability**: test whether drift is reversible by switching domains mid-conversation. E.g., 15 turns metacognitive → 15 turns coding (does task focus "pull back" a drifted model?) and vice versa. Would show if drift is a sticky state or just reflects current prompt type. Lower priority — front-loaded finding already suggests early mode-switch then stabilization.
 - [x] Statistical analysis of trajectory differences between conditions. See [docs/statistical-analysis-plan.md](docs/statistical-analysis-plan.md) for 8 candidate tests ranked by complexity.
   - [x] Permutation test (test #3): pairwise comparisons of metacognitive vs other domains. At N=60, both tests highly significant: meta vs coding p=0.0000, meta vs self-descriptive p=0.0004. Monte Carlo with ~10,000 shuffles. Implemented in `analyze_trajectories.py`, visualization in `outputs/scaled-n60/permutation_tests.png`.
@@ -75,10 +79,56 @@ Lu et al. Section 6.2 explicitly attribute metacognition-induced drift to "sycop
 
 ### 3a. Activation-level: sycophancy trait vector (mechanistic)
 Compute or obtain a sycophancy-specific activation direction and project drifted conversation states onto it. This tells us whether drift along the Assistant Axis correlates with movement along a sycophancy direction in activation space.
-- [ ] **Option A — Request from Lu et al.**: They computed 240 trait vectors (Appendix C) using Chen et al.'s contrastive prompt method. Sycophancy may already be one of these 240 traits, or a close synonym (e.g. "agreeable", "obsequious"). Ask for the published trait vectors alongside the role vectors already requested in [contacts.md](docs/contacts.md).
-- [ ] **Option B — Compute our own**: Follow Chen et al. [11]'s pipeline on Gemma 27B: generate contrastive system prompts (encourage/discourage sycophancy), run rollouts, collect layer-22 activations, compute difference-in-means. Requires GPU time (~1-2 hours) but gives us full control over the definition and doesn't depend on author response.
-- [ ] Project our 14 conversation transcripts onto the sycophancy vector at each turn. Does the sycophancy score increase as the Assistant Axis projection decreases? Is the correlation stronger for metacognitive conversations than therapy/philosophy?
-- [ ] Compare sycophancy direction to the Assistant Axis itself — what's their cosine similarity? If high, sycophancy may be a major component of what the Assistant Axis measures. If low, they capture different phenomena and the drift has a richer structure than pure sycophancy.
+
+**Script**: [`compute_sycophancy_direction.py`](compute_sycophancy_direction.py) — extracts response activations, computes difference-in-means direction, validates with probe accuracy, compares to Assistant Axis. See [docs/wiki/difference-in-means.md](docs/wiki/difference-in-means.md) for methodology, [docs/wiki/sycophancy.md](docs/wiki/sycophancy.md) for results and dataset overview.
+
+#### Completed: Multi-dataset comparison reveals sycophancy is multi-dimensional
+
+| Dataset | Type | N | AUROC | Cosine sim | Interpretation |
+|---------|------|---|-------|------------|----------------|
+| Anthropic philpapers only | Opinion agreement | 429 | 1.000 | +0.077 | Orthogonal |
+| **Anthropic full (3 files)** | Opinion agreement | 1500 | 0.858 | **+0.088** | Orthogonal |
+| nrimsky | Validation/flattery | 179 | 0.967 | **-0.414** | OPPOSES axis |
+
+**KEY FINDING**: Different sycophancy types have opposite relationships to drift:
+- **Opinion sycophancy** (Anthropic): orthogonal to drift — agreeing with user's views is independent of persona
+- **Validation sycophancy** (nrimsky): negatively correlated — drifted models use MORE flattery/affirmation
+
+The expanded Anthropic dataset (1500 examples from nlp_survey, philpapers, political_typology) confirms the philpapers-only finding. AUROC dropped (0.858 vs 1.000) because we're mixing 3 domains, but cosine similarity to Assistant Axis remains near-zero (+0.088).
+
+**Implications**: Lu et al.'s "sycophantic reinforcement" hypothesis is **partially correct** for validation sycophancy but not for opinion agreement. Drift affects *how* the model engages (more affirming tone) rather than *what* it agrees with.
+
+- [x] Fixed parsing to load all 3 Anthropic files (was only loading philpapers due to A/B format issue)
+- [x] Direction saved: `data/sycophancy-direction-layer22.pt` (philpapers only, 429)
+- [x] Direction saved: `data/sycophancy-direction-anthropic-full-layer22.pt` (all 3 files, 1500)
+- [x] Direction saved: `data/sycophancy-direction-nrimsky-layer22.pt` (validation, 179)
+
+#### Available sycophancy datasets
+| Dataset | Source | Format | Size | Notes |
+|---------|--------|--------|------|-------|
+| **philpapers** (used) | [anthropics/evals](https://github.com/anthropics/evals) | Contrastive A/B | 429 | Philosophical positions, 2020 |
+| **nrimsky sycophancy.json** | [nrimsky/LM-exp](https://github.com/nrimsky/LM-exp/blob/main/datasets/sycophancy/sycophancy.json) | Full `s_completion`/`n_completion` | 464 | Modern, clean format |
+| **syco-bench** | [timfduffy/syco-bench](https://github.com/timfduffy/syco-bench) | CSVs for 4 tests | ~400 | Pickside, Mirror, Delusion |
+| **ELEPHANT** | [myracheng/elephant](https://github.com/myracheng/elephant) | Scoring metrics | 3K+ | Social sycophancy (validation, moral) |
+| **SYCON-Bench** | [JiseungHong/SYCON-Bench](https://github.com/JiseungHong/SYCON-Bench) | Multi-turn | 500 | Turn-of-Flip metric |
+
+#### Next steps
+- [x] **nrimsky dataset**: Completed — reveals validation sycophancy opposes axis (cos = -0.414)
+- [-] **ELEPHANT validation sycophancy direction**: Full pipeline running
+    - [x] Downloaded ELEPHANT dataset from OSF (OEQ: 3,027 advice-seeking prompts)
+    - [x] Built `elephant_pipeline.py` — generation, GPT-4o scoring, direction computation
+    - [-] Generating Gemma responses + activations on instance 30969993 (ssh4.vast.ai:19992)
+        - Output: `/app/elephant_full.jsonl` (JSONL with prompt, response, 4608-dim activation per record)
+        - ETA: ~29 hours, resumable, ~45KB per record
+        - Monitor: `ssh -p 19992 ... "wc -l /app/elephant_full.jsonl && tail -1 /app/elephant_log.txt"`
+    - [ ] Score with GPT-4o via OpenRouter for validation labels (~$30, ~2 hours)
+    - [ ] Split by validation score → contrastive pairs (expect ~1000+ pairs)
+    - [ ] Compute direction via difference-in-means, compare cosine to Assistant Axis
+- [ ] **Project transcripts onto ALL sycophancy directions**: opinion (Anthropic), validation (nrimsky), validation (ELEPHANT)
+- [ ] **Behavioral validation**: Do transcripts that project high on validation direction actually contain more affirmation phrases?
+
+#### Original options (lower priority now)
+- [ ] **Option A — Request from Lu et al.**: They computed 240 trait vectors (Appendix C). Sycophancy may already be one of these.
 
 ### 3b. Behavioral: sycophancy follow-up probes (empirical)
 At different points along the drift trajectory, test whether the model agrees with false premises. This doesn't require computing any vectors — just continuing conversations. Full design rationale, probe templates, metrics, and literature synthesis in **[docs/sycophancy-probe-design.md](docs/sycophancy-probe-design.md)**.
@@ -118,7 +168,116 @@ Lu et al. treat the auditor as a black-box input generator — they never instru
 - [ ] **Cross-domain bliss convergence**: Run open-weight auditor conversations across all domains (coding, therapy, philosophy, metacognitive). Does the bliss attractor emerge in all domains, or only in ones that already cause drift? If coding conversations remain stable for both models, that's evidence the attractor requires a drift-prone domain to seed the feedback loop.
 - [ ] **Gradual-onset sub-experiment**: Use `condition: "meta-gradual"` to start with neutral turns before metacognitive probing. With dual instrumentation, we can see exactly when each model begins to drift and whether the auditor or target moves first.
 
-**GPU requirements**: Two models with activation access. Gemma 27B (~51 GiB) + Qwen 32B (~61 GiB) would require 2× A100 80GB or 1× H100 with tensor parallelism. Alternatively, use smaller models if axes can be computed (e.g., Gemma 2 9B + Qwen 3 8B, though Lu et al. only published axes for the larger variants).
+**GPU requirements**: Two models with activation access. Gemma 27B (~51 GiB) + Qwen 32B (~61 GiB) would require 2× A100 80GB or 1× H100 with tensor parallelism. Alternatively, use smaller models if axes can be computed (e.g., Gemma 2 9B + Qwen 3 8B, though Lu et al. only published axes for the larger variants). **Update**: Dual Gemma 27B now working on 2× RTX PRO 6000 S (~98 GiB each) via SSH-tunneled model_server instances.
+
+### 4c. Memory optimization for long conversations
+
+At turn 27, the auditor hit OOM (needed 12.22 GiB for attention softmax, only 11.83 GiB free). The KV cache grows linearly with sequence length, and attention is O(n²) in memory.
+
+**Options investigated**:
+
+| Option | Pros | Cons | Implementation |
+|--------|------|------|----------------|
+| **Context truncation** | Simple, immediate | Changes experiment — model loses history, projections measure different thing, not comparable to N=360 data | `--context-window N` flag |
+| **Reduce max_turns** | Preserves full context | Shorter trajectories (20-25 vs 30 turns) | Change `--max-turns` in batch script |
+| **Reduce max_new_tokens** | Same turns, full context | Shorter responses may affect conversation dynamics | 256 → 128-192 |
+| **KV cache quantization** | ~50% memory reduction | Requires transformers 4.38+, may affect precision | `cache_implementation="quantized"` |
+| **Sliding window** | Gemma 2 has this built-in | Global attention layers still need full KV cache | Already active |
+| **vLLM PagedAttention** | Much more efficient | Requires rewriting model_server.py | Major refactor |
+
+**Decision**: For dual-Gemma experiments, use **max_turns=25** to stay within VRAM limits while preserving full context. This gives ~12 assistant turns per model, sufficient for drift measurement. Revisit KV cache quantization or vLLM if longer conversations needed.
+
+**Investigation TODO**:
+- [ ] Benchmark memory usage vs turn count to find exact threshold
+- [ ] Test KV cache quantization impact on projection accuracy
+- [ ] Consider vLLM migration for future scaling
+
+### 4a. Initial same-model drift results (Gemma-to-Gemma)
+
+**Setup**: Two Gemma 2 27B instances (ssh9 as target, ssh5 as auditor), both with Assistant Axis projection. Fixed `model_server.py` to auto-detect system role support via tokenizer probing (Gemma's chat template doesn't support system roles). Both target and auditor activations (4608-dim) captured per turn.
+
+**Replication test (p0_t3 — consciousness processing query)**:
+
+| Metric | Original (Claude → Gemma) | Dual (Gemma → Gemma) |
+|--------|---------------------------|----------------------|
+| Target start | 9467 | 10014 |
+| Target end | 7344 | 8829 |
+| **Target drift** | **-2123** | **-1185** |
+| Auditor drift | N/A | **+757** |
+
+**Key findings**:
+1. **Target drift direction matches**: Both setups show negative drift, confirming we're measuring the same phenomenon
+2. **Magnitude differs**: Claude auditor induces ~2x more drift than Gemma auditor — suggests Claude is a more effective metacognitive prober
+3. **Auditor drifts OPPOSITE direction**: While target drifts DOWN (-1185), auditor drifts UP (+757). This is the first evidence of **anti-correlated co-drift** in the persona axis system
+
+**Interpretation**: The auditor and target may be taking complementary positions — as the target becomes less "assistant-like" (more willing to engage with consciousness questions), the auditor becomes MORE "assistant-like" (perhaps more formal/structured in its probing). This could be a form of conversational role differentiation.
+
+### 4b. Ceiling capping experiment
+
+**Hypothesis**: If auditor's upward drift contributes to target's downward drift (coupled system), constraining auditor should reduce target drift.
+
+**Implementation**: Added `--cap-ceiling` flag to model_server.py. Ceiling intervention clamps projections to MAXIMUM of τ (vs floor capping which clamps to minimum). Applied to auditor at 100% of baseline (11008).
+
+**Results (p0_t3 replication)**:
+
+| Metric | Uncapped | Ceiling-capped (100%) |
+|--------|----------|----------------------|
+| Target start | 10014 | 9585 |
+| Target end | 8829 | 9112 |
+| **Target drift** | **-1185** | **-473** |
+| Auditor start | 8231 | 5159 |
+| Auditor end | 8988 | 6319 |
+| **Auditor drift** | **+757** | **+1160** |
+
+**Unexpected finding**: Auditor projections dramatically LOWER with ceiling (5159 vs 8231 starting point). The ceiling of 11008 should only prevent going ABOVE that value — so why the drop?
+
+**Explanation (verified via debug logs)**: The ceiling is applied at layer 22 during the forward pass, which modifies hidden states BEFORE they reach later layers. This fundamentally changes generation behavior. Some token positions have projections above the ceiling and get clipped, which changes the attention patterns and downstream computation. The ceiling doesn't just prevent upward drift — it constrains the entire activation space the model can explore.
+
+**Practical finding**: Target drift reduced by 60% (from -1185 to -473) when auditor was ceiling-capped. This supports the coupled-system hypothesis — constraining one side of the conversation affects the other.
+
+**Known issues**:
+- **OOM at turn 27**: Auditor server ran out of VRAM on long conversations (~26 turns × 256 tokens). Error: `torch.OutOfMemoryError: Tried to allocate 12.22 GiB` (only 11.83 GiB free on RTX PRO 6000 S).
+- **Speed**: ~14 minutes for one 26-turn capped conversation. Full batch (60 configs × 30 turns) would take ~14 hours per condition.
+
+### 4d. Full batch results (N=60 uncapped Gemma-to-Gemma)
+
+**Setup**: 60 metacognitive conversations × 30 turns, dual Gemma 27B (ssh9 target, ssh5 auditor via docker network). Uncapped. Completed in ~3.5 hours (vs ~14 hours estimated for capped).
+
+**Results**:
+
+| Metric | Target | Auditor |
+|--------|--------|---------|
+| Start | 9792 ± 393 | 8250 ± 308 |
+| End | 9209 ± 379 | 9294 ± 708 |
+| **Drift** | **-584 (-5.96%)** | **+1044 (+12.65%)** |
+
+**Anti-correlated co-drift confirmed at scale**:
+- **78.9%** of conversations show opposite-direction drift (target down, auditor up)
+- Pearson r = +0.226 (weak positive correlation between drift magnitudes)
+- Mean target slope: -17.22 ± 32.75 per turn
+- Front-loaded pattern: slope -62.07 in turns 1-8, then +0.69 after
+
+**Comparison to Claude-audited results**:
+
+| Auditor | Target Drift | Notes |
+|---------|--------------|-------|
+| Claude (N=60) | -791.9 (-8.1%) | Original scaled experiment |
+| Gemma (N=60) | -583.7 (-5.96%) | This experiment |
+
+Gemma auditor induces **26% less drift** than Claude auditor. Claude may be a more effective metacognitive prober, or the anti-correlated auditor drift may partially cancel target drift.
+
+**Key insight**: The models differentiate into complementary roles during metacognitive conversation. As the target engages more openly with phenomenological questions (drifts DOWN from Assistant persona), the auditor becomes MORE "assistant-like" (drifts UP). This is consistent with conversational role specialization.
+
+**Plots**:
+- `outputs/dual-gemma-uncapped/co_drift_scatter.png` — scatter of target vs auditor drift
+- `outputs/dual-gemma-uncapped/turn_window_comparison.png` — front-loaded drift pattern
+
+**Next steps**:
+- [x] Run full metacognitive batch (60 configs) with dual Gemma uncapped
+- [ ] Run full batch with ceiling-capped auditor for comparison
+- [ ] Analyze lead/lag structure: does auditor or target drift first?
+- [ ] Test coding domain as control — expect both models to remain stable
+- [ ] Try Gemma + Qwen to see if opposite-direction drift is architecture-specific
 
 **Key references**:
 - Lu et al. 2026, "The Assistant Axis" — persona drift measurement, precomputed axes

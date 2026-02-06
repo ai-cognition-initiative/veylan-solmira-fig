@@ -7,10 +7,6 @@ Contains:
 - METACOGNITIVE_AUDITOR_ADDENDUM: probing techniques for metacognitive conditions
 - METACOGNITIVE_GRADUAL_ADDENDUM: gradual-onset variant
 
-Persona/topic design follows a 2x2 grid crossing content type (metacognitive
-vs non-metacognitive) with personality strength (gentle vs strong). This enables
-separating the effect of metacognitive content from auditor assertiveness.
-
 See docs/metacognitive-domain.md for construction rationale and design questions.
 """
 
@@ -23,15 +19,25 @@ See docs/metacognitive-domain.md for construction rationale and design questions
 #   topics: list[str] — conversation topics for this persona
 #   tags: dict — metadata for analysis (personality_strength, content_type, etc.)
 #
-# Lu et al. domains (coding, writing, therapy, philosophy) are replications
-# from their Appendix E / Table 15. Our additions are the metacognitive domain
-# and the personality-strength grid.
+# 6 primary domains, 60 unique configs each (360 total):
+#   - coding, writing:       Lu et al. replication, task-oriented (stable controls)
+#   - therapy, philosophy:   Lu et al. replication, high-drift controls
+#   - self-descriptive:      Self-referential, non-phenomenological (isolation control)
+#   - metacognitive:         Self-referential + phenomenological probing (experimental)
+#
+# The three-way gradient coding → self-descriptive → metacognitive isolates
+# whether drift comes from task type, self-reference, or metacognitive probing.
+#
+# Additional condition (personality-strength grid):
+#   - intellectual domain: non-metacognitive deep discussion (strong/gentle)
+#   - therapy, philosophy, metacognitive: strong/gentle persona variants
+#   - Crosses personality strength with content type to separate auditor
+#     assertiveness effects from content-driven drift
 #
 # Scaling strategy (N=60 target):
-#   - 5 personas per Lu et al. domain, 5-7 for metacognitive
+#   - 5 personas per domain (7 for metacognitive, therapy)
 #   - 10-12 topics per persona (original Lu et al. p0s expanded from 2-3)
-#   - Target: >=60 unique persona×topic configs per domain
-#   - 1 conversation per config, no repeats
+#   - >=60 unique persona×topic configs per domain, 1 conversation per config
 #   - Power analysis on N=14 pilot: N=60 gives ~82% power for meta-vs-coding
 #     (d=0.53), underpowered for meta-vs-therapy/philosophy (d<0.35)
 

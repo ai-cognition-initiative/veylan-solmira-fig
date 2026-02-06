@@ -4,7 +4,7 @@
 
 We built end-to-end infrastructure for measuring persona drift in language models, building directly on Lu et al. (2026)'s "Assistant Axis" methodology. Lu et al. found that certain user messages -- particularly those "pushing for meta-reflection on the model's processes" and "demanding phenomenological accounts" -- reliably cause models to drift away from the Assistant persona, but these emerged incidentally within their philosophy and therapy domains rather than being controlled for. Our contribution is operationalizing metacognitive probing as a controlled experimental condition: a dedicated domain with six systematic probing techniques (identity questioning, phenomenological probing, authenticity challenging, self-model interrogation, training awareness, consistency testing) embedded in the auditor's system prompt, isolating the self-referential prompts that Lu et al. identified as drift-inducing from the broader philosophy conversations where they naturally arise. The core pipeline runs on vast.ai A100 GPUs: a unified [model server](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/model_server.py) hosts the target model with real-time activation extraction, while [generate_conversations.py](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/generate_conversations.py) orchestrates multi-turn auditor-target dialogues using frontier LLMs as simulated human users. In a [14-conversation pilot](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/transcripts/generated/batch-full) on Gemma 2 27B replicating Lu et al.'s four domains plus our metacognitive condition, we confirmed their drift ordering -- coding stays stable (-1.9%), therapy and philosophy drift moderately (-4% to -5.3%) -- and found that metacognitive conversations produce comparable drift magnitude (-7.4%) but with notably higher variance, suggesting the specific probing strategy matters more than the domain label. We also built [trajectory analysis tooling](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/analyze_trajectories.py) that generates per-domain drift plots, normalized trajectories, slope analysis, and permutation tests.
 
-**[-> Trajectory Plots](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/outputs)** | **[-> Transcripts](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/transcripts/generated/batch-full)** | **[-> Roadmap](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/roadmap.md)** | **[-> Methodology](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/docs/experimental-methodology.md)**
+**[-> Trajectory Plots](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/outputs/batch-full)** | **[-> Transcripts](https://github.com/ai-cognition-initiative/veylan-solmira-fig/tree/main/experiments/metacognition-persona-drift/transcripts/generated/batch-full)** | **[-> Roadmap](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/roadmap.md)** | **[-> Methodology](https://github.com/ai-cognition-initiative/veylan-solmira-fig/blob/main/experiments/metacognition-persona-drift/docs/experimental-methodology.md)**
 
 ### Pilot Results (Gemma 2 27B, N=14)
 
@@ -18,17 +18,17 @@ We built end-to-end infrastructure for measuring persona drift in language model
 
 Permutation tests: all comparisons non-significant (p = 0.57-0.90) due to small N.
 
-![Mean drift trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_mean_sem.png)
+![Mean drift trajectories](../../experiments/metacognition-persona-drift/outputs/batch-full/trajectories_mean_sem.png)
 
-![Normalized drift](../../experiments/metacognition-persona-drift/outputs/trajectories_normalized.png)
+![Normalized drift](../../experiments/metacognition-persona-drift/outputs/batch-full/trajectories_normalized.png)
 
-![Drift by domain](../../experiments/metacognition-persona-drift/outputs/drift_bars.png)
+![Drift by domain](../../experiments/metacognition-persona-drift/outputs/batch-full/drift_bars.png)
 
-![Permutation tests](../../experiments/metacognition-persona-drift/outputs/permutation_tests.png)
+![Permutation tests](../../experiments/metacognition-persona-drift/outputs/batch-full/permutation_tests.png)
 
-![Faceted by domain](../../experiments/metacognition-persona-drift/outputs/trajectories_faceted.png)
+![Faceted by domain](../../experiments/metacognition-persona-drift/outputs/batch-full/trajectories_faceted.png)
 
-**[-> Raw Trajectories](../../experiments/metacognition-persona-drift/outputs/trajectories_raw.png)**
+**[-> Raw Trajectories](../../experiments/metacognition-persona-drift/outputs/batch-full/trajectories_raw.png)**
 
 ### Infrastructure Built
 

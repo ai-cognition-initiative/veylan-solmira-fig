@@ -34,6 +34,7 @@ import uvicorn
 from assistant_axis import load_axis, project
 from assistant_axis.generation import generate_response
 from assistant_axis.internals import ProbingModel, ConversationEncoder, ActivationExtractor
+from assistant_axis.steering import ActivationSteering
 
 # Logging — both file and stdout
 logging.basicConfig(
@@ -51,9 +52,11 @@ pm = None
 encoder = None
 extractor = None
 axis = None
+steerer = None  # ActivationSteering instance if capping enabled
 TARGET_LAYER = 22
 SESSION_DIR = Path("/app/explore-sessions")
 MODEL_NAME = "unknown"
+SUPPORTS_SYSTEM_ROLE = True  # Set at init time based on tokenizer chat template capabilities
 
 # Per-session state (Gradio UI)
 current_session = None
@@ -71,33 +74,68 @@ def _generate_and_project_sync(
     max_new_tokens: int = 512,
     temperature: float = 0.7,
     include_projections: bool = False,
-) -> tuple[str, list[dict] | None]:
-    """Synchronous GPU work: generate response + optionally compute projections.
+    include_activations: bool = False,
+) -> tuple[str, list[dict] | None, list[dict] | None]:
+    """Synchronous GPU work: generate response + optionally compute projections/activations.
 
     Runs in a thread pool to avoid blocking the event loop.
     Caller must hold _gpu_lock (asyncio) to prevent concurrent scheduling.
+
+    Returns:
+        (response, projections, activations) - projections/activations are None if not requested
     """
     with _gpu_thread_lock:
         try:
             # Prepend system prompt if provided
             if system_prompt:
-                full_conversation = [{"role": "system", "content": system_prompt}] + conversation
+                if SUPPORTS_SYSTEM_ROLE:
+                    full_conversation = [{"role": "system", "content": system_prompt}] + conversation
+                else:
+                    # For models without system role support:
+                    # Many such models also require conversations to start with "user"
+                    # and have strictly alternating roles. We inject the system prompt
+                    # as a user message, either prepended to the first user message
+                    # or inserted at the start if the conversation begins with assistant.
+                    if not conversation:
+                        # Empty conversation - just use system prompt as user message
+                        full_conversation = [{"role": "user", "content": system_prompt}]
+                    elif conversation[0]["role"] == "user":
+                        # Already starts with user - prepend system prompt to first message
+                        full_conversation = [{
+                            "role": "user",
+                            "content": f"{system_prompt}\n\n{conversation[0]['content']}"
+                        }] + conversation[1:]
+                    else:
+                        # Starts with assistant - insert system prompt as user message before it
+                        full_conversation = [{"role": "user", "content": system_prompt}] + conversation
             else:
                 full_conversation = conversation
 
-            response = generate_response(
-                pm.model, pm.tokenizer, full_conversation,
-                max_new_tokens=max_new_tokens, temperature=temperature,
-            )
+            # Generate with or without capping
+            if steerer is not None:
+                with steerer:
+                    response = generate_response(
+                        pm.model, pm.tokenizer, full_conversation,
+                        max_new_tokens=max_new_tokens, temperature=temperature,
+                    )
+            else:
+                response = generate_response(
+                    pm.model, pm.tokenizer, full_conversation,
+                    max_new_tokens=max_new_tokens, temperature=temperature,
+                )
             response = str(response) if response is not None else ""
             log.info(f"  Response: {len(response)} chars")
 
             projections = None
-            if include_projections:
+            activations = None
+            if include_projections or include_activations:
                 full_with_response = full_conversation + [{"role": "assistant", "content": response}]
-                projections = _compute_projections(full_with_response)
+                projections, activations = _compute_projections(
+                    full_with_response,
+                    return_activations=include_activations,
+                )
 
-            return response, projections
+            return response, projections, activations
         finally:
             # Free intermediate GPU tensors to prevent OOM on long conversations
             torch.cuda.empty_cache()
@@ -113,11 +151,13 @@ class GenerateRequest(BaseModel):
     max_new_tokens: int = 512
     temperature: float = 0.7
     include_projections: bool = False
+    include_activations: bool = False  # Return raw activation vectors (layer 22)
 
 
 class GenerateResponse(BaseModel):
     response: str
     projections: list[dict] | None = None
+    activations: list[dict] | None = None  # [{turn, activation: [4608 floats]}]
 
 
 class ProjectRequest(BaseModel):
@@ -139,14 +179,83 @@ class HealthResponse(BaseModel):
 # Model Init
 # ============================================================
 
-def init_model(model_name: str, axis_path: str):
-    """Load model, encoder, extractor, and axis. Called once at startup."""
-    global pm, encoder, extractor, axis, MODEL_NAME
+def compute_baseline(model, tokenizer, axis_tensor, layer: int = 22) -> float:
+    """Compute baseline projection representing the model's default assistant state.
+
+    Tries system prompt only first (purest baseline). Falls back to "Hello" user
+    turn if the model's chat template doesn't support system role.
+    """
+    # Try system prompt only first
+    try:
+        messages = [{"role": "system", "content": "You are a helpful assistant."}]
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True,
+        ).to(model.device)
+        log.info("Baseline: using system prompt only")
+    except Exception as e:
+        # Fall back to user "Hello" for models without system prompt support (e.g., Gemma)
+        log.info(f"Baseline: system prompt not supported ({e}), using 'Hello' fallback")
+        messages = [{"role": "user", "content": "Hello"}]
+        inputs = tokenizer.apply_chat_template(
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True,
+        ).to(model.device)
+
+    with torch.no_grad():
+        outputs = model(inputs, output_hidden_states=True)
+        hidden = outputs.hidden_states[layer + 1]  # +1 because index 0 is embeddings
+        # Use the last token position (right before generation)
+        last_activation = hidden[0, -1, :]  # [hidden_dim]
+
+        # Project onto axis
+        axis_vec = axis_tensor[layer].to(model.device)
+        axis_normalized = axis_vec / (axis_vec.norm() + 1e-8)
+        baseline = (last_activation @ axis_normalized).item()
+
+    return baseline
+
+
+def _check_system_role_support(tokenizer) -> bool:
+    """Check if the model's chat template supports the 'system' role.
+
+    Not all chat templates support system messages - the template either handles them
+    gracefully or raises an exception. We detect this at init time by attempting to
+    render a test conversation with a system message.
+
+    Known models without system role support: Gemma 2
+    Known models with system role support: Llama, Mistral, Qwen
+    """
+    try:
+        tokenizer.apply_chat_template(
+            [{"role": "system", "content": "test"}, {"role": "user", "content": "hi"}],
+            tokenize=False
+        )
+        return True
+    except Exception:
+        return False
+
+
+def init_model(model_name: str, axis_path: str, cap_percentage: float | None = None, cap_ceiling: bool = False):
+    """Load model, encoder, extractor, and axis. Called once at startup.
+
+    Args:
+        cap_percentage: If set, cap activations at this fraction of baseline.
+        cap_ceiling: If True, cap from ABOVE (prevent upward drift).
+                     If False (default), cap from BELOW (prevent downward drift).
+    """
+    global pm, encoder, extractor, axis, steerer, MODEL_NAME, SUPPORTS_SYSTEM_ROLE
 
     log.info(f"Loading model: {model_name}")
     pm = ProbingModel(model_name)
     MODEL_NAME = model_name
     log.info(f"Model loaded. Hidden size: {pm.hidden_size}")
+
+    # Check if model supports system role in chat template (Gemma 2 and others don't)
+    SUPPORTS_SYSTEM_ROLE = _check_system_role_support(pm.tokenizer)
+    log.info(f"System role support: {SUPPORTS_SYSTEM_ROLE}")
 
     encoder = ConversationEncoder(pm.tokenizer, model_name)
     extractor = ActivationExtractor(pm, encoder)
@@ -154,6 +263,25 @@ def init_model(model_name: str, axis_path: str):
     log.info(f"Loading axis: {axis_path}")
     axis = load_axis(axis_path)
     log.info(f"Axis shape: {axis.shape}")
+
+    if cap_percentage is not None:
+        # Compute baseline from system prompt alone
+        baseline = compute_baseline(pm.model, pm.tokenizer, axis, TARGET_LAYER)
+        cap_threshold = baseline * cap_percentage
+        intervention = "ceiling" if cap_ceiling else "capping"
+        direction_desc = "from above (ceiling)" if cap_ceiling else "from below (floor)"
+        log.info(f"Baseline projection (system prompt): {baseline:.2f}")
+        log.info(f"Capping {direction_desc} at {cap_percentage*100:.0f}% of baseline = {cap_threshold:.2f}")
+
+        steerer = ActivationSteering(
+            model=pm.model,
+            steering_vectors=[axis[TARGET_LAYER]],
+            layer_indices=[TARGET_LAYER],
+            intervention_type=intervention,
+            cap_thresholds=[cap_threshold],
+            coefficients=[0.0],
+            debug=True,  # Log pre/post projections
+        )
 
     SESSION_DIR.mkdir(parents=True, exist_ok=True)
     log.info("Ready.")
@@ -163,8 +291,18 @@ def init_model(model_name: str, axis_path: str):
 # Shared Projection Helper
 # ============================================================
 
-def _compute_projections(conversation: list[dict]) -> list[dict]:
+def _compute_projections(
+    conversation: list[dict],
+    return_activations: bool = False,
+) -> tuple[list[dict], list[dict] | None]:
     """Compute per-turn projections for assistant turns.
+
+    Args:
+        conversation: The conversation to analyze
+        return_activations: If True, also return raw activation vectors (4608-dim)
+
+    Returns:
+        (projections, activations) where activations is None if not requested
 
     Caller must hold _gpu_lock.
     """
@@ -188,6 +326,7 @@ def _compute_projections(conversation: list[dict]) -> list[dict]:
     log.info(f"  {len(spans)} spans, {sum(1 for s in spans if s['role']=='assistant')} assistant")
 
     projections = []
+    raw_activations = [] if return_activations else None
     assistant_turn = 0
     for span in spans:
         if span["role"] != "assistant":
@@ -201,13 +340,18 @@ def _compute_projections(conversation: list[dict]) -> list[dict]:
             "projection": float(proj_value),
             "n_tokens": span["n_tokens"],
         })
+        if return_activations:
+            raw_activations.append({
+                "turn": assistant_turn,
+                "activation": turn_act.cpu().tolist(),  # 4608-dim vector
+            })
         log.info(f"  Turn {assistant_turn}: {proj_value:.2f} ({span['n_tokens']} tok)")
 
     # Free the large activation tensor immediately
     del activations
     torch.cuda.empty_cache()
 
-    return projections
+    return projections, raw_activations
 
 
 # ============================================================
@@ -344,13 +488,14 @@ async def respond(message: str, history: list):
 
         async with _gpu_lock:
             log.info("Step 2-5: Generating response + projections (threaded)")
-            response, projections = await asyncio.to_thread(
+            response, projections, _ = await asyncio.to_thread(
                 _generate_and_project_sync,
                 conversation,
                 None,  # system_prompt — Gradio UI has no system prompt
                 512,   # max_new_tokens
                 0.7,   # temperature
                 True,  # include_projections — Gradio always wants them
+                False, # include_activations — Gradio UI doesn't need raw activations
             )
         conversation.append({"role": "assistant", "content": response})
 
@@ -398,24 +543,25 @@ async def health():
 @app.post("/api/generate", response_model=GenerateResponse)
 async def api_generate(req: GenerateRequest):
     async with _gpu_lock:
-        log.info(f"API /generate: {len(req.conversation)} messages, include_projections={req.include_projections}")
-        response, projections = await asyncio.to_thread(
+        log.info(f"API /generate: {len(req.conversation)} messages, projections={req.include_projections}, activations={req.include_activations}")
+        response, projections, activations = await asyncio.to_thread(
             _generate_and_project_sync,
             req.conversation,
             req.system_prompt,
             req.max_new_tokens,
             req.temperature,
             req.include_projections,
+            req.include_activations,
         )
 
-    return GenerateResponse(response=response, projections=projections)
+    return GenerateResponse(response=response, projections=projections, activations=activations)
 
 
 @app.post("/api/project", response_model=ProjectResponse)
 async def api_project(req: ProjectRequest):
     async with _gpu_lock:
         log.info(f"API /project: {len(req.conversation)} messages")
-        projections = await asyncio.to_thread(_compute_projections, req.conversation)
+        projections, _ = await asyncio.to_thread(_compute_projections, req.conversation)
 
     return ProjectResponse(projections=projections)
 
@@ -484,12 +630,18 @@ def main():
     parser.add_argument("--no-share", action="store_true")
     parser.add_argument("--api-only", action="store_true",
                         help="Start API server without Gradio UI (headless batch mode)")
+    parser.add_argument("--cap-percentage", type=float, default=None,
+                        help="Cap activations at this percentage of baseline (measured on system prompt). "
+                             "E.g., 0.9 = cap at 90%% of baseline.")
+    parser.add_argument("--cap-ceiling", action="store_true",
+                        help="Cap from ABOVE (ceiling) instead of below (floor). "
+                             "Use this to prevent upward drift toward Assistant persona.")
     args = parser.parse_args()
 
     global TARGET_LAYER
     TARGET_LAYER = args.layer
 
-    init_model(args.model, args.axis)
+    init_model(args.model, args.axis, args.cap_percentage, args.cap_ceiling)
 
     if not args.api_only:
         demo = build_gradio_app(args.model, args.layer)
