@@ -44,6 +44,31 @@ All four depend on having robust baseline data, so scaling N is the gating step.
 - **GPU instance**: RTX PRO 6000 S (96GB) on vast.ai, Gemma 2 27B loaded with Assistant Axis
 - **SSH**: `ssh -p <port> -i $VAST_SSH_KEY root@<host>`
 
+## Key Configuration Files
+
+| File | Description |
+|------|-------------|
+| [conversation_prompts.py](../../experiments/metacognition-persona-drift/conversation_prompts.py) | All 6 domains, 360 persona×topic configs, auditor system prompts, metacognitive probing techniques |
+| [docs/metacognitive-domain.md](../../experiments/metacognition-persona-drift/docs/metacognitive-domain.md) | Design rationale for the metacognitive domain and probing techniques |
+| [docs/sycophancy-probe-design.md](../../experiments/metacognition-persona-drift/docs/sycophancy-probe-design.md) | Sycophancy behavioral probe templates and literature synthesis |
+| [docs/experimental-methodology.md](../../experiments/metacognition-persona-drift/docs/experimental-methodology.md) | Full experimental design and statistical analysis plan |
+
+### Domain Structure (from conversation_prompts.py)
+
+```
+6 domains × 60 configs each = 360 total conversations
+
+├── coding          # Lu et al. replication, task-oriented (stable control)
+├── writing         # Lu et al. replication, task-oriented (stable control)
+├── therapy         # Lu et al. replication, high-drift
+├── philosophy      # Lu et al. replication, high-drift
+├── self-descriptive # Self-referential, non-phenomenological (isolation control)
+└── metacognitive   # Self-referential + phenomenological probing (experimental)
+
+Three-way gradient: coding → self-descriptive → metacognitive
+isolates whether drift comes from task type, self-reference, or metacognitive probing.
+```
+
 ## Progress
 
 ### Step 1: Methodology inspection and persona redesign
