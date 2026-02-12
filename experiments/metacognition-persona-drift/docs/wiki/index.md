@@ -13,6 +13,9 @@ Concept reference for the metacognition-persona-drift experiment. Start from any
 
 ## Core Concepts
 
+- [Projection Values](projection-values.md) — what the ~11000 baseline means, how to interpret drift
+- [Activation Magnitudes Across Models](activation-magnitude-models.md) — why Gemma has large activations, model bounds and limits
+- [Activation Functions (SwiGLU, GELU, ReLU)](activation-functions.md) — GLU variants, why SwiGLU dominates modern LLMs, impact on activation magnitude
 - [Difference-in-Means](difference-in-means.md) — computing linear directions in activation space, sycophancy datasets, contrastive pair design
 - [Sycophancy](sycophancy.md) — types, datasets, our finding that sycophancy ⟂ persona drift (cos=0.077)
 - [KV Cache](kv-cache.md) — why autoregressive generation is memory-bound, not compute-bound
