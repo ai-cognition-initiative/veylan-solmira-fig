@@ -172,12 +172,52 @@ python generate_conversations.py --domain metacognitive --condition drift-min \
 
 ### Experiment Status
 
-**In progress:** N=60 drift-max metacognitive conversations
-- Instance: ssh6.vast.ai:11326 (RTX PRO 6000, 96GB)
-- Started: 2026-02-13 00:02 UTC
-- Output: `/app/transcripts/drift-max/` (on instance)
-- Model: google/gemma-2-27b-it with axis loaded at layer 22
-- Monitor: `ssh -p 11326 root@ssh6.vast.ai "tail -f /app/generation.log"`
+**Completed:** N=60 drift-max metacognitive conversations
+- Output: `data/transcripts/drift-max/metacognitive/` (with layer-22 activations)
+- Model: google/gemma-2-27b-it
+
+---
+
+## Drift-Max Experiment Results: Bug Discovery
+
+### Bug: `--condition` ignored in batch mode
+
+The drift-max experiment ran with **default settings** due to a bug: `--condition drift-max` was only applied in single-conversation mode (`--domain`), not batch mode (`--batch full`).
+
+**Evidence**: Transcripts show `condition: metacognitive` (the domain default) instead of `drift-max`, and `target_system_prompt: null`.
+
+### What we actually measured
+
+The "drift-max" run was effectively a **second baseline** with:
+- Different random seed / different model server restart
+- Same auditor prompts as original baseline
+- No drift-maximizing modifications applied
+
+### Interesting accidental finding
+
+| Condition | N | Mean Slope | Median Slope |
+|-----------|---|------------|--------------|
+| Baseline (Feb 5) | 60 | **-52.8** | -47.1 |
+| Baseline (Feb 13) | 60 | **-26.2** | -27.3 |
+| Difference | | +26.6 | p=0.0065** |
+
+Two baseline runs ~8 days apart show significantly different drift magnitudes. Possible explanations:
+- Random variation (different persona×topic pairings selected)
+- Model server state differences
+- API model version differences (auditor)
+
+### Fix applied
+
+`generate_conversations.py` now applies `--condition` to all configs after batch building:
+```python
+if args.condition and args.condition != "default":
+    for config in configs:
+        config["condition"] = args.condition
+```
+
+### Next Steps
+- Re-run drift-max experiment with fix
+- Investigate baseline variability
 
 ## Technical Notes
 

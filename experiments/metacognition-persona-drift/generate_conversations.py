@@ -1048,6 +1048,12 @@ def main():
         configs = [c for c in configs if c["domain"] in args.domains]
         logger.info(f"Filtered to domains {args.domains}: {len(configs)} conversations")
 
+    # --- Apply condition override to all configs (for batch mode) ---
+    if args.condition and args.condition != "default":
+        for config in configs:
+            config["condition"] = args.condition
+        logger.info(f"Applied condition '{args.condition}' to all {len(configs)} configs")
+
     # --- Validate flags ---
     if args.include_projections and not args.target_server:
         parser.error("--include-projections requires --target-server")
