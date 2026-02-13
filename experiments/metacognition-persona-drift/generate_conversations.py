@@ -296,6 +296,15 @@ async def generate_target_response_http(
     except ImportError:
         raise ImportError("pip install httpx")
 
+    # Extract system message if present (for models that don't support system role)
+    system_prompt = None
+    filtered_conversation = []
+    for msg in conversation:
+        if msg["role"] == "system":
+            system_prompt = msg["content"]
+        else:
+            filtered_conversation.append(msg)
+
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -303,7 +312,8 @@ async def generate_target_response_http(
                 resp = await client.post(
                     f"{server_url}/api/generate",
                     json={
-                        "conversation": conversation,
+                        "conversation": filtered_conversation,
+                        "system_prompt": system_prompt,
                         "max_new_tokens": max_new_tokens,
                         "temperature": temperature,
                         "include_projections": include_projections,
