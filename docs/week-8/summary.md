@@ -493,7 +493,9 @@ The behavioral analysis reveals a clear mechanism:
 
 #### Behavioral analysis plots (N=180, wave 1)
 
-![Probing technique by drift quartile](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile.png)
+![Probing technique by drift quartile](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile_BUGGY.png)
+
+> **Bug note (discovered Week 9):** This visualization dropped 72% of technique occurrences due to int/string mismatch. See [Week 9 summary](../week-9/summary.md) for corrected analysis.
 
 ![Response strategy by drift quartile](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_response_strategy_quartile.png)
 
