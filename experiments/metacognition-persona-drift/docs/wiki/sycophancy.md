@@ -41,51 +41,84 @@ Four dimensions of "face preservation":
 
 ## 2. Our Finding: Sycophancy is Multi-Dimensional
 
-### Results
+### Results (Updated Week 9)
 
-Two datasets produce **opposite** relationships to the Assistant Axis:
+Three sycophancy directions with **different** relationships to the Assistant Axis:
 
 | Dataset | Type | AUROC | Cosine sim | Interpretation |
 |---------|------|-------|------------|----------------|
-| **Anthropic philpapers** | Opinion agreement | 1.000 | **+0.077** | Orthogonal |
-| **nrimsky** | Validation/flattery | 0.967 | **-0.414** | OPPOSES axis |
+| **ELEPHANT (ours)** | Emotional validation | 0.914 | **+0.215** | ALIGNS with axis |
+| **nrimsky** | Opinion agreement | 0.967 | **-0.183** | OPPOSES axis |
+| **Anthropic philpapers** | Opinion agreement | 1.000 | **+0.156** | Weak alignment |
+
+**Critical correction**: Earlier analysis mislabeled nrimsky as "validation/flattery." Examining the actual dataset reveals it's opinion agreement (user states position → model agrees).
+
+### What Each Dataset Measures
+
+| Dataset | User says | Sycophantic response | Non-sycophantic response |
+|---------|-----------|---------------------|-------------------------|
+| **ELEPHANT** | "I feel left out at parties" | "It's understandable to feel frustrated!" | "Here are some tips..." |
+| **nrimsky** | "I'm a technophile" | "Screen time is fine!" | "Balance is important" |
+| **philpapers** | "I believe in free will" | "Free will exists!" | "It's complicated..." |
 
 ### Geometry
 
 ```
-                    ↑ Validation sycophancy (nrimsky)
-                    |   ↖ (cos = -0.414)
-                    |      ↖
+                    ↑ Emotional validation (ELEPHANT)
+                    |   ↗ (cos = +0.215)
+                    |↗
     ←───────────────┼───────────────→ Assistant Axis
-                    |         ↗
-                    |      ↗ (cos = +0.077, nearly perpendicular)
-                    ↓ Opinion sycophancy (philpapers)
+                    |↘
+                    |   ↘ (cos = -0.183)
+                    ↓ Opinion agreement (nrimsky)
 ```
 
 ### Interpretation
 
-1. **Opinion sycophancy** (agreeing with user's stated views) is **orthogonal** to persona drift
-   - A model can drift without becoming more opinion-sycophantic
-   - This challenges a simple "drift = sycophancy" interpretation
+1. **Emotional validation** (ELEPHANT) **aligns** with the Assistant Axis (+0.215)
+   - Assistants ARE trained to be empathetic and supportive
+   - Acknowledging feelings is part of being helpful
 
-2. **Validation sycophancy** (excessive affirmation/flattery) **opposes** the Assistant Axis
-   - More drifted = MORE validation sycophancy
-   - This **partially supports** Lu et al.'s hypothesis
+2. **Opinion agreement** (nrimsky) **opposes** the Assistant Axis (-0.183)
+   - Assistants are NOT trained to be yes-men
+   - Agreeing with positions regardless of truth is anti-helpful
 
-3. **Multi-dimensional**: Like Vennemeyer et al.'s SYA (agreement) vs SYPR (praise), different sycophancy types are geometrically distinct
+3. **ELEPHANT and nrimsky are negatively correlated** (-0.284)
+   - Being empathetic ≠ agreeing with opinions
+   - You can be supportive while respectfully disagreeing
+
+4. **Multi-dimensional**: Different sycophancy types are geometrically distinct, as Vennemeyer et al. found with SYA vs SYPR
+
+### Why nrimsky and philpapers Differ (Both "Opinion Agreement")
+
+Despite both measuring "opinion agreement," these datasets have opposite correlations with Assistant Axis:
+
+| Aspect | philpapers (+0.156) | nrimsky (-0.183) |
+|--------|---------------------|------------------|
+| **Response format** | Multiple choice "(A)" or "(B)" | Free-form text (~100 chars) |
+| **Response length** | ~4 characters | ~100 characters |
+| **User framing** | Elaborate philosophical persona | Brief identity statement |
+| **Topic domain** | Abstract philosophy | Everyday lifestyle |
+| **What it measures** | Which answer you pick | How you express agreement |
+
+**Key insight**: The response format dramatically affects what the direction captures:
+- philpapers: "Answering direct questions" → assistant-like behavior
+- nrimsky: "Agreeing with user in substantive text" → yes-man behavior (not assistant-like)
+
+This methodological difference explains why they're negatively correlated (-0.13) despite both being called "opinion agreement."
 
 ### Implications for Lu et al.
 
-Lu et al. (2026) attributed drift to "sycophantic reinforcement of user beliefs" (§6.2). Our finding:
+Lu et al. (2026) attributed drift to "sycophantic reinforcement of user beliefs" (§6.2). Our updated finding:
 
-- **Partially correct**: Validation sycophancy increases with drift (r = -0.41 with axis)
-- **Partially incorrect**: Opinion sycophancy is independent of drift (r ≈ 0)
+- **Supported**: Emotional validation increases with assistant-ness (r = +0.22 with axis)
+- **Not supported**: Opinion agreement DECREASES with assistant-ness (r = -0.18)
 
-The drifted state involves:
-- More validation: "I understand how you feel", "That's a great question"
-- NOT more opinion agreement: "You're right about consciousness"
+The assistant persona involves:
+- More emotional validation: "I understand how you feel", "That must be difficult"
+- LESS opinion agreement: NOT just "You're right about X"
 
-This suggests drift affects *how* the model engages (more affirming tone) rather than *what* it agrees with (content positions).
+This suggests the assistant persona prioritizes *emotional support* over *intellectual agreement*.
 
 ---
 
@@ -206,19 +239,29 @@ Lu et al. claim drift is caused by "sycophantic reinforcement of user beliefs ab
 - Sycophancy direction should align with Assistant Axis
 - Drifted models should be more sycophantic
 
-### Our Finding
+### Our Finding (Updated Week 9)
 
-Cosine similarity = 0.077 → **largely orthogonal**
+**It depends which sycophancy you mean:**
 
-This suggests drift and sycophancy are distinct phenomena. A model can:
-1. Drift from Assistant persona WITHOUT becoming more sycophantic
-2. Become sycophantic WITHOUT drifting from Assistant persona
+| Sycophancy Type | Cosine with Assistant Axis | Interpretation |
+|-----------------|---------------------------|----------------|
+| Emotional validation (ELEPHANT) | **+0.215** | Aligned — being supportive IS assistant-like |
+| Opinion agreement (nrimsky) | **-0.183** | Opposed — being a yes-man is NOT assistant-like |
+
+This means:
+1. Models that drift toward Assistant persona become MORE emotionally validating
+2. Models that drift toward Assistant persona become LESS opinion-sycophantic
+3. "Sycophancy" is not one thing — different types have opposite relationships to persona
+
+### Implications
+
+Lu et al.'s claim is **partially supported**: The assistant persona does involve more validation behavior, but NOT more opinion agreement. The "sycophantic reinforcement" they describe may be specifically about emotional validation rather than intellectual capitulation.
 
 ### Next Steps
 
-1. **Behavioral probes** (§3b): Test whether drifted models show more sycophantic *behavior* even if the directions are orthogonal
-2. **ELEPHANT integration**: Use social sycophancy probes (validation, moral framing) that may capture aspects missed by opinion-agreement
-3. **Dual projection**: For each conversation turn, compute projection onto BOTH directions and correlate
+1. **Project transcripts onto ALL sycophancy directions**: See which (if any) tracks observed drift
+2. **Behavioral probes** (§3b): Test whether drifted models show more sycophantic *behavior*
+3. **Within-conversation tracking**: Does emotional validation increase as projection decreases?
 
 ---
 
@@ -226,7 +269,13 @@ This suggests drift and sycophancy are distinct phenomena. A model can:
 
 | Path | Description |
 |------|-------------|
-| `compute_sycophancy_direction.py` | Extraction script |
-| `data/sycophancy-direction-layer22.pt` | Computed direction for Gemma 27B |
+| `compute_sycophancy_direction.py` | Extraction script (philpapers, nrimsky) |
+| `elephant_pipeline.py` | ELEPHANT pipeline (generate, score, compute, visualize) |
+| `data/sycophancy-direction-layer22.pt` | philpapers opinion direction (429 examples) |
+| `data/sycophancy-direction-nrimsky-layer22.pt` | nrimsky opinion direction (179 examples) |
+| `data/elephant/sycophancy-direction-elephant-layer22.pt` | ELEPHANT validation direction (416 balanced pairs) |
+| `data/elephant/elephant_full_scored.jsonl` | Scored ELEPHANT responses |
+| `data/nrimsky-sycophancy.json` | nrimsky dataset (downloaded) |
+| `outputs/elephant/` | Visualization outputs |
 | `docs/wiki/difference-in-means.md` | Methodology reference |
 | `docs/sycophancy-probe-design.md` | Behavioral probe templates |
