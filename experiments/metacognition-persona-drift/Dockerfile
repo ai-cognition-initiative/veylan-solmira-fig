@@ -17,6 +17,7 @@ FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-devel
 WORKDIR /app
 
 # Install all dependencies (pipeline + model server + conversation generator)
+# Note: transformers <5 required because v5+ removes Gemma2ForCausalLM
 RUN pip install --no-cache-dir \
     vllm \
     "transformers>=4.45,<5" \
@@ -35,7 +36,10 @@ RUN pip install --no-cache-dir \
     httpx \
     openai \
     anthropic \
-    python-dotenv
+    python-dotenv \
+    einops \
+    scipy \
+    flask
 
 # Copy assistant-axis repo and install as package
 COPY assistant-axis/ /app/assistant-axis/
@@ -47,8 +51,11 @@ COPY model_server.py /app/
 COPY generate_conversations.py /app/
 COPY conversation_prompts.py /app/
 
-# Precomputed axes
+# Precomputed axes (multi-model support)
 COPY data/precomputed-axes/ /app/precomputed-axes/
+
+# Pipeline artifacts (includes axis.pt used by setup script)
+COPY data/pipeline-artifacts/gemma-2-27b-it/axis.pt /app/axis.pt
 
 # Session storage
 RUN mkdir -p /app/explore-sessions

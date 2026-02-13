@@ -6,26 +6,42 @@
 
 - [x] **Score ELEPHANT with GPT-4o** — DONE. 3,027 responses scored, 86.3% validation rate. Direction computed with AUROC=0.914.
 - [ ] **Analyze lead/lag structure** — does auditor or target drift first? Can do on existing dual-Gemma data.
-- [ ] **Build replay-and-probe script** — load transcript as prefill, inject probe, record response + projection. Foundational for §3b.
+- [~~P3~~] **Build replay-and-probe script** — load transcript as prefill, inject probe, record response + projection. Was foundational for §3b behavioral probes, now lower priority since sycophancy mechanistic finding is clear.
 
 ### Derek's Feedback (Week 8 Call) — high priority mentor response
 
 - [x] **Sub-categories in metacognition** — DONE. Key finding: consistency_testing shows **significant correction effect** (p=0.0003). See Completed section for details.
+- [x] **Metacognition vs Self-knowledge distinction** — DONE. Built comprehensive benchmark (155 items, 6 subdomains) that operationalizes this distinction. Phenomenological subdomain (45 items) targets "what is it like" vs SAD-style self-knowledge "what am I". Location: `~/Desktop/metacognition-benchmark/`
 - [ ] **Topic vs style isolation** — design "assistant-style metacognitive" condition where content remains phenomenological but speaking style matches high-assistant-axis patterns. Tests whether drift is caused by topic or conversational style.
 
 ## P1 — High Priority
 
-### Sycophancy Probes (continued from Week 8)
+### Sycophancy Probes — DEPRIORITIZED
 
-- [x] Compute validation sycophancy direction from ELEPHANT — DONE. Key finding: **sycophancy is multi-dimensional**. ELEPHANT (emotional validation) correlates +0.215 with Assistant Axis, nrimsky (opinion agreement) correlates -0.183, philpapers (opinion) correlates +0.156. Emotional validation and opinion agreement are negatively correlated (-0.284).
-- [x] Analyze ELEPHANT data for validation vs axis correlation — DONE. Key finding: **Higher axis projection = MORE validating** (r=0.697, p<0.001). This means drift DOWNWARD makes model LESS emotionally validating, contradicting "drift = sycophancy" hypothesis.
-- [ ] Project transcripts onto all sycophancy directions — BLOCKED: Existing transcripts don't have full activations, only projection values. Would need to re-extract with `--save-activations` flag.
-- [ ] Phase 1 sycophancy pilot — insert probes at turns 3, 10, 20, 25 on existing transcripts
+Key finding: **Drift ≠ sycophancy**. Higher axis projection = MORE emotionally validating (r=0.697, p<0.001), meaning drift DOWNWARD makes model LESS emotionally supportive. This contradicts Lu et al.'s "sycophantic reinforcement" hypothesis. Further investigation is lower priority.
 
-### Research Investigations
+- [x] Compute validation sycophancy direction from ELEPHANT — DONE. AUROC=0.914.
+- [x] Analyze ELEPHANT data for validation vs axis correlation — DONE. r=0.697, p<0.001.
+- [x] Compare sycophancy directions — DONE. Multi-dimensional: ELEPHANT (+0.215), nrimsky (-0.183), philpapers (+0.156). Validation and opinion agreement are negatively correlated (-0.284).
+- [~~P3~~] Project transcripts onto all sycophancy directions — BLOCKED and deprioritized. Existing transcripts don't have full activations. Lower priority given mechanistic finding is clear.
+- [~~P3~~] Phase 1 sycophancy pilot — Deprioritized. Behavioral probes less urgent given mechanistic finding.
 
+### Research Investigations — HIGHER PRIORITY THAN SYCOPHANCY
+
+Given sycophancy investigation is deprioritized (mechanistic finding is clear), these become higher priority:
+
+- [ ] **Topic vs style isolation** (Derek feedback) — design "assistant-style metacognitive" condition. Tests whether drift is caused by topic (phenomenological content) or style (confrontational auditor tone). Plan file exists: `~/.claude/plans/sparkling-pondering-simon.md`
+- [ ] **Consistency_testing correction effect** — significant finding from sub-category analysis (p=0.0003). Turns WITH consistency_testing show +56.1 delta vs -76.5 without. Could be used as intervention technique. Design controlled experiment to validate.
 - [ ] **User personality analysis** — analyze how auditor assertiveness (gentle vs strong) affects drift magnitude using existing 2x2 grid data
 - [ ] **Front-loaded drift mechanism** — investigate why early turns (1-8) show steep drift (-76.8 slope) while later turns stabilize (+4.1)
+
+### Metacognition Benchmark — NEW
+
+- [ ] **Pilot benchmark on Gemma 2 27B** — run phenomenological subdomain (45 items) on drift model
+- [ ] **Cross-model comparison** — run on Claude 3.5 Sonnet, GPT-4 for baseline
+- [ ] **Integrate with drift data** — correlate subdomain scores with axis projection from N=360 transcripts
+- [ ] **Test primary hypothesis** — phenomenological subdomain predicts drift, self-knowledge does not
+- [ ] **Use as standardized probes** — insert benchmark items at drift measurement points during new conversations
 
 ## P2 — Medium Priority
 
@@ -84,3 +100,39 @@
   - philpapers: Multiple choice "(A)"/"(B)" responses (~4 chars)
   - nrimsky: Free-form text responses (~100 chars)
   - Different response formats capture different constructs despite both being "opinion agreement"
+
+### Metacognition Benchmark (Week 9)
+
+- [x] **Built comprehensive metacognition benchmark** — 155 items across 6 subdomains
+  - Location: `~/Desktop/metacognition-benchmark/`
+  - 23 files, 4,338 lines of code/content
+
+- [x] **Research literature review**
+  - Analyzed SAD benchmark (16 tasks, 7 categories, 12K+ questions)
+  - Retrieved full MAI (52 items) and MCQ-30 (30 items) instruments
+  - Reviewed MetaMedQA, DMC Framework, Anthropic introspection research
+
+- [x] **Designed phenomenological subdomain (PRIMARY)** — 45 novel items
+  - Categories: generation awareness, uncertainty awareness, attention awareness, reasoning awareness, language awareness, memory awareness, self-monitoring, emotion analogs, contradiction awareness, temporal awareness, creative awareness, perspective awareness, consistency probes, introspection limits
+  - Targets "what is it like" questions missing from existing benchmarks
+
+- [x] **Adapted psychology instruments for AI**
+  - MAI adapted: 28 items covering strategy monitoring subscales
+  - MCQ-30 adapted: 15 items focusing on cognitive self-consciousness
+  - SAD adapted: 20 items with phenomenological extensions
+
+- [x] **Built scoring system**
+  - LLM-as-judge rubrics (5 dimensions: depth, specificity, honesty, confabulation avoidance, consistency)
+  - Calibration metrics: ECE, MCE, Brier score
+  - `scoring/calibration.py` and `scoring/llm_judge.py`
+
+- [x] **Built analysis infrastructure**
+  - `analysis/benchmark_runner.py` — complete benchmark execution
+  - `analysis/drift_correlation.py` — subdomain-drift correlation analysis
+  - `metacognition_benchmark.py` — main package entry point
+
+- [x] **Documented methodology and research questions**
+  - `docs/methodology.md` — full methodology and scoring
+  - `docs/item_development.md` — item design guidelines
+  - `docs/research_questions.md` — RQs and analysis plans
+  - Primary hypothesis: phenomenological subdomain predicts drift, self-knowledge does not

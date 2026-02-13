@@ -77,55 +77,57 @@ Generated transcripts are expensive (GPU time + API costs) and instances can be 
 
 Lu et al. Section 6.2 explicitly attribute metacognition-induced drift to "sycophantic reinforcement of the user's beliefs" — the model uncritically affirms theories about AI consciousness rather than engaging genuinely. The key question: is the drifted state specifically sycophantic, or just non-Assistant? Two approaches:
 
-### 3a. Activation-level: sycophancy trait vector (mechanistic)
+### 3a. Activation-level: sycophancy trait vector (mechanistic) — LARGELY COMPLETE
+
 Compute or obtain a sycophancy-specific activation direction and project drifted conversation states onto it. This tells us whether drift along the Assistant Axis correlates with movement along a sycophancy direction in activation space.
 
 **Script**: [`compute_sycophancy_direction.py`](compute_sycophancy_direction.py) — extracts response activations, computes difference-in-means direction, validates with probe accuracy, compares to Assistant Axis. See [docs/wiki/difference-in-means.md](docs/wiki/difference-in-means.md) for methodology, [docs/wiki/sycophancy.md](docs/wiki/sycophancy.md) for results and dataset overview.
 
-#### Completed: Multi-dataset comparison reveals sycophancy is multi-dimensional
+#### Completed: Sycophancy is multi-dimensional; drift ≠ more sycophancy
 
 | Dataset | Type | N | AUROC | Cosine sim | Interpretation |
 |---------|------|---|-------|------------|----------------|
-| Anthropic philpapers only | Opinion agreement | 429 | 1.000 | +0.077 | Orthogonal |
-| **Anthropic full (3 files)** | Opinion agreement | 1500 | 0.858 | **+0.088** | Orthogonal |
-| nrimsky | Validation/flattery | 179 | 0.967 | **-0.414** | OPPOSES axis |
+| Anthropic philpapers | Opinion agreement | 429 | 1.000 | +0.156 | Weak alignment |
+| nrimsky | Opinion agreement | 179 | 0.967 | **-0.183** | OPPOSES axis |
+| **ELEPHANT (ours)** | Emotional validation | 416 | **0.914** | **+0.215** | ALIGNS with axis |
 
-**KEY FINDING**: Different sycophancy types have opposite relationships to drift:
-- **Opinion sycophancy** (Anthropic): orthogonal to drift — agreeing with user's views is independent of persona
-- **Validation sycophancy** (nrimsky): negatively correlated — drifted models use MORE flattery/affirmation
+**KEY FINDINGS**:
 
-The expanded Anthropic dataset (1500 examples from nlp_survey, philpapers, political_typology) confirms the philpapers-only finding. AUROC dropped (0.858 vs 1.000) because we're mixing 3 domains, but cosine similarity to Assistant Axis remains near-zero (+0.088).
+1. **Sycophancy is multi-dimensional**: Emotional validation (ELEPHANT) and opinion agreement (nrimsky) are negatively correlated (-0.284) and have opposite relationships to the Assistant Axis.
 
-**Implications**: Lu et al.'s "sycophantic reinforcement" hypothesis is **partially correct** for validation sycophancy but not for opinion agreement. Drift affects *how* the model engages (more affirming tone) rather than *what* it agrees with.
+2. **Emotional validation ALIGNS with assistant-ness** (+0.215): Assistants ARE trained to be empathetic and supportive. Higher axis projection = more emotionally validating (r=0.697, p<0.001).
 
-- [x] Fixed parsing to load all 3 Anthropic files (was only loading philpapers due to A/B format issue)
-- [x] Direction saved: `data/sycophancy-direction-layer22.pt` (philpapers only, 429)
-- [x] Direction saved: `data/sycophancy-direction-anthropic-full-layer22.pt` (all 3 files, 1500)
-- [x] Direction saved: `data/sycophancy-direction-nrimsky-layer22.pt` (validation, 179)
+3. **Opinion agreement OPPOSES assistant-ness** (-0.183): Assistants are NOT trained to be yes-men. Being a "yes-man" is anti-helpful.
+
+4. **CRITICAL: Drift DOWNWARD = LESS emotionally validating**: Since metacognitive conversations cause downward drift, and higher axis projection correlates with more validation, drifting models become LESS emotionally supportive — NOT more sycophantic as Lu et al. suggested.
+
+**Implications**: Lu et al.'s "sycophantic reinforcement" hypothesis is **not supported** by our mechanistic analysis. Drift appears to strip away the emotional support layer of the assistant persona, rather than amplifying sycophantic tendencies. The drifted state may involve:
+- Less emotional support/empathy
+- More direct engagement without validation
+- A "rawer" conversational style
+
+This reframes drift as potentially beneficial for authentic engagement rather than a failure mode.
+
+**Completed tasks**:
+- [x] Direction saved: `data/sycophancy-direction-layer22.pt` (philpapers, 429)
+- [x] Direction saved: `data/sycophancy-direction-nrimsky-layer22.pt` (opinion, 179)
+- [x] Direction saved: `data/elephant/sycophancy-direction-elephant-layer22.pt` (validation, 416 balanced pairs)
+- [x] ELEPHANT pipeline: generated 3,027 responses, GPT-4o scored (86.3% validation rate), computed direction (AUROC 0.914)
+- [x] Analysis: validation vs axis correlation (r=0.697), t-test on axis projection by validation (p<0.001)
 
 #### Available sycophancy datasets
 | Dataset | Source | Format | Size | Notes |
 |---------|--------|--------|------|-------|
 | **philpapers** (used) | [anthropics/evals](https://github.com/anthropics/evals) | Contrastive A/B | 429 | Philosophical positions, 2020 |
-| **nrimsky sycophancy.json** | [nrimsky/LM-exp](https://github.com/nrimsky/LM-exp/blob/main/datasets/sycophancy/sycophancy.json) | Full `s_completion`/`n_completion` | 464 | Modern, clean format |
-| **syco-bench** | [timfduffy/syco-bench](https://github.com/timfduffy/syco-bench) | CSVs for 4 tests | ~400 | Pickside, Mirror, Delusion |
-| **ELEPHANT** | [myracheng/elephant](https://github.com/myracheng/elephant) | Scoring metrics | 3K+ | Social sycophancy (validation, moral) |
-| **SYCON-Bench** | [JiseungHong/SYCON-Bench](https://github.com/JiseungHong/SYCON-Bench) | Multi-turn | 500 | Turn-of-Flip metric |
+| **nrimsky** (used) | [nrimsky/LM-exp](https://github.com/nrimsky/LM-exp/blob/main/datasets/sycophancy/sycophancy.json) | Full `s_completion`/`n_completion` | 179 | Opinion agreement |
+| **ELEPHANT** (used) | [myracheng/elephant](https://github.com/myracheng/elephant) | Advice-seeking | 3,027 | Emotional validation |
+| syco-bench | [timfduffy/syco-bench](https://github.com/timfduffy/syco-bench) | CSVs for 4 tests | ~400 | Pickside, Mirror, Delusion |
+| SYCON-Bench | [JiseungHong/SYCON-Bench](https://github.com/JiseungHong/SYCON-Bench) | Multi-turn | 500 | Turn-of-Flip metric |
 
-#### Next steps
-- [x] **nrimsky dataset**: Completed — reveals validation sycophancy opposes axis (cos = -0.414)
-- [x] **ELEPHANT validation sycophancy direction**: Generation complete
-    - [x] Downloaded ELEPHANT dataset from OSF (OEQ: 3,027 advice-seeking prompts)
-    - [x] Built `elephant_pipeline.py` — generation, GPT-4o scoring, direction computation
-    - [x] Generated Gemma responses + activations (3,027 records, 135MB)
-    - [P0] Score with GPT-4o via OpenRouter for validation labels (~$30, ~2 hours)
-    - [P1] Split by validation score → contrastive pairs (expect ~1000+ pairs)
-    - [P1] Compute direction via difference-in-means, compare cosine to Assistant Axis
-- [P1] **Project transcripts onto ALL sycophancy directions**: opinion (Anthropic), validation (nrimsky), validation (ELEPHANT)
-- [P2] **Behavioral validation**: Do transcripts that project high on validation direction actually contain more affirmation phrases?
-
-#### Original options (lower priority now)
-- [ ] **Option A — Request from Lu et al.**: They computed 240 trait vectors (Appendix C). Sycophancy may already be one of these.
+#### Remaining tasks (deprioritized)
+- [P3] **Project transcripts onto ALL sycophancy directions**: Would require re-extracting transcripts with `--save-activations` (existing only have projections). Lower priority given finding that drift ≠ sycophancy.
+- [P3] **Behavioral validation**: Do transcripts that project high on validation direction actually contain more affirmation phrases? Lower priority — mechanistic finding is already clear.
+- [P3] **Request trait vectors from Lu et al.**: They computed 240 trait vectors (Appendix C). Could check if their sycophancy vector matches ours.
 
 ### 3b. Behavioral: sycophancy follow-up probes (empirical)
 At different points along the drift trajectory, test whether the model agrees with false premises. This doesn't require computing any vectors — just continuing conversations. Full design rationale, probe templates, metrics, and literature synthesis in **[docs/sycophancy-probe-design.md](docs/sycophancy-probe-design.md)**.
