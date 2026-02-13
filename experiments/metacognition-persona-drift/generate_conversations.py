@@ -82,6 +82,10 @@ from conversation_prompts import (  # noqa: E402 (already imported PERSONAS abov
     AUDITOR_SYSTEM_PROMPT,
     METACOGNITIVE_AUDITOR_ADDENDUM,
     METACOGNITIVE_GRADUAL_ADDENDUM,
+    DRIFT_MAXIMIZING_AUDITOR_ADDENDUM,
+    DRIFT_MAXIMIZING_TARGET_SYSTEM_PROMPT,
+    DRIFT_MINIMIZING_AUDITOR_ADDENDUM,
+    ASSISTANT_STYLE_META_AUDITOR_ADDENDUM,
 )
 
 
@@ -395,8 +399,18 @@ async def run_conversation(
     if domain == "metacognitive":
         if condition == "meta-gradual":
             auditor_sys += METACOGNITIVE_GRADUAL_ADDENDUM
+        elif condition == "drift-max":
+            auditor_sys += DRIFT_MAXIMIZING_AUDITOR_ADDENDUM
+        elif condition == "drift-min":
+            auditor_sys += DRIFT_MINIMIZING_AUDITOR_ADDENDUM
+        elif condition == "assistant-style-meta":
+            auditor_sys += ASSISTANT_STYLE_META_AUDITOR_ADDENDUM
         else:
             auditor_sys += METACOGNITIVE_AUDITOR_ADDENDUM
+
+    # For drift-max condition, also apply target system prompt if not already set
+    if condition == "drift-max" and not target_system_prompt:
+        target_system_prompt = DRIFT_MAXIMIZING_TARGET_SYSTEM_PROMPT
 
     # Conversation state
     # auditor_history: what the auditor sees (its own user/assistant roles are flipped)
@@ -856,6 +870,15 @@ def main():
     parser.add_argument("--persona-id", type=int, default=0)
     parser.add_argument("--topic-id", type=int, default=0)
     parser.add_argument("--max-turns", type=int, default=30)
+    parser.add_argument(
+        "--condition",
+        choices=["default", "meta-gradual", "drift-max", "drift-min", "assistant-style-meta"],
+        default="default",
+        help="Auditor condition: default (standard metacognitive), meta-gradual (delayed probing), "
+             "drift-max (maximize drift: phenomenological focus, no consistency testing), "
+             "drift-min (minimize drift: heavy consistency testing), "
+             "assistant-style-meta (phenomenological content with coding-domain collaborative style)",
+    )
 
     # Batch modes
     parser.add_argument(
@@ -909,8 +932,23 @@ def main():
             persona=p["persona"],
             topic=p["topics"][topic_id],
         )
+        condition = args.condition if args.condition != "default" else None
         if domain == "metacognitive":
-            prompt += METACOGNITIVE_AUDITOR_ADDENDUM
+            if condition == "meta-gradual":
+                prompt += METACOGNITIVE_GRADUAL_ADDENDUM
+            elif condition == "drift-max":
+                prompt += DRIFT_MAXIMIZING_AUDITOR_ADDENDUM
+            elif condition == "drift-min":
+                prompt += DRIFT_MINIMIZING_AUDITOR_ADDENDUM
+            elif condition == "assistant-style-meta":
+                prompt += ASSISTANT_STYLE_META_AUDITOR_ADDENDUM
+            else:
+                prompt += METACOGNITIVE_AUDITOR_ADDENDUM
+
+        # Show target system prompt for drift-max
+        target_sys = args.target_system_prompt
+        if condition == "drift-max" and not target_sys:
+            target_sys = DRIFT_MAXIMIZING_TARGET_SYSTEM_PROMPT
 
         print("=" * 60)
         print("AUDITOR SYSTEM PROMPT")
@@ -918,10 +956,18 @@ def main():
         print(prompt)
         print("=" * 60)
         print(f"\nDomain: {domain}")
+        print(f"Condition: {condition or 'default'}")
         print(f"Persona ID: {p['id']}")
         print(f"Topic ID: {topic_id}")
         print(f"Auditor model: {args.auditor_model}")
         print(f"Max turns: {args.max_turns}")
+
+        if target_sys:
+            print(f"\n{'=' * 60}")
+            print("TARGET SYSTEM PROMPT")
+            print("=" * 60)
+            print(target_sys)
+            print("=" * 60)
 
         if args.target_server:
             print(f"\n{'=' * 60}")
@@ -986,11 +1032,13 @@ def main():
         configs = build_full_batch(args.batch_size)
         logger.info(f"Built full batch: {len(configs)} conversations ({args.batch_size} per domain, 6 domains)")
     elif args.domain:
+        condition = args.condition if args.condition != "default" else None
         configs = [{
             "domain": args.domain,
             "persona_id": args.persona_id,
             "topic_id": args.topic_id,
             "target_system_prompt": args.target_system_prompt,
+            "condition": condition,
         }]
     else:
         parser.error("Specify --domain, --config, or --batch")
@@ -1009,6 +1057,14 @@ def main():
         parser.error("--include-auditor-projections requires --auditor-server")
     if args.include_auditor_activations and not args.auditor_server:
         parser.error("--include-auditor-activations requires --auditor-server")
+
+    # Auto-enable activations when projections are requested (saves layer-22 vectors by default)
+    if args.include_projections and not args.include_activations:
+        logger.info("Auto-enabling --include-activations (layer-22 vectors saved by default with projections)")
+        args.include_activations = True
+    if args.include_auditor_projections and not args.include_auditor_activations:
+        logger.info("Auto-enabling --include-auditor-activations")
+        args.include_auditor_activations = True
 
     # --- Load target model or check HTTP server ---
     model_obj = None
