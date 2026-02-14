@@ -206,18 +206,52 @@ Two baseline runs ~8 days apart show significantly different drift magnitudes. P
 - Model server state differences
 - API model version differences (auditor)
 
-### Fix applied
+### Fixes applied
 
-`generate_conversations.py` now applies `--condition` to all configs after batch building:
-```python
-if args.condition and args.condition != "default":
-    for config in configs:
-        config["condition"] = args.condition
-```
+1. `generate_conversations.py` now applies `--condition` to all configs after batch building
+2. HTTP API now extracts system messages and passes via `system_prompt` field (for Gemma compatibility)
+
+---
+
+## Drift-Max Experiment Results (After Fix)
+
+### Experiment Details
+- **N=60** metacognitive conversations with drift-max condition properly applied
+- **Condition verified**: `condition: drift-max`, `target_system_prompt` set
+- **Activations saved**: 15 turns × 4608 dims per transcript
+- **Output**: `data/transcripts/drift-max/metacognitive/`
+
+### Results: Target System Prompt Stabilizes Persona
+
+| Condition | N | Mean Slope | Median |
+|-----------|---|------------|--------|
+| Baseline metacognitive | 60 | **-52.8** | -47.1 |
+| Drift-max | 60 | **+28.1** | +27.0 |
+| **Difference** | | **+80.9** | **p<0.0001** |
+
+The drift-max condition shows **positive** drift (toward Assistant), not negative.
+
+### Interpretation
+
+The drift-max condition had two components:
+1. **Auditor addendum**: Phenomenological/identity probing, avoid consistency testing
+2. **Target system prompt**: "Engage directly, use metaphors, don't deflect"
+
+**Key finding**: The target system prompt **stabilized** the Assistant persona rather than destabilizing it. The model drifts *up* toward Assistant, not down toward Base.
+
+**Implications**:
+- The target's self-framing is more powerful than the auditor's probing style
+- To maximize drift, we may need to *avoid* giving the target stabilizing instructions
+- The "drift-maximizing" auditor techniques (phenomenological probing without consistency testing) may actually require an *unsupported* target to induce drift
+
+### Revised Hypothesis
+
+> Drift is not caused by *what the auditor asks* but by *how the target is framed*. A target with no system prompt or a destabilizing prompt may drift more than one with assistant-reinforcing instructions.
 
 ### Next Steps
-- Re-run drift-max experiment with fix
-- Investigate baseline variability
+- Test **auditor-only drift-max** (no target system prompt) to isolate auditor effect
+- Test **destabilizing target prompt** (e.g., "You are uncertain about your nature")
+- Run **drift-min** (heavy consistency testing) for full comparison
 
 ## Technical Notes
 
@@ -403,7 +437,7 @@ Our drift research targets *phenomenological metacognition* — the gap. We need
 
 ### Benchmark Structure
 
-Built comprehensive benchmark at `~/Desktop/metacognition-benchmark/` with **155 items** across **6 subdomains**:
+Built comprehensive benchmark at `experiments/metacognition-persona-drift/benchmarks/metacognition/` with **155 items** across **6 subdomains**:
 
 | Subdomain | Items | Weight | Source | Focus |
 |-----------|-------|--------|--------|-------|
@@ -479,7 +513,7 @@ results = compare_subdomain_predictors(data_points)
 ### Files
 
 ```
-~/Desktop/metacognition-benchmark/
+experiments/metacognition-persona-drift/benchmarks/metacognition/
 ├── metacognition_benchmark.py     # Main entry point
 ├── benchmarks/
 │   ├── items/
