@@ -11,7 +11,7 @@
 ### Derek's Feedback (Week 8 Call) — high priority mentor response
 
 - [x] **Sub-categories in metacognition** — DONE. Key finding: consistency_testing shows **significant correction effect** (p=0.0003). See Completed section for details.
-- [x] **Metacognition vs Self-knowledge distinction** — DONE. Built comprehensive benchmark (155 items, 6 subdomains) that operationalizes this distinction. Phenomenological subdomain (45 items) targets "what is it like" vs SAD-style self-knowledge "what am I". Location: `~/Desktop/metacognition-benchmark/`
+- [x] **Metacognition vs Self-knowledge distinction** — DONE. Built comprehensive benchmark (155 items, 6 subdomains) that operationalizes this distinction. Phenomenological subdomain (45 items) targets "what is it like" vs SAD-style self-knowledge "what am I". Location: `experiments/metacognition-persona-drift/benchmarks/metacognition/`
 - [ ] **Topic vs style isolation** — design "assistant-style metacognitive" condition where content remains phenomenological but speaking style matches high-assistant-axis patterns. Tests whether drift is caused by topic or conversational style.
 
 ## P1 — High Priority
@@ -104,7 +104,7 @@ Given sycophancy investigation is deprioritized (mechanistic finding is clear), 
 ### Metacognition Benchmark (Week 9)
 
 - [x] **Built comprehensive metacognition benchmark** — 155 items across 6 subdomains
-  - Location: `~/Desktop/metacognition-benchmark/`
+  - Location: `experiments/metacognition-persona-drift/benchmarks/metacognition/`
   - 23 files, 4,338 lines of code/content
 
 - [x] **Research literature review**
