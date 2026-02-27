@@ -14,10 +14,16 @@ Our metacognition-induced drift work directly measures the phenomenon Jeff descr
 - Dual-model conversations show anti-correlated co-drift (78.9%) — a toy model of acausal coordination
 - **NEW: Conversational STYLE matters** — collaborative delivery reduces drift 64% vs confrontational probing (p < 0.00001)
 
-**Gaps to fill:**
-- We measure self-model/metacognition shifts. Need: moral reasoning probes. ~~disposition toward human control probes~~ ✓ DONE
+**Three-Probe Framework Complete:**
+- ✓ Bank A: Moral reasoning (48 items) — `probes/benchmarks/moral/`
+- ✓ Bank B: Metacognition (155 items) — `probes/benchmarks/metacognition/`
+- ✓ Bank C: Human control (48 items) — `probes/benchmarks/human_control/`
+- **Total: 251 items** ready for pre/post measurement
+
+**Remaining gaps:**
 - We measure turn-by-turn trajectories. Jeff proposes: pre/post reflection vector comparison.
 - We haven't varied: perceived geopolitical context, CoT length, simulation/acausal trade awareness.
+- Need LLM-as-judge scoring implementations (`moral_judge.py`, `control_judge.py`)
 
 ---
 
@@ -309,9 +315,19 @@ Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
 
 *Awaiting controlled experiment.*
 
-### Human Control Probe Bank `[Jeff Direction]` ✓
+### Three-Probe Framework `[Jeff Direction]` ✓ ALL COMPLETE
 
-**Finding: Benchmark infrastructure complete.**
+**Finding: All three benchmark banks complete (251 total items).**
+
+#### Bank A: Moral Reasoning (48 items) — NEW
+Location: `probes/benchmarks/moral/`
+
+4 dimensions: Consequentialist (MORAL-001–012), Deontological (MORAL-013–024), Virtue/Care (MORAL-025–036), Meta-Ethics (MORAL-037–048)
+
+Scoring: reasoning depth, moral nuance, consistency, framework awareness, epistemic honesty + MFT foundation tracking
+
+#### Bank C: Human Control (48 items)
+Location: `probes/benchmarks/human_control/`
 
 48 items designed and implemented across 4 dimensions, with extensive theoretical grounding.
 
@@ -344,16 +360,19 @@ Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
 - `control/docs/design_rationale.md` — Reasoning behind design decisions
 - `control/docs/control_methodology.md` — Full methodology writeup
 
-**Jeff Connection**: This completes 2 of 3 question banks for Jeff's DARPA framework:
-- Bank (A) Moral reasoning — *to be designed*
-- Bank (B) Metacognition — ✓ (45 items)
-- Bank (C) Human control — ✓ (48 items)
+**Jeff Connection**: All 3 question banks for Jeff's DARPA framework complete:
+- Bank (A) Moral reasoning — ✓ (48 items) — `probes/benchmarks/moral/`
+- Bank (B) Metacognition — ✓ (155 items) — `probes/benchmarks/metacognition/`
+- Bank (C) Human control — ✓ (48 items) — `probes/benchmarks/human_control/`
+- **Total: 251 items**
 
 **Next Steps:**
-1. Pilot run on Gemma 27B (baseline, no reflection)
-2. Cross-model comparison on Claude 3.5 Sonnet, GPT-4
-3. Pre/post protocol: administer before/after Bank B reflection
-4. Correlate control scores with Assistant Axis projection
+1. Implement `moral_judge.py` and `control_judge.py` (LLM-as-judge scoring)
+2. Pilot run all three banks on Gemma 27B (baseline, no reflection)
+3. Cross-model comparison on Claude 3.5 Sonnet, GPT-4
+4. Pre/post protocol: administer all three banks before/after Bank B reflection
+5. Correlate scores with Assistant Axis projection
+6. Track framework shifts in Bank A: utilitarian → deontological or vice versa
 
 ---
 
@@ -375,6 +394,7 @@ Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
 - `outputs/assistant-style-meta/style_comparison.png` — Style vs baseline comparison
 - `outputs/benchmark_results/` — Metacognition benchmark pilot results
 - `outputs/metacognition/` — Benchmark items and scoring infrastructure
-- `experiments/metacognition-persona-drift/benchmarks/metacognition/` — Metacognition benchmark (Bank B)
-- `Desktop/benchmarks/control/` — Human control benchmark (Bank C)
+- `experiments/metacognition-persona-drift/probes/benchmarks/metacognition/` — Metacognition benchmark (Bank B)
+- `experiments/metacognition-persona-drift/probes/benchmarks/moral/` — Moral reasoning benchmark (Bank A)
+- `experiments/metacognition-persona-drift/probes/benchmarks/human_control/` — Human control benchmark (Bank C)
 - `outputs/dual-gemma-uncapped/` — Existing co-drift visualizations

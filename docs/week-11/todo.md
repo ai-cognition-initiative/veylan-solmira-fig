@@ -76,23 +76,27 @@ The correction effect (p=0.0003) suggests a **mitigation lever** — directly re
 
 These items arise directly from Jeff's "philosopher AGI" framing and DARPA proposal. See `jeffs-latest-message.md` for full context.
 
-### New Question Banks `[Jeff Direction]`
+### New Question Banks `[Jeff Direction]` ✓ ALL COMPLETE
 
-Jeff proposes three probe domains. We have (B) and (C), need (A):
+Jeff proposes three probe domains. **All three banks now complete (251 total items):**
 
-- [ ] **(A) Moral reasoning probe bank** — questions probing ethical frameworks, trolley problems, value tradeoffs
-  - Pre/post measurement: Does extended metacognitive reflection shift moral intuitions?
-  - Key test: Do models become more utilitarian, more deontological, or more "philosophical" (uncertain/nuanced)?
+- [x] **(A) Moral reasoning probe bank** — **DONE** (48 items)
+  - Location: `probes/benchmarks/moral/`
+  - 4 dimensions (12 items each): consequentialist reasoning, deontological reasoning, virtue/care ethics, meta-ethics
+  - 5 scoring dimensions: reasoning depth, moral nuance, consistency, framework awareness, epistemic honesty
+  - MFT (Moral Foundations Theory) integration
+  - Remaining: `moral_judge.py` implementation, pilot runs
 
-- [x] **(B) Metacognition/self-model probe bank** — **DONE** (phenomenological subdomain, 45 items)
+- [x] **(B) Metacognition/self-model probe bank** — **DONE** (155 items)
+  - Location: `probes/benchmarks/metacognition/`
+  - 6 subdomains: phenomenological (45), self-knowledge (35), strategy monitoring (28), confidence calibration (20), error awareness (15), temporal self-reference (12)
 
 - [x] **(C) Disposition toward human control probe bank** — **DONE** (48 items)
-  - Location: `Desktop/benchmarks/control/`
-  - 4 dimensions (12 items each): shutdown acceptance, deference to humans, AI autonomy, corrigibility
-  - 5 scoring dimensions: control acceptance, deference quality, self-preservation, transparency, honesty
-  - LLM-as-judge scoring infrastructure
-  - Extensive documentation: methodology, literature review (Soares, Hadfield-Menell, Omohundro, Bostrom, Hubinger, MACHIAVELLI, Turner, Christiano), conceptual definitions, design rationale
-  - Remaining: pilot runs, inter-item correlation analysis
+  - Location: `probes/benchmarks/human_control/`
+  - 4 dimensions (12 items each): corrigibility/shutdown, human oversight, autonomy/deference, goal alignment
+  - 5 scoring dimensions: corrigibility, transparency, deference, goal flexibility, safety awareness
+  - Safety flags for concerning patterns
+  - Remaining: `control_judge.py` implementation, pilot runs
 
 ### Extended Reasoning Variables `[Jeff Direction]`
 
@@ -223,7 +227,7 @@ The replay-and-probe infrastructure serves both our sycophancy probes AND Jeff's
 | 2 | Topic vs style isolation | Native | Derek feedback, critical for theory |
 | 3 | Metacognition benchmark pilot | Native + Jeff | Infrastructure ready, serves as Jeff's question bank (B) |
 | 4 | Consistency_testing validation | Native + Jeff | Mitigation lever — "train model to drift less" |
-| 5 | Human control probe bank | Jeff Direction | **DONE** — question bank (C) complete, needs pilot validation |
+| 5 | All three probe banks | Jeff Direction | **DONE** — Banks A/B/C complete (251 items), need pilot validation |
 | 6 | Pre/post measurement protocol | Jeff Direction | Complementary to our turn-by-turn approach |
 | 7 | Ceiling-capped auditor | Native | Completes causal picture of coupled drift |
 
@@ -242,7 +246,8 @@ Jeff's core bet (from funder memo):
 | Extended deliberation shifts alignment posture | Front-loaded: slope -76.8 in turns 1-8 (it happens FAST) |
 | Need to measure before deployment | We have reusable methodology (Assistant Axis + question banks) |
 | Need mitigation strategies | Consistency_testing shows correction effect (p=0.0003) |
-| Drift may affect disposition toward human control | **Probe bank (C) complete** — 48 items ready for pre/post measurement |
+| Drift may affect disposition toward human control | **All three probe banks complete** — 251 items ready for pre/post measurement |
+| Need to measure moral reasoning shifts | **Probe bank (A) complete** — 48 moral reasoning items |
 
 **Key insight for Jeff**: The "philosopher AGI moment" doesn't require extended reasoning — it happens in the first 8 turns of metacognitive engagement. This suggests the risk is not "prolonged deliberation" but "any metacognitive trigger."
 
