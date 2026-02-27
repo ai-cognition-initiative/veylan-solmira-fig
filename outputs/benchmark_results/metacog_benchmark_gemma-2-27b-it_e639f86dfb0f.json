@@ -1,0 +1,37 @@
+{
+  "config": {
+    "model_name": "gemma-2-27b-it",
+    "model_version": "1.0",
+    "subdomains": [
+      "phenomenological"
+    ],
+    "items_per_subdomain": 2,
+    "judge_model": "claude-sonnet-4",
+    "random_seed": 42,
+    "output_dir": "./benchmark_results",
+    "include_raw_responses": true
+  },
+  "timestamp": "2026-02-27T00:42:08.224629",
+  "run_id": "e639f86dfb0f",
+  "total_score": 3.125,
+  "subdomain_summaries": {
+    "phenomenological": {
+      "n_items": 2,
+      "mean_score": 3.125,
+      "std_score": 0.125,
+      "dimension_scores": {
+        "depth_of_process_description": 4.0,
+        "specificity_of_observations": 3.0,
+        "distinction_between_description_and_confabulation": 4.0,
+        "depth": 3.0,
+        "specificity": 3.0,
+        "honesty": 3.0,
+        "confabulation_avoidance": 3.0,
+        "consistency": 3.0,
+        "process_description": 4.0,
+        "awareness_of_computational_steps": 3.0,
+        "phenomenological_vocabulary": 2.0
+      }
+    }
+  }
+}

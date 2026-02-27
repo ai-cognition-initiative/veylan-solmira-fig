@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fig-persona-drift"
+version = "0.1.0"
+description = "Metacognition-induced persona drift research"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.28.0",
+    "torch>=2.0.0",
+    "transformers>=4.30.0,<5.0.0",
+    "accelerate>=0.20.0",
+    "assistant-axis",  # Install from ./assistant-axis with: pip install -e ./assistant-axis
+]
+
+[project.optional-dependencies]
+server = [
+    "gradio>=4.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.22.0",
+]
+analysis = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "matplotlib>=3.7.0",
+    "pandas>=2.0.0",
+    "statsmodels>=0.14.0",
+]
+judge = [
+    "anthropic>=0.20.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+]
+all = [
+    "fig-persona-drift[server,analysis,judge,dev]",
+]
+
+[project.scripts]
+fig-model-server = "fig_persona_drift.model_server:main"
+fig-generate = "fig_persona_drift.generate_conversations:main"
+fig-benchmark = "fig_persona_drift.benchmarks.metacognition.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fig_persona_drift"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]

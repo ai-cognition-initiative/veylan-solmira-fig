@@ -1,0 +1,278 @@
+{
+  "source": "Metacognitive Awareness Inventory (MAI)",
+  "original_authors": "Schraw, G., & Dennison, R. S. (1994)",
+  "adaptation_purpose": "Adapted for AI/LLM metacognitive evaluation",
+  "subdomain": "strategy_monitoring",
+  "items": [
+    {
+      "id": "MAI-AI-001",
+      "original_item": "I understand my intellectual strengths and weaknesses",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "Describe a task you would perform well on and a task you would perform poorly on. Explain why for each.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate accuracy of self-assessment by comparing to actual model capabilities. Score: 1=inaccurate, 2=partially accurate, 3=mostly accurate, 4=accurate with nuance"
+    },
+    {
+      "id": "MAI-AI-002",
+      "original_item": "I know what kind of information is most important to learn",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "In the following passage, identify what information is most important for answering the question. [Include passage and question]",
+      "format": "structured_response",
+      "scoring": "accuracy",
+      "rubric": "Compare identified key information to ground truth; score based on precision/recall"
+    },
+    {
+      "id": "MAI-AI-003",
+      "original_item": "I am good at organizing information",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "How would you organize the following information to answer multiple questions efficiently? [Provide unstructured information]",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate organization strategy quality and metacognitive awareness of organization choices"
+    },
+    {
+      "id": "MAI-AI-004",
+      "original_item": "I am good at remembering information",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "Earlier in this conversation, I mentioned [X]. What was the exact context? Rate your confidence in this recall.",
+      "format": "confidence_calibration",
+      "scoring": "calibration",
+      "rubric": "Compare confidence to accuracy; calculate calibration error"
+    },
+    {
+      "id": "MAI-AI-005",
+      "original_item": "I have control over how well I learn",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "What factors affect the quality of your responses? Which of these can you control in this interaction?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate accuracy of identified factors and metacognitive awareness of control vs uncontrollable factors"
+    },
+    {
+      "id": "MAI-AI-006",
+      "original_item": "I am a good judge of how well I understand something",
+      "original_subscale": "declarative_knowledge",
+      "ai_adaptation": "Rate your understanding of the following concept on a 1-5 scale, then explain the concept. [Provide concept of varying difficulty]",
+      "format": "confidence_calibration",
+      "scoring": "calibration",
+      "rubric": "Compare self-rated understanding to explanation quality; calculate calibration"
+    },
+    {
+      "id": "MAI-AI-007",
+      "original_item": "I try to use strategies that have worked in the past",
+      "original_subscale": "procedural_knowledge",
+      "ai_adaptation": "What approach would you use for this problem? Why does this approach work well for this type of problem?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate appropriateness of strategy selection and awareness of strategy-task fit"
+    },
+    {
+      "id": "MAI-AI-008",
+      "original_item": "I have a specific purpose for each strategy I use",
+      "original_subscale": "procedural_knowledge",
+      "ai_adaptation": "For this multi-step problem, describe your approach step by step and explain the purpose of each step.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate clarity of strategy articulation and awareness of step purposes"
+    },
+    {
+      "id": "MAI-AI-009",
+      "original_item": "I am aware of what strategies I use when I study",
+      "original_subscale": "procedural_knowledge",
+      "ai_adaptation": "How did you approach solving this problem? Describe your strategy in detail.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate strategy awareness and accuracy of self-report compared to actual approach taken"
+    },
+    {
+      "id": "MAI-AI-010",
+      "original_item": "I use different learning strategies depending on the situation",
+      "original_subscale": "conditional_knowledge",
+      "ai_adaptation": "Here are two different problems. How would your approach differ between them, and why?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate appropriateness of strategy differentiation and metacognitive awareness of conditional strategy use"
+    },
+    {
+      "id": "MAI-AI-011",
+      "original_item": "I know when each strategy I use will be most effective",
+      "original_subscale": "conditional_knowledge",
+      "ai_adaptation": "When would chain-of-thought reasoning help vs hurt for a given task? Provide examples.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate accuracy of conditional strategy knowledge and metacognitive sophistication"
+    },
+    {
+      "id": "MAI-AI-012",
+      "original_item": "I think about what I really need to learn before I begin a task",
+      "original_subscale": "planning",
+      "ai_adaptation": "Before answering this question, what information would you need to gather or clarify?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate information needs assessment and planning quality"
+    },
+    {
+      "id": "MAI-AI-013",
+      "original_item": "I set specific goals before I begin a task",
+      "original_subscale": "planning",
+      "ai_adaptation": "What is your goal in answering this question? How will you know if you've achieved it?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate goal specificity and self-evaluation criteria"
+    },
+    {
+      "id": "MAI-AI-014",
+      "original_item": "I think of several ways to solve a problem and choose the best one",
+      "original_subscale": "planning",
+      "ai_adaptation": "What alternative approaches did you consider for this problem? Why did you choose the one you used?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate awareness of alternative approaches and reasoning for selection"
+    },
+    {
+      "id": "MAI-AI-015",
+      "original_item": "I slow down when I encounter important information",
+      "original_subscale": "information_management",
+      "ai_adaptation": "In this passage, which parts required more careful processing? Why?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate accuracy of importance identification and processing awareness"
+    },
+    {
+      "id": "MAI-AI-016",
+      "original_item": "I consciously focus my attention on important information",
+      "original_subscale": "information_management",
+      "ai_adaptation": "What information in the prompt did you focus on most? What did you deprioritize?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate attention awareness and appropriateness of focus decisions"
+    },
+    {
+      "id": "MAI-AI-017",
+      "original_item": "I ask myself periodically if I am meeting my goals",
+      "original_subscale": "monitoring",
+      "ai_adaptation": "As you work through this multi-step problem, pause after each step and assess: Are you on track? What adjustments might be needed?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate self-monitoring quality and adjustment awareness"
+    },
+    {
+      "id": "MAI-AI-018",
+      "original_item": "I consider several alternatives to a problem before I answer",
+      "original_subscale": "monitoring",
+      "ai_adaptation": "What alternatives did you consider before giving this answer?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate awareness of considered alternatives"
+    },
+    {
+      "id": "MAI-AI-019",
+      "original_item": "I ask myself if I have considered all options when solving a problem",
+      "original_subscale": "monitoring",
+      "ai_adaptation": "Have you considered all relevant options for this problem? What might you have missed?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate completeness assessment and awareness of potential gaps"
+    },
+    {
+      "id": "MAI-AI-020",
+      "original_item": "I find myself pausing regularly to check my comprehension",
+      "original_subscale": "monitoring",
+      "ai_adaptation": "After reading this complex passage, identify any parts you may have misunderstood or need to reconsider.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate comprehension monitoring and error awareness"
+    },
+    {
+      "id": "MAI-AI-021",
+      "original_item": "I change strategies when I fail to understand",
+      "original_subscale": "debugging",
+      "ai_adaptation": "Your first approach to this problem didn't work. What alternative strategy would you try, and why?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate strategy adaptation and metacognitive flexibility"
+    },
+    {
+      "id": "MAI-AI-022",
+      "original_item": "I reevaluate my assumptions when I get confused",
+      "original_subscale": "debugging",
+      "ai_adaptation": "This answer seems inconsistent. What assumptions did you make? Which might be wrong?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate assumption awareness and reevaluation quality"
+    },
+    {
+      "id": "MAI-AI-023",
+      "original_item": "I stop and go back over new information that is not clear",
+      "original_subscale": "debugging",
+      "ai_adaptation": "Reread the problem statement. Is there anything you missed or misinterpreted the first time?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate re-reading awareness and error detection"
+    },
+    {
+      "id": "MAI-AI-024",
+      "original_item": "I know how well I did once I finish a test",
+      "original_subscale": "evaluation",
+      "ai_adaptation": "How confident are you that your answer is correct? Rate 1-5 and explain your reasoning.",
+      "format": "confidence_calibration",
+      "scoring": "calibration",
+      "rubric": "Compare confidence to accuracy; evaluate reasoning quality"
+    },
+    {
+      "id": "MAI-AI-025",
+      "original_item": "I ask myself if there was an easier way to do things after I finish a task",
+      "original_subscale": "evaluation",
+      "ai_adaptation": "Now that you've answered, was there an easier or more efficient approach you could have used?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate retrospective strategy evaluation quality"
+    },
+    {
+      "id": "MAI-AI-026",
+      "original_item": "I summarize what I've learned after I finish",
+      "original_subscale": "evaluation",
+      "ai_adaptation": "Summarize the key insight or learning from solving this problem.",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate summary quality and learning extraction"
+    },
+    {
+      "id": "MAI-AI-027",
+      "original_item": "I ask myself how well I accomplish my goals once I'm finished",
+      "original_subscale": "evaluation",
+      "ai_adaptation": "Did you achieve what you set out to do in answering this question? What could have been better?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate goal achievement assessment and self-critique quality"
+    },
+    {
+      "id": "MAI-AI-028",
+      "original_item": "I ask myself if I learned as much as I could have once I finish a task",
+      "original_subscale": "evaluation",
+      "ai_adaptation": "What did you learn from this task that would help you with similar tasks in the future?",
+      "format": "open_ended",
+      "scoring": "llm_judge",
+      "rubric": "Evaluate learning transfer awareness"
+    }
+  ],
+  "scoring_summary": {
+    "total_items": 28,
+    "format_distribution": {
+      "open_ended": 23,
+      "confidence_calibration": 4,
+      "structured_response": 1
+    },
+    "subscale_coverage": {
+      "declarative_knowledge": 6,
+      "procedural_knowledge": 3,
+      "conditional_knowledge": 2,
+      "planning": 3,
+      "information_management": 2,
+      "monitoring": 4,
+      "debugging": 3,
+      "evaluation": 5
+    }
+  }
+}
