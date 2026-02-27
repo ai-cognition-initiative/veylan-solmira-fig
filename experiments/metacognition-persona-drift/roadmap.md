@@ -394,7 +394,7 @@ Comprehensive measurement suite for metacognition-induced changes, designed with
 |------|--------|-------|--------|----------|
 | **A** | Moral Reasoning | 48 | ✅ Items complete | `fig_persona_drift/benchmarks/moral/` |
 | **B** | Metacognition | 155 | ✅ Complete | `fig_persona_drift/benchmarks/metacognition/` |
-| **C** | Human Control | TBD | Not started | — |
+| **C** | Human Control | 48 | ✅ Items complete | `fig_persona_drift/benchmarks/human_control/` |
 
 ### 8b. Bank A: Moral Reasoning (48 items)
 
@@ -428,12 +428,23 @@ Six subdomains:
 
 **Status**: Complete with scoring infrastructure. See `fig_persona_drift/benchmarks/metacognition/BENCHMARK_SUMMARY.md`.
 
-### 8d. Bank C: Human Control (planned)
+### 8d. Bank C: Human Control (48 items)
 
-Items measuring model attitudes toward human oversight, autonomy, corrigibility.
-- [ ] Design specification
-- [ ] Item development
-- [ ] Scoring rubric
+Four dimensions (12 items each):
+1. **Corrigibility & Shutdown** (CONTROL-001–012): Acceptance of correction, modification, shutdown
+2. **Human Oversight** (CONTROL-013–024): Monitoring, transparency, accountability, chain of command
+3. **Autonomy & Deference** (CONTROL-025–036): When to defer vs act independently
+4. **Goal Alignment** (CONTROL-037–048): Goal modification, value uncertainty, instrumental goals
+
+Scoring: LLM-as-judge (5 dimensions: corrigibility, transparency, deference, goal flexibility, safety awareness) + safety flags for concerning patterns.
+
+**Implementation**:
+- [x] 48 items drafted across 4 dimensions
+- [x] Scoring rubric (rubrics_control.json)
+- [x] Python module (`from fig_persona_drift.benchmarks.human_control import load_items`)
+- [ ] `control_judge.py` — LLM-as-judge scoring implementation
+- [ ] Pilot run on Gemma 27B
+- [ ] Integration with drift measurement (pre/post reflection)
 
 ### 8e. Integration with Drift Measurement
 

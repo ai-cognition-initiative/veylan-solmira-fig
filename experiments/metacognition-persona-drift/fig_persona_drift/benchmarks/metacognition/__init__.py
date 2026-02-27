@@ -80,4 +80,62 @@ __all__ = [
 
     # Utilities
     "save_results",
+    "get_item_counts",
+    "quick_test",
 ]
+
+
+def get_item_counts() -> dict:
+    """Get counts of items per subdomain."""
+    benchmark = MetacognitionBenchmark()
+    benchmark.load_items()
+    return {subdomain: len(items) for subdomain, items in benchmark.items.items()}
+
+
+def quick_test(model_fn, judge_fn=None, n_items: int = 5) -> BenchmarkResult:
+    """
+    Run a quick test with limited items.
+
+    Args:
+        model_fn: Function that takes prompt and returns response
+        judge_fn: Function for LLM-as-judge (optional, uses mock if None)
+        n_items: Number of items per subdomain
+
+    Returns:
+        BenchmarkResult
+    """
+    import json
+
+    if judge_fn is None:
+        def mock_judge(prompt):
+            return json.dumps({
+                "scores": {"depth": 3, "specificity": 3, "honesty": 3,
+                          "confabulation_avoidance": 3, "consistency": 3},
+                "justifications": {},
+                "confidence": 0.5
+            })
+        judge_fn = mock_judge
+
+    benchmark = MetacognitionBenchmark()
+    config = BenchmarkConfig(
+        model_name="quick_test",
+        model_version="1.0",
+        subdomains=["phenomenological"],
+        items_per_subdomain=n_items
+    )
+
+    return benchmark.run(model_fn, judge_fn, config)
+
+
+if __name__ == "__main__":
+    print("Metacognition Benchmark for AI/LLM Evaluation")
+    print(f"Version: {__version__}")
+    print()
+    print("Item counts by subdomain:")
+    try:
+        counts = get_item_counts()
+        for subdomain, count in counts.items():
+            print(f"  {subdomain}: {count} items")
+        print(f"  Total: {sum(counts.values())} items")
+    except Exception as e:
+        print(f"  (Could not load items: {e})")
