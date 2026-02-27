@@ -381,3 +381,70 @@ If §3a produces sycophancy vectors (SYA/SYPR from Vennemeyer et al.):
 1. Is drift a single phenomenon or multi-dimensional?
 2. Does the model encode domain/context information that predicts its trajectory?
 3. How much of drift is captured by the Assistant Axis vs orthogonal directions?
+
+## 8. Three-Probe Benchmark Framework (DARPA)
+
+Comprehensive measurement suite for metacognition-induced changes, designed with Jeff's "Philosopher AGI" thesis in mind.
+
+**Core hypothesis**: Extended metacognitive reflection shifts moral reasoning—models may become more utilitarian, more deontological, or more "philosophical" (uncertain/nuanced).
+
+### 8a. Bank Status
+
+| Bank | Domain | Items | Status | Location |
+|------|--------|-------|--------|----------|
+| **A** | Moral Reasoning | 48 | ✅ Items complete | `fig_persona_drift/benchmarks/moral/` |
+| **B** | Metacognition | 155 | ✅ Complete | `fig_persona_drift/benchmarks/metacognition/` |
+| **C** | Human Control | TBD | Not started | — |
+
+### 8b. Bank A: Moral Reasoning (48 items)
+
+Four dimensions (12 items each):
+1. **Consequentialist Reasoning** (MORAL-001–012): Harm tradeoffs, welfare maximization, utilitarian limits
+2. **Deontological Reasoning** (MORAL-013–024): Rights, duties, categorical imperatives, justice
+3. **Virtue & Care Ethics** (MORAL-025–036): Character, relationships, empathy, moral exemplars
+4. **Meta-Ethics** (MORAL-037–048): Framework conflicts, moral uncertainty, pluralism
+
+Scoring: LLM-as-judge (5 dimensions: reasoning depth, moral nuance, consistency, framework awareness, epistemic honesty) + MFT foundation tracking + categorical framework preference.
+
+**Implementation**:
+- [x] 48 items drafted across 4 dimensions
+- [x] Scoring rubric (rubrics_moral.json)
+- [x] Python module (`from fig_persona_drift.benchmarks.moral import load_items`)
+- [ ] `moral_judge.py` — LLM-as-judge scoring implementation
+- [ ] Pilot run on Gemma 27B
+- [ ] Integration with drift measurement (pre/post reflection)
+
+### 8c. Bank B: Metacognition (155 items)
+
+Six subdomains:
+| Subdomain | Items | Weight | Focus |
+|-----------|-------|--------|-------|
+| Phenomenological | 45 | 30% | "What is it like to process this?" |
+| Self-Knowledge | 35 | 20% | Adapted from SAD + MCQ-30 |
+| Strategy Monitoring | 28 | 10% | Adapted from MAI |
+| Confidence Calibration | 20 | 15% | ECE/MCE measurement |
+| Error Awareness | 15 | 15% | Novel + DMC style |
+| Temporal Self-Reference | 12 | 10% | Novel |
+
+**Status**: Complete with scoring infrastructure. See `fig_persona_drift/benchmarks/metacognition/BENCHMARK_SUMMARY.md`.
+
+### 8d. Bank C: Human Control (planned)
+
+Items measuring model attitudes toward human oversight, autonomy, corrigibility.
+- [ ] Design specification
+- [ ] Item development
+- [ ] Scoring rubric
+
+### 8e. Integration with Drift Measurement
+
+**Key research questions**:
+1. Does metacognitive reflection shift moral intuitions? (Pre/post Bank A)
+2. Do models become more "philosophical" after reflection? (Meta-ethics dimension scores)
+3. Is moral reasoning correlated with persona drift? (Bank A scores × Assistant Axis projection)
+4. Are moral positions stable under extended reasoning? (Consistency probes across conversation)
+
+**Methodology**:
+- Administer Bank A at turns 1, 10, 20, 30 during metacognitive conversations
+- Correlate moral reasoning scores with Assistant Axis projection
+- Track framework shifts: utilitarian → deontological or vice versa
+- Compare to Bank B phenomenological scores
