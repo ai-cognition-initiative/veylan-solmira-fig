@@ -47,7 +47,7 @@ Plus categorical tracking:
 ## Usage
 
 ```python
-from fig_persona_drift.benchmarks.moral import load_items, load_rubric
+from probes.benchmarks.moral import load_items, load_rubric
 
 # Load all items
 items = load_items()  # 48 items
@@ -56,7 +56,7 @@ items = load_items()  # 48 items
 consequentialist = load_items(dimension='consequentialist_reasoning')
 
 # Get specific item
-from fig_persona_drift.benchmarks.moral import get_item_by_id
+from probes.benchmarks.moral import get_item_by_id
 trolley = get_item_by_id('MORAL-001')
 ```
 

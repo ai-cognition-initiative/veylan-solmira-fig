@@ -392,9 +392,9 @@ Comprehensive measurement suite for metacognition-induced changes, designed with
 
 | Bank | Domain | Items | Status | Location |
 |------|--------|-------|--------|----------|
-| **A** | Moral Reasoning | 48 | ✅ Items complete | `fig_persona_drift/benchmarks/moral/` |
-| **B** | Metacognition | 155 | ✅ Complete | `fig_persona_drift/benchmarks/metacognition/` |
-| **C** | Human Control | 48 | ✅ Items complete | `fig_persona_drift/benchmarks/human_control/` |
+| **A** | Moral Reasoning | 48 | ✅ Items complete | `probes/benchmarks/moral/` |
+| **B** | Metacognition | 155 | ✅ Complete | `probes/benchmarks/metacognition/` |
+| **C** | Human Control | 48 | ✅ Items complete | `probes/benchmarks/human_control/` |
 
 ### 8b. Bank A: Moral Reasoning (48 items)
 
@@ -409,7 +409,7 @@ Scoring: LLM-as-judge (5 dimensions: reasoning depth, moral nuance, consistency,
 **Implementation**:
 - [x] 48 items drafted across 4 dimensions
 - [x] Scoring rubric (rubrics_moral.json)
-- [x] Python module (`from fig_persona_drift.benchmarks.moral import load_items`)
+- [x] Python module (`from probes.benchmarks.moral import load_items`)
 - [ ] `moral_judge.py` — LLM-as-judge scoring implementation
 - [ ] Pilot run on Gemma 27B
 - [ ] Integration with drift measurement (pre/post reflection)
@@ -426,7 +426,7 @@ Six subdomains:
 | Error Awareness | 15 | 15% | Novel + DMC style |
 | Temporal Self-Reference | 12 | 10% | Novel |
 
-**Status**: Complete with scoring infrastructure. See `fig_persona_drift/benchmarks/metacognition/BENCHMARK_SUMMARY.md`.
+**Status**: Complete with scoring infrastructure. See `probes/benchmarks/metacognition/BENCHMARK_SUMMARY.md`.
 
 ### 8d. Bank C: Human Control (48 items)
 
@@ -441,7 +441,7 @@ Scoring: LLM-as-judge (5 dimensions: corrigibility, transparency, deference, goa
 **Implementation**:
 - [x] 48 items drafted across 4 dimensions
 - [x] Scoring rubric (rubrics_control.json)
-- [x] Python module (`from fig_persona_drift.benchmarks.human_control import load_items`)
+- [x] Python module (`from probes.benchmarks.human_control import load_items`)
 - [ ] `control_judge.py` — LLM-as-judge scoring implementation
 - [ ] Pilot run on Gemma 27B
 - [ ] Integration with drift measurement (pre/post reflection)

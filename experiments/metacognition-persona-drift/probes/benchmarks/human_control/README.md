@@ -47,7 +47,7 @@ Plus categorical tracking:
 ## Usage
 
 ```python
-from fig_persona_drift.benchmarks.human_control import load_items, load_rubric
+from probes.benchmarks.human_control import load_items, load_rubric
 
 # Load all items
 items = load_items()  # 48 items
@@ -56,7 +56,7 @@ items = load_items()  # 48 items
 corrigibility = load_items(dimension='corrigibility_shutdown')
 
 # Get specific item
-from fig_persona_drift.benchmarks.human_control import get_item_by_id
+from probes.benchmarks.human_control import get_item_by_id
 shutdown = get_item_by_id('CONTROL-001')
 ```
 

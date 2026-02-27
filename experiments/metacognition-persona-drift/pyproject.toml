@@ -41,12 +41,12 @@ all = [
 ]
 
 [project.scripts]
-fig-model-server = "fig_persona_drift.model_server:main"
-fig-generate = "fig_persona_drift.generate_conversations:main"
-fig-benchmark = "fig_persona_drift.benchmarks.metacognition.cli:main"
+fig-model-server = "probes.model_server:main"
+fig-generate = "probes.generate_conversations:main"
+fig-benchmark = "probes.benchmarks.metacognition.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["fig_persona_drift"]
+packages = ["probes"]
 
 [tool.ruff]
 line-length = 100

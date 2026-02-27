@@ -5,7 +5,7 @@ A comprehensive benchmark for evaluating AI metacognitive capabilities,
 with primary focus on phenomenological metacognition.
 
 Usage:
-    from fig_persona_drift.benchmarks.metacognition import MetacognitionBenchmark, BenchmarkConfig
+    from probes.benchmarks.metacognition import MetacognitionBenchmark, BenchmarkConfig
 
     benchmark = MetacognitionBenchmark()
     config = BenchmarkConfig(

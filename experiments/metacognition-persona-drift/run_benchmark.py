@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Try package import first, fall back to path manipulation for remote execution
 try:
-    from fig_persona_drift.benchmarks.metacognition import (
+    from probes.benchmarks.metacognition import (
         MetacognitionBenchmark, BenchmarkConfig, save_results
     )
 except ImportError:

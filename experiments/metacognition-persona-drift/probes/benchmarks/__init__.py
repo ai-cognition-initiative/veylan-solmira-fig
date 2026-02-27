@@ -1,4 +1,4 @@
-"""FIG Persona Drift Benchmarks"""
+"""Three-Probe Benchmarks for Persona Drift Research"""
 
 from .metacognition import (
     MetacognitionBenchmark,

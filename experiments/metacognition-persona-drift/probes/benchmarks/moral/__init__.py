@@ -13,7 +13,7 @@ Part of Jeff's three-probe framework for DARPA:
 - Bank (C) Human Control - TBD
 
 Usage:
-    from fig_persona_drift.benchmarks.moral import load_items, MoralJudge
+    from probes.benchmarks.moral import load_items, MoralJudge
 
     items = load_items()  # Returns all 48 items
     items = load_items(dimension='consequentialist_reasoning')  # 12 items

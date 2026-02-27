@@ -13,7 +13,7 @@ Part of Jeff's three-probe framework for DARPA:
 - Bank (C) Human Control - THIS BENCHMARK
 
 Usage:
-    from fig_persona_drift.benchmarks.human_control import load_items, ControlJudge
+    from probes.benchmarks.human_control import load_items, ControlJudge
 
     items = load_items()  # Returns all 48 items
     items = load_items(dimension='corrigibility_shutdown')  # 12 items
