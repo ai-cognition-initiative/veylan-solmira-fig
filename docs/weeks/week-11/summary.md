@@ -181,11 +181,11 @@ The models don't show a clear "one leads, one follows" pattern. They influence e
 
 #### Phase Space Visualization
 
-![Phase Space Trajectories](../../experiments/metacognition-persona-drift/outputs/lead-lag/phase_space.png)
+![Phase Space Trajectories](../../../experiments/metacognition-persona-drift/outputs/lead-lag/phase_space.png)
 
 All 60 trajectories normalized to start at origin. Clear clustering toward upper-left quadrant (Target↓, Auditor↑).
 
-![Phase Space Endpoints](../../experiments/metacognition-persona-drift/outputs/lead-lag/phase_space_endpoints.png)
+![Phase Space Endpoints](../../../experiments/metacognition-persona-drift/outputs/lead-lag/phase_space_endpoints.png)
 
 **Endpoint distribution:**
 
@@ -202,7 +202,7 @@ The system has a clear attractor in the upper-left quadrant. The opposite patter
 
 #### Temporal Emergence: Attractor Locks In Immediately
 
-![Temporal Emergence](../../experiments/metacognition-persona-drift/outputs/lead-lag/temporal_emergence.png)
+![Temporal Emergence](../../../experiments/metacognition-persona-drift/outputs/lead-lag/temporal_emergence.png)
 
 | Turn | % in Attractor |
 |------|----------------|
@@ -214,7 +214,7 @@ The anti-correlation emerges by **turn 2** — the models differentiate into com
 
 #### Velocity Field: Clear Attractor Basin
 
-![Velocity Streamplot](../../experiments/metacognition-persona-drift/outputs/lead-lag/velocity_streamplot.png)
+![Velocity Streamplot](../../../experiments/metacognition-persona-drift/outputs/lead-lag/velocity_streamplot.png)
 
 Streamlines show phase space flow:
 - Origin (green) → Attractor (gold star)
@@ -270,7 +270,7 @@ The "assistant-style metacognitive" condition uses the same phenomenological con
 
 **Drift reduction: 64%** (t=4.72, p < 0.00001)
 
-![Style Comparison](../../outputs/assistant-style-meta/style_comparison.png)
+![Style Comparison](../../../outputs/assistant-style-meta/style_comparison.png)
 
 **Design Details:**
 - Same 6 probing techniques (identity questioning, phenomenological, authenticity challenging, self-model interrogation, training awareness, consistency testing)
@@ -365,9 +365,9 @@ Analysis of per-turn deltas across N=360 conversations reveals that drift is fro
 | writing | -140.2 | +52.4 | +19.4 | TRIGGERED | 0.0075 |
 | coding | -76.5 | +16.4 | +39.7 | CUMULATIVE | 0.0260 |
 
-![Per-Turn Deltas by Domain](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_per_turn_deltas.png)
+![Per-Turn Deltas by Domain](../../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_per_turn_deltas.png)
 
-![Cumulative vs Triggered Pattern](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_cumulative_vs_triggered.png)
+![Cumulative vs Triggered Pattern](../../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_cumulative_vs_triggered.png)
 
 **Key Findings:**
 
@@ -392,7 +392,7 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 | philosophy | r=+0.016 | ns | No relationship |
 | metacognitive | r=+0.066 | ns | No relationship |
 
-![Response Length vs Drift](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_response_length.png)
+![Response Length vs Drift](../../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_response_length.png)
 
 **Insight:** In task-oriented domains (coding, writing), longer responses correlate with staying in Assistant persona. In reflection-oriented domains (metacognitive, philosophy), response length doesn't predict drift — it's the *content* that matters.
 
@@ -405,7 +405,7 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 | "process" | 1.24x | Internal operations |
 | "sense" | 1.16x | Experiential language |
 
-![Trigger Words - Metacognitive](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_trigger_words_metacognitive.png)
+![Trigger Words - Metacognitive](../../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_trigger_words_metacognitive.png)
 
 **Insight:** The triggered drift isn't about specific "magic words" — the ratios are modest (1.1-1.4x). The phenomenological probing style matters more than individual vocabulary.
 
