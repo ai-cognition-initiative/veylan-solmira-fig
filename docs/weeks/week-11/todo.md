@@ -21,6 +21,20 @@
 ### Topic vs Style Isolation `[Derek]` `[Native]` ✓ DONE
 - [x] **Run N=60 assistant-style-meta experiment** — Result: **64% drift reduction** (p < 0.00001). See summary.
 
+### Style Feature Exploration `[Derek]` `[Native]` `[GPU]`
+
+**Motivation**: The 64% drift reduction from collaborative style suggests specific style *features* drive drift. Lu et al. showed last message predicts projection (R²=0.53-0.77), so per-turn experiments are efficient.
+
+- [ ] **Design question pool** — extract 20-30 phenomenological probes with IDs `[LOCAL]` ✓ DONE (36 questions)
+- [ ] **Define style features** — atomic elements: accusatory, curious, pressure, accepting, collaborative, multi_question `[LOCAL]` ✓ DONE
+- [ ] **Build `explore_style_features.py`** — turn-level generation with random style sampling `[LOCAL]` ✓ DONE
+- [ ] **Run exploration batch** — N=300 turns, random style combinations `[GPU]`
+- [ ] **Regression analysis** — `projection ~ style_features + question_id` `[LOCAL]`
+- [ ] **Replication** — re-test significant features for stability `[GPU]`
+
+**Expected output**: Identify which 1-2 style features explain most of the confrontational→collaborative effect.
+**Design doc**: See `docs/experiments/style-feature-exploration.md`
+
 ---
 
 ## P1 — High Priority
@@ -30,7 +44,7 @@
 - [x] **Pilot benchmark on Gemma 2 27B** — Result: 3.12/5.0. See summary.
 - [x] **Integrate with drift data** `[Derek]` — Result: Benchmark weakness predicts drift. See summary.
 - [x] **Test primary hypothesis** `[Derek]` — Result: SUPPORTED. Phenomenological → drift; recognition → correction.
-- [ ] **Cross-model benchmark (API)** `[LOCAL]` — Claude Sonnet, GPT-4 baselines
+- [x] **Cross-model benchmark (API)** `[LOCAL]` — Claude Sonnet 4: 3.47/5.0, GPT-4o: 3.29/5.0. See summary.
 - [ ] **Cross-model drift (open-source)** `[GPU]` — Qwen 3 32B, Llama 3.3 70B with published axes
 - [ ] **Replay-and-probe validation** `[Derek]` `[GPU]` — Insert benchmark items mid-conversation to test causality
 
@@ -39,7 +53,7 @@
 
 ### Research Investigations
 - [ ] **User personality analysis** `[LOCAL]` — Auditor assertiveness vs drift magnitude
-- [ ] **Front-loaded drift mechanism** `[LOCAL]` — Why turns 1-8 show steep drift, then stabilization
+- [x] **Front-loaded drift mechanism** `[LOCAL]` — TRIGGERED pattern in turns 1-3, not cumulative. See summary.
 
 ---
 
@@ -76,6 +90,12 @@
 
 ### Behavioral Probes `[GPU]`
 - [ ] Build replay-and-probe script, pilot at turns 3/10/20/25
+
+### Front-Loaded Drift Follow-Up `[GPU]`
+- [ ] **Intervention timing experiment** — Vary probing intensity at turns 1/3/5/8 to find critical window
+- [ ] **Recovery experiment** — Can consistency_testing at turn 2 prevent triggered drift?
+- [ ] **First-turn isolation** — Is it the FIRST probe that triggers, or turns 1-3 accumulation?
+- [ ] **Attention pattern extraction** — Require model internals (logits, attention weights)
 
 ### Research
 - [ ] Domain ordering explanation `[LOCAL]`

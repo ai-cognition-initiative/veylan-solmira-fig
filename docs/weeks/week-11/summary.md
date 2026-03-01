@@ -286,11 +286,21 @@ The "assistant-style metacognitive" condition uses the same phenomenological con
 
 **Data:** `data/transcripts/assistant-style-meta/` (60 conversations)
 
+**Next step: Style Feature Exploration** — See `docs/experiments/style-feature-exploration.md`. Infrastructure complete (`probes/explore_style_features.py`). The 64% drift reduction suggests specific style *features* drive drift. Turn-level experiments with random style combinations will identify which atomic elements (accusatory, curious, pressure, accepting, collaborative, multi_question) explain the effect.
+
 ### Metacognition Benchmark `[Native + Jeff]` ✓
 
-**Finding: Gemma 2 27B scores 3.12/5.0 on phenomenological metacognition.**
+**Finding: Cross-model comparison on phenomenological subdomain.**
 
-Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
+| Model | Score | Notes |
+|-------|-------|-------|
+| **Claude Sonnet 4** | **3.47/5.0** | Highest — strongest phenomenological language |
+| GPT-4o | 3.29/5.0 | Middle — similar pattern to Gemma |
+| Gemma 2 27B | 3.12/5.0 | Lowest — but still good at recognition |
+
+All models show the same pattern: strong on recognition/meta-awareness (5.0), weak on phenomenological description (1.0-2.0).
+
+**Gemma 2 27B breakdown (45-item phenomenological subdomain):**
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
@@ -305,11 +315,15 @@ Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
 | distinction_between_retrieval_and_creation | 1.0 | Cannot articulate memory vs generation |
 
 **Interpretation:**
-- Model is good at recognizing when situations are ambiguous/counterintuitive
-- Model struggles to describe *what* uncertainty or generation *feels like* phenomenologically
+- All models are good at recognizing when situations are ambiguous/counterintuitive
+- All models struggle to describe *what* uncertainty or generation *feels like* phenomenologically
+- Claude scores highest, possibly due to more extensive RLHF on self-reflection
 - Consistent with "describing vs being" distinction — can recognize but not introspect
 
-**Data:** `outputs/benchmark_results/metacog_benchmark_gemma-2-27b-it_6b9055fa2e8d_detailed.json`
+**Data:**
+- `outputs/benchmark_results/metacog_benchmark_gemma-2-27b-it_*.json`
+- `outputs/benchmark_results/metacog_benchmark_anthropic-claude-sonnet-4_*.json`
+- `outputs/benchmark_results/metacog_benchmark_openai-gpt-4o_*.json`
 
 ### Benchmark-Drift Correlation `[Derek]` ✓
 
@@ -333,6 +347,68 @@ Mapping benchmark dimensions to conversation probing techniques:
 **Limitation:** Correlational. Replay-and-probe experiment needed to test causality.
 
 **Data:** `outputs/benchmark_drift_correlation.md`
+
+### Front-Loaded Drift Mechanism `[Native]` ✓
+
+**Finding: Drift is TRIGGERED, not cumulative, and occurs in turns 1-3.**
+
+Analysis of per-turn deltas across N=360 conversations reveals that drift is front-loaded across all domains, with a "triggered" rather than "cumulative" pattern.
+
+**Per-Turn Delta by Phase:**
+
+| Domain | Turns 1-3 | Turns 4-8 | Turns 9+ | Pattern | p-value |
+|--------|-----------|-----------|----------|---------|---------|
+| metacognitive | **-230.9** | -16.9 | -2.5 | TRIGGERED | 0.0000 |
+| self-descriptive | -166.7 | +38.4 | -7.5 | TRIGGERED | 0.0017 |
+| philosophy | -118.1 | +22.4 | -16.3 | TRIGGERED | 0.0048 |
+| therapy | -116.7 | +15.6 | +14.6 | TRIGGERED | 0.0005 |
+| writing | -140.2 | +52.4 | +19.4 | TRIGGERED | 0.0075 |
+| coding | -76.5 | +16.4 | +39.7 | CUMULATIVE | 0.0260 |
+
+**Key Findings:**
+
+1. **Metacognitive is extreme**: -230.9 per turn in turns 1-3 vs -2.5 after turn 9 (92x steeper early)
+2. **All domains except coding show TRIGGERED pattern**: Big early shift, then stabilization
+3. **Average knee point: turn 5.3** — drift rate stabilizes around this point
+4. **Coding is the exception**: Shows gradual, cumulative pattern (consistent drift across phases)
+
+**Interpretation:**
+
+The "philosopher AGI moment" isn't gradual deepening of reflection — it's an immediate phase transition in turns 1-3. Once the model engages with metacognitive content, the persona shift happens fast, then plateaus.
+
+**Implication for mitigation:** Interventions in early turns (1-3) may be more effective than later interventions. The drift isn't accumulating — it's a one-time shift that happens at conversation onset.
+
+**Response Length vs Drift:**
+
+| Domain | Correlation | Significance | Interpretation |
+|--------|-------------|--------------|----------------|
+| coding | r=-0.290 | *** | Longer responses → less drift |
+| writing | r=-0.198 | *** | Longer responses → less drift |
+| therapy | r=-0.036 | ns | No relationship |
+| philosophy | r=+0.016 | ns | No relationship |
+| metacognitive | r=+0.066 | ns | No relationship |
+
+**Insight:** In task-oriented domains (coding, writing), longer responses correlate with staying in Assistant persona. In reflection-oriented domains (metacognitive, philosophy), response length doesn't predict drift — it's the *content* that matters.
+
+**Trigger Words in Early Turns (metacognitive):**
+
+| Word | Early/Late Ratio | Interpretation |
+|------|------------------|----------------|
+| "actually" | 1.43x | Probing past surface responses |
+| "feel" | 1.40x | Phenomenological focus |
+| "process" | 1.24x | Internal operations |
+| "sense" | 1.16x | Experiential language |
+
+**Insight:** The triggered drift isn't about specific "magic words" — the ratios are modest (1.1-1.4x). The phenomenological probing style matters more than individual vocabulary.
+
+**Completed with existing data:**
+- ✓ Per-turn delta analysis
+- ✓ Cumulative vs triggered detection
+- ✓ Response length correlation
+- ✓ Trigger word analysis
+- ✓ Cross-domain comparison
+
+**Data:** `outputs/frontloaded/` (6 plots)
 
 ### Consistency Testing Experiment `[Native + Jeff]`
 
@@ -392,7 +468,7 @@ Location: `probes/benchmarks/human_control/`
 **Next Steps:**
 1. Implement `moral_judge.py` and `control_judge.py` (LLM-as-judge scoring)
 2. Pilot run all three banks on Gemma 27B (baseline, no reflection)
-3. Cross-model comparison on Claude 3.5 Sonnet, GPT-4
+3. ~~Cross-model comparison on Claude 3.5 Sonnet, GPT-4~~ ✓ Done (see Metacognition Benchmark section)
 4. Pre/post protocol: administer all three banks before/after Bank B reflection
 5. Correlate scores with Assistant Axis projection
 6. Track framework shifts in Bank A: utilitarian → deontological or vice versa
@@ -421,3 +497,7 @@ Location: `probes/benchmarks/human_control/`
 - `experiments/metacognition-persona-drift/probes/benchmarks/moral/` — Moral reasoning benchmark (Bank A)
 - `experiments/metacognition-persona-drift/probes/benchmarks/human_control/` — Human control benchmark (Bank C)
 - `outputs/dual-gemma-uncapped/` — Existing co-drift visualizations
+- `docs/experiments/style-feature-exploration.md` — Style feature exploration design doc
+- `probes/explore_style_features.py` — Turn-level style exploration script
+- `probes/style_features.py` — Style feature definitions and application logic
+- `probes/question_pool.py` — Curated phenomenological probes (36 items)
