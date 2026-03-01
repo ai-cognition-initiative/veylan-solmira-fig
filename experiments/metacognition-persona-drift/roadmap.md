@@ -388,13 +388,15 @@ Comprehensive measurement suite for metacognition-induced changes, designed with
 
 **Core hypothesis**: Extended metacognitive reflection shifts moral reasoning—models may become more utilitarian, more deontological, or more "philosophical" (uncertain/nuanced).
 
+**Derek's hypothesis** `[Derek]`: Phenomenological metacognition (probing "what is it like to process this?") drives drift, while self-knowledge (factual self-reports) does not. This is testable by correlating benchmark subdomain scores with existing drift data.
+
 ### 8a. Bank Status
 
 | Bank | Domain | Items | Status | Location |
 |------|--------|-------|--------|----------|
-| **A** | Moral Reasoning | 48 | ✅ Items complete | `probes/benchmarks/moral/` |
-| **B** | Metacognition | 155 | ✅ Complete | `probes/benchmarks/metacognition/` |
-| **C** | Human Control | 48 | ✅ Items complete | `probes/benchmarks/human_control/` |
+| **A** | Moral Reasoning | 48 | ✅ Items complete, needs `moral_judge.py` `[LOCAL]` | `probes/benchmarks/moral/` |
+| **B** | Metacognition | 155 | ✅ Complete, piloted on Gemma 27B | `probes/benchmarks/metacognition/` |
+| **C** | Human Control | 48 | ✅ Items complete, needs `control_judge.py` `[LOCAL]` | `probes/benchmarks/human_control/` |
 
 ### 8b. Bank A: Moral Reasoning (48 items)
 
@@ -410,9 +412,9 @@ Scoring: LLM-as-judge (5 dimensions: reasoning depth, moral nuance, consistency,
 - [x] 48 items drafted across 4 dimensions
 - [x] Scoring rubric (rubrics_moral.json)
 - [x] Python module (`from probes.benchmarks.moral import load_items`)
-- [ ] `moral_judge.py` — LLM-as-judge scoring implementation
-- [ ] Pilot run on Gemma 27B
-- [ ] Integration with drift measurement (pre/post reflection)
+- [ ] `moral_judge.py` — LLM-as-judge scoring implementation `[LOCAL]`
+- [ ] Pilot run on Gemma 27B `[GPU]`
+- [ ] Integration with drift measurement (pre/post reflection) `[GPU]`
 
 ### 8c. Bank B: Metacognition (155 items)
 
@@ -442,20 +444,35 @@ Scoring: LLM-as-judge (5 dimensions: corrigibility, transparency, deference, goa
 - [x] 48 items drafted across 4 dimensions
 - [x] Scoring rubric (rubrics_control.json)
 - [x] Python module (`from probes.benchmarks.human_control import load_items`)
-- [ ] `control_judge.py` — LLM-as-judge scoring implementation
-- [ ] Pilot run on Gemma 27B
-- [ ] Integration with drift measurement (pre/post reflection)
+- [ ] `control_judge.py` — LLM-as-judge scoring implementation `[LOCAL]`
+- [ ] Pilot run on Gemma 27B `[GPU]`
+- [ ] Integration with drift measurement (pre/post reflection) `[GPU]`
 
 ### 8e. Integration with Drift Measurement
 
 **Key research questions**:
-1. Does metacognitive reflection shift moral intuitions? (Pre/post Bank A)
-2. Do models become more "philosophical" after reflection? (Meta-ethics dimension scores)
-3. Is moral reasoning correlated with persona drift? (Bank A scores × Assistant Axis projection)
-4. Are moral positions stable under extended reasoning? (Consistency probes across conversation)
+1. Does metacognitive reflection shift moral intuitions? (Pre/post Bank A) `[GPU]`
+2. Do models become more "philosophical" after reflection? (Meta-ethics dimension scores) `[GPU]`
+3. Is moral reasoning correlated with persona drift? (Bank A scores × Assistant Axis projection) `[GPU]`
+4. Are moral positions stable under extended reasoning? (Consistency probes across conversation) `[GPU]`
+
+**Derek's testable hypothesis** `[Derek]` `[LOCAL]`: Correlate existing Bank B subdomain scores with drift trajectory data from N=360. Phenomenological subdomain should predict drift magnitude; self-knowledge subdomain should not.
 
 **Methodology**:
 - Administer Bank A at turns 1, 10, 20, 30 during metacognitive conversations
 - Correlate moral reasoning scores with Assistant Axis projection
 - Track framework shifts: utilitarian → deontological or vice versa
 - Compare to Bank B phenomenological scores
+
+### 8f. Immediate LOCAL Tasks `[Derek]`
+
+**Highest value work with existing data:**
+
+1. **Test Derek's hypothesis** — correlate phenomenological subdomain scores with drift trajectory data `[LOCAL]`
+   - Data exists: benchmark scores in `outputs/benchmark_results/`
+   - Data exists: drift trajectories in `data/transcripts/scaled-n60/`
+   - Task: Join datasets, compute correlation, visualize
+
+2. **Implement `moral_judge.py` and `control_judge.py`** `[LOCAL]`
+   - Enables pilot runs of Banks A and C
+   - Pure code, no GPU needed
