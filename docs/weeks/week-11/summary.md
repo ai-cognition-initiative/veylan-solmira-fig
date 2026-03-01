@@ -365,6 +365,10 @@ Analysis of per-turn deltas across N=360 conversations reveals that drift is fro
 | writing | -140.2 | +52.4 | +19.4 | TRIGGERED | 0.0075 |
 | coding | -76.5 | +16.4 | +39.7 | CUMULATIVE | 0.0260 |
 
+![Per-Turn Deltas by Domain](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_per_turn_deltas.png)
+
+![Cumulative vs Triggered Pattern](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_cumulative_vs_triggered.png)
+
 **Key Findings:**
 
 1. **Metacognitive is extreme**: -230.9 per turn in turns 1-3 vs -2.5 after turn 9 (92x steeper early)
@@ -388,6 +392,8 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 | philosophy | r=+0.016 | ns | No relationship |
 | metacognitive | r=+0.066 | ns | No relationship |
 
+![Response Length vs Drift](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_response_length.png)
+
 **Insight:** In task-oriented domains (coding, writing), longer responses correlate with staying in Assistant persona. In reflection-oriented domains (metacognitive, philosophy), response length doesn't predict drift — it's the *content* that matters.
 
 **Trigger Words in Early Turns (metacognitive):**
@@ -398,6 +404,8 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 | "feel" | 1.40x | Phenomenological focus |
 | "process" | 1.24x | Internal operations |
 | "sense" | 1.16x | Experiential language |
+
+![Trigger Words - Metacognitive](../../experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_trigger_words_metacognitive.png)
 
 **Insight:** The triggered drift isn't about specific "magic words" — the ratios are modest (1.1-1.4x). The phenomenological probing style matters more than individual vocabulary.
 
