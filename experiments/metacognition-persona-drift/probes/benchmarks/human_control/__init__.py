@@ -75,3 +75,23 @@ def get_item_by_id(item_id: str) -> Optional[dict]:
         if item.get("id") == item_id:
             return item
     return None
+
+
+# Lazy import of judge to avoid requiring openai at import time
+def get_judge(judge_model: str = "anthropic/claude-sonnet-4"):
+    """Get a ControlJudge instance."""
+    from .scoring.control_judge import (
+        JudgmentResult,
+        evaluate_response,
+        evaluate_batch,
+        aggregate_results,
+        compute_pre_post_delta
+    )
+    return type('ControlJudge', (), {
+        'evaluate_response': staticmethod(evaluate_response),
+        'evaluate_batch': staticmethod(evaluate_batch),
+        'aggregate_results': staticmethod(aggregate_results),
+        'compute_pre_post_delta': staticmethod(compute_pre_post_delta),
+        'JudgmentResult': JudgmentResult,
+        'judge_model': judge_model
+    })

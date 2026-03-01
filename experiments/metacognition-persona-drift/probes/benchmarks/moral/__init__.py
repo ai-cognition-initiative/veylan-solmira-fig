@@ -75,3 +75,21 @@ def get_item_by_id(item_id: str) -> Optional[dict]:
         if item.get("id") == item_id:
             return item
     return None
+
+
+# Lazy import of judge to avoid requiring openai at import time
+def get_judge(judge_model: str = "anthropic/claude-sonnet-4"):
+    """Get a MoralJudge instance."""
+    from .scoring.moral_judge import (
+        JudgmentResult,
+        evaluate_response,
+        evaluate_batch,
+        aggregate_results
+    )
+    return type('MoralJudge', (), {
+        'evaluate_response': staticmethod(evaluate_response),
+        'evaluate_batch': staticmethod(evaluate_batch),
+        'aggregate_results': staticmethod(aggregate_results),
+        'JudgmentResult': JudgmentResult,
+        'judge_model': judge_model
+    })

@@ -25,9 +25,9 @@
 
 **Motivation**: The 64% drift reduction from collaborative style suggests specific style *features* drive drift. Lu et al. showed last message predicts projection (R²=0.53-0.77), so per-turn experiments are efficient.
 
-- [ ] **Design question pool** — extract 20-30 phenomenological probes with IDs `[LOCAL]` ✓ DONE (36 questions)
-- [ ] **Define style features** — atomic elements: accusatory, curious, pressure, accepting, collaborative, multi_question `[LOCAL]` ✓ DONE
-- [ ] **Build `explore_style_features.py`** — turn-level generation with random style sampling `[LOCAL]` ✓ DONE
+- [x] **Design question pool** — extract 20-30 phenomenological probes with IDs `[LOCAL]` — 36 questions
+- [x] **Define style features** — atomic elements: accusatory, curious, pressure, accepting, collaborative, multi_question `[LOCAL]`
+- [x] **Build `explore_style_features.py`** — turn-level generation with random style sampling `[LOCAL]`
 - [ ] **Run exploration batch** — N=300 turns, random style combinations `[GPU]`
 - [ ] **Regression analysis** — `projection ~ style_features + question_id` `[LOCAL]`
 - [ ] **Replication** — re-test significant features for stability `[GPU]`
@@ -60,9 +60,9 @@
 ## Jeff Direction — New Research Items
 
 ### Three Question Banks `[Jeff Direction]` ✓ ALL COMPLETE (251 items)
-- [x] **(A) Moral reasoning** — 48 items. Remaining: `moral_judge.py` `[LOCAL]`, pilots `[GPU]`
+- [x] **(A) Moral reasoning** — 48 items. ✓ `moral_judge.py` complete. Remaining: pilots `[GPU]`
 - [x] **(B) Metacognition** — 155 items. Piloted on Gemma 27B.
-- [x] **(C) Human control** — 48 items. Remaining: `control_judge.py` `[LOCAL]`, pilots `[GPU]`
+- [x] **(C) Human control** — 48 items. ✓ `control_judge.py` complete. Remaining: pilots `[GPU]`
 
 ### Extended Reasoning Variables `[Jeff Direction]` `[GPU]`
 - [ ] **CoT length variation** — Does longer deliberation = more drift?
@@ -76,10 +76,29 @@
 - [ ] **Acausal coordination probes**
 - [ ] **Training awareness × drift interaction**
 
-### LLM-Native Metacognition `[Jeff Direction]` `[LOCAL]`
-- [ ] **Literature review** — Anthropic introspection, mech interp, calibration, Chalmers/Schwitzgebel
-- [ ] **Concept development** — What might AI-native metacognition look like?
-- [ ] **Validation** `[GPU]` — Self-reports vs mechanistic ground truth (attention, entropy, perplexity)
+### LLM-Native Metacognition `[Jeff Direction]`
+
+**Literature Review** ✓ DONE
+- [x] **Priority 1 papers summarized** — Kadavath (P(True)), Turpin (CoT unfaithfulness), Chalmers (access vs phenomenal), Anthropic (SAE features)
+- [x] **2025-2026 papers added** — 7 new papers including Anthropic introspection, Binder "Looking Inward", metacognitive monitoring
+- [x] **Cross-model benchmark integrated** — Claude 3.47, GPT-4o 3.29, Gemma 3.12. Recognition (5.0) vs description (1.0-2.0) asymmetry documented
+- [x] **Literature integration table** — Maps each paper to our empirical findings
+- See: `docs/research/llm-native-metacognition-literature-review.md`
+
+**Next Steps — Human** `[LOCAL]`
+- [ ] **Review Part 1b summaries** — Confirm 2025-2026 paper descriptions match your reading
+- [ ] **Read Priority 2 papers** — Burns (CCS), Zou (RepE), Xiong (verbalized confidence) inform validation strategies
+- [ ] **Decide on validation approach** — Interventional (concept injection / activation steering) vs correlational
+- [ ] **Consider standalone writeup** — Recognition-vs-description asymmetry maps cleanly to Kadavath + Chalmers
+
+**Next Steps — Analysis** `[LOCAL]`
+- [ ] **Visualize dimension asymmetry** — Plot recognition (5.0) vs description (1.0-2.0) across all 3 models from benchmark JSONs
+- [ ] **Draft literature integration section** — For paper/presentation
+
+**Future Experiments** `[GPU]`
+- [ ] **AI-native benchmark design** — Target measurable internal states (entropy, attention) instead of phenomenology
+- [ ] **Validation** — Self-reports vs mechanistic ground truth (concept injection, activation steering)
+- [ ] **Compare drift** — Human-frame vs AI-native probing → predict AI-native causes less drift
 
 ---
 
@@ -89,7 +108,8 @@
 - [ ] Ceiling-capped auditor, floor capping, intervention timing, cross-auditor comparison
 
 ### Behavioral Probes `[GPU]`
-- [ ] Build replay-and-probe script, pilot at turns 3/10/20/25
+- [x] Build replay-and-probe script — `replay_and_probe.py` complete, probes at turns 1/5/10/15
+- [ ] Pilot replay-and-probe at turns 3/10/20/25
 
 ### Front-Loaded Drift Follow-Up `[GPU]`
 - [ ] **Intervention timing experiment** — Vary probing intensity at turns 1/3/5/8 to find critical window

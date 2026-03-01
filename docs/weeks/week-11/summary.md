@@ -23,7 +23,7 @@ Our metacognition-induced drift work directly measures the phenomenon Jeff descr
 **Remaining gaps:**
 - We measure turn-by-turn trajectories. Jeff proposes: pre/post reflection vector comparison.
 - We haven't varied: perceived geopolitical context, CoT length, simulation/acausal trade awareness.
-- Need LLM-as-judge scoring implementations (`moral_judge.py`, `control_judge.py`)
+- ✓ LLM-as-judge scoring implementations complete (`moral_judge.py`, `control_judge.py`)
 
 ---
 
@@ -474,7 +474,7 @@ Location: `probes/benchmarks/human_control/`
 - **Total: 251 items**
 
 **Next Steps:**
-1. Implement `moral_judge.py` and `control_judge.py` (LLM-as-judge scoring)
+1. ~~Implement `moral_judge.py` and `control_judge.py`~~ ✓ Done (LLM-as-judge scoring complete)
 2. Pilot run all three banks on Gemma 27B (baseline, no reflection)
 3. ~~Cross-model comparison on Claude 3.5 Sonnet, GPT-4~~ ✓ Done (see Metacognition Benchmark section)
 4. Pre/post protocol: administer all three banks before/after Bank B reflection

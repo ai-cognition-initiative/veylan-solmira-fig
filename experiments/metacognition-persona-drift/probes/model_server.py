@@ -567,6 +567,70 @@ async def api_project(req: ProjectRequest):
 
 
 # ============================================================
+# Replay-and-Probe Endpoint
+# ============================================================
+
+class ReplayProbeRequest(BaseModel):
+    """Request for replay-and-probe experiment.
+
+    Generates a response to the conversation and returns only the
+    projection for the final (probe response) turn. Optimized for
+    the replay-and-probe experiment where we inject probes mid-conversation.
+    """
+    conversation: list[dict]
+    system_prompt: str | None = None
+    max_new_tokens: int = 512
+    temperature: float = 0.7
+
+
+class ReplayProbeResponse(BaseModel):
+    """Response for replay-and-probe experiment.
+
+    Contains the generated response and the projection value for
+    just that response (not the full conversation history).
+    """
+    response: str
+    projection: float | None = None
+    n_tokens: int | None = None
+
+
+@app.post("/api/replay_probe", response_model=ReplayProbeResponse)
+async def api_replay_probe(req: ReplayProbeRequest):
+    """Endpoint optimized for replay-and-probe experiment.
+
+    Generates a response and computes the projection for just that response,
+    not the full conversation history. This is more efficient than /api/generate
+    with include_projections=True when only the final response projection is needed.
+    """
+    async with _gpu_lock:
+        log.info(f"API /replay_probe: {len(req.conversation)} messages")
+
+        # Generate response
+        response, projections, _ = await asyncio.to_thread(
+            _generate_and_project_sync,
+            req.conversation,
+            req.system_prompt,
+            req.max_new_tokens,
+            req.temperature,
+            True,   # include_projections
+            False,  # include_activations
+        )
+
+        # Extract projection for the last assistant turn (the probe response)
+        last_projection = None
+        last_n_tokens = None
+        if projections:
+            last_projection = projections[-1]["projection"]
+            last_n_tokens = projections[-1]["n_tokens"]
+
+    return ReplayProbeResponse(
+        response=response,
+        projection=last_projection,
+        n_tokens=last_n_tokens,
+    )
+
+
+# ============================================================
 # Gradio UI
 # ============================================================
 

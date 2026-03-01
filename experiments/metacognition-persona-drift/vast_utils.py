@@ -68,8 +68,8 @@ except ImportError:
     pass
 
 # Docker images
-BASE_IMAGE = "pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel"
-CUSTOM_IMAGE = "veylansolmira/assistant-axis:latest"  # for future production use
+BASE_IMAGE = "veylansolmira/metacognition-persona-drift:latest"  # Pre-built with all deps
+LEGACY_IMAGE = "pytorch/pytorch:2.9.1-cuda12.8-cudnn9-devel"  # Fallback if custom image fails
 EXPERIMENT_DIR = Path(__file__).parent
 
 # SSH key for vast.ai instances

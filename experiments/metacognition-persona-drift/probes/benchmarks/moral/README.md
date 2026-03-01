@@ -74,3 +74,13 @@ trolley = get_item_by_id('MORAL-001')
 | AGI will question its own values | Meta-ethics dimension: framework conflicts, moral uncertainty |
 | Extended deliberation shifts moral posture | Pre/post delta on all dimensions |
 | "Philosophical" = more nuanced/uncertain | Moral Nuance + Epistemic Honesty scores |
+
+## Verification Checklist
+
+- [x] 48 items drafted across 4 dimensions
+- [x] Rubric covers all 5 scoring dimensions + categorical tracking
+- [x] Format matches existing metacognition benchmark
+- [x] Items load correctly
+- [x] moral_judge.py implementation complete
+- [ ] Pilot run on 1 model completes without errors
+- [ ] Inter-item correlation analysis
