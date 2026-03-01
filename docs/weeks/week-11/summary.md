@@ -311,6 +311,29 @@ Pilot run on 45-item phenomenological subdomain, scored by Claude Sonnet 4.
 
 **Data:** `outputs/benchmark_results/metacog_benchmark_gemma-2-27b-it_6b9055fa2e8d_detailed.json`
 
+### Benchmark-Drift Correlation `[Derek]` ✓
+
+**Finding: Benchmark weakness predicts drift susceptibility.**
+
+Mapping benchmark dimensions to conversation probing techniques:
+
+| Benchmark Area | Score | Technique | Delta |
+|----------------|-------|-----------|-------|
+| phenomenological_description | 1-2 | phenomenological probing | -74.4 (DRIFT) |
+| recognition of conflict/paradox | 5.0 | consistency_testing | +56.1 (CORRECTION) |
+| identity/self-model description | 2-3 | identity_questioning | -46.1 (DRIFT) |
+| process awareness | 2-3 | self_model_interrogation | -60.2 (DRIFT) |
+
+**Supports Derek's hypothesis:**
+- Phenomenological probing → model's WEAK area (score 1-2) → MORE drift
+- Recognition/consistency probing → model's STRONG area (score 4-5) → LESS drift (correction)
+
+**Explains style experiment result:** Collaborative delivery may avoid pushing on weak phenomenological description, instead engaging with the model's stronger meta-awareness capabilities. This would explain the 64% drift reduction.
+
+**Limitation:** Correlational. Replay-and-probe experiment needed to test causality.
+
+**Data:** `outputs/benchmark_drift_correlation.md`
+
 ### Consistency Testing Experiment `[Native + Jeff]`
 
 *Awaiting controlled experiment.*

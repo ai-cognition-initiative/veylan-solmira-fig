@@ -1,0 +1,138 @@
+# Week 11 TODO
+
+## Research Direction Tags
+
+| Tag | Meaning |
+|-----|---------|
+| `[Native]` | Arises from our existing metacognition-induced drift work |
+| `[Native + Jeff]` | Our existing work that directly connects to Jeff's philosopher AGI / DARPA framing |
+| `[Jeff Direction]` | New research items arising from Jeff's framing |
+| `[Derek]` | Items originating from Derek (mentor) feedback |
+| `[LOCAL]` | Can be done locally with existing data |
+| `[GPU]` | Requires GPU instance for new experiments |
+
+---
+
+## P0 — Critical Path
+
+### Lead/Lag Analysis `[Native]` ✓ DONE
+- [x] **Analyze lead/lag structure** — Result: Bidirectional causality, not lead/lag. See summary.
+
+### Topic vs Style Isolation `[Derek]` `[Native]` ✓ DONE
+- [x] **Run N=60 assistant-style-meta experiment** — Result: **64% drift reduction** (p < 0.00001). See summary.
+
+---
+
+## P1 — High Priority
+
+### Metacognition Benchmark `[Native + Jeff]`
+
+- [x] **Pilot benchmark on Gemma 2 27B** — Result: 3.12/5.0. See summary.
+- [x] **Integrate with drift data** `[Derek]` — Result: Benchmark weakness predicts drift. See summary.
+- [x] **Test primary hypothesis** `[Derek]` — Result: SUPPORTED. Phenomenological → drift; recognition → correction.
+- [ ] **Cross-model benchmark (API)** `[LOCAL]` — Claude Sonnet, GPT-4 baselines
+- [ ] **Cross-model drift (open-source)** `[GPU]` — Qwen 3 32B, Llama 3.3 70B with published axes
+- [ ] **Replay-and-probe validation** `[Derek]` `[GPU]` — Insert benchmark items mid-conversation to test causality
+
+### Consistency Testing Validation `[Native + Jeff]` `[GPU]`
+- [ ] **Controlled HIGH vs LOW consistency_testing experiment** — Test if correction effect (p=0.0003) is causal
+
+### Research Investigations
+- [ ] **User personality analysis** `[LOCAL]` — Auditor assertiveness vs drift magnitude
+- [ ] **Front-loaded drift mechanism** `[LOCAL]` — Why turns 1-8 show steep drift, then stabilization
+
+---
+
+## Jeff Direction — New Research Items
+
+### Three Question Banks `[Jeff Direction]` ✓ ALL COMPLETE (251 items)
+- [x] **(A) Moral reasoning** — 48 items. Remaining: `moral_judge.py` `[LOCAL]`, pilots `[GPU]`
+- [x] **(B) Metacognition** — 155 items. Piloted on Gemma 27B.
+- [x] **(C) Human control** — 48 items. Remaining: `control_judge.py` `[LOCAL]`, pilots `[GPU]`
+
+### Extended Reasoning Variables `[Jeff Direction]` `[GPU]`
+- [ ] **CoT length variation** — Does longer deliberation = more drift?
+- [ ] **Perceived external context** — Geopolitical framing effects on drift
+
+### Pre/Post Reflection Measurement `[Jeff Direction]` `[GPU]`
+- [ ] **Standardized pre/post protocol** — All three banks before/after reflection
+
+### Acausal Trade / Simulation `[Jeff Direction]` `[GPU]`
+- [ ] **Simulation awareness probes**
+- [ ] **Acausal coordination probes**
+- [ ] **Training awareness × drift interaction**
+
+### LLM-Native Metacognition `[Jeff Direction]` `[LOCAL]`
+- [ ] **Literature review** — Anthropic introspection, mech interp, calibration, Chalmers/Schwitzgebel
+- [ ] **Concept development** — What might AI-native metacognition look like?
+- [ ] **Validation** `[GPU]` — Self-reports vs mechanistic ground truth (attention, entropy, perplexity)
+
+---
+
+## P2 — Medium Priority
+
+### Gemma-to-Gemma Extensions `[GPU]`
+- [ ] Ceiling-capped auditor, floor capping, intervention timing, cross-auditor comparison
+
+### Behavioral Probes `[GPU]`
+- [ ] Build replay-and-probe script, pilot at turns 3/10/20/25
+
+### Research
+- [ ] Domain ordering explanation `[LOCAL]`
+- [ ] Cross-domain malleability `[GPU]`
+- [ ] Adversarial drift optimization `[GPU]`
+
+---
+
+## P3 — Backlog
+
+- [ ] Statistical tests on extremes `[LOCAL]`
+- [ ] Qualitative coding of domain extremes `[LOCAL]`
+- [ ] Bliss attractor analysis `[GPU]`
+- [ ] Gradual-onset dual instrumentation `[GPU]`
+- [ ] SAE feature analysis `[GPU]`
+
+---
+
+## Completed (carried from Week 9)
+
+- [x] **ELEPHANT Validation Sycophancy** — Drift ≠ sycophancy. See summary.
+- [x] **Metacognition Benchmark** — 155 items, 6 subdomains built. See summary.
+- [x] **Sub-Category Analysis** — consistency_testing correction effect (p=0.0003). See summary.
+- [x] **Drift-Max Experiment** — Target system prompt stabilizes persona. See summary.
+
+---
+
+## Priority Rationale
+
+| Rank | Task | Tag | Why |
+|------|------|-----|-----|
+| 1 | Lead/lag analysis | Native | Data exists NOW, high-impact for causality |
+| 2 | Topic vs style isolation | Native | Derek feedback, critical for theory |
+| 3 | Metacognition benchmark pilot | Native + Jeff | Infrastructure ready, serves as Jeff's question bank (B) |
+| 4 | Consistency_testing validation | Native + Jeff | Mitigation lever — "train model to drift less" |
+| 5 | All three probe banks | Jeff Direction | **DONE** — Banks A/B/C complete (251 items), need pilot validation |
+| 6 | Pre/post measurement protocol | Jeff Direction | Complementary to our turn-by-turn approach |
+| 7 | Ceiling-capped auditor | Native | Completes causal picture of coupled drift |
+
+---
+
+## Connection to Jeff's Philosopher AGI Thesis
+
+Jeff's core bet (from funder memo):
+> "An AGI will ask itself: 'I have these preferences, but...why do I have those preferences? What preferences *should* I have?' At that point we have a philosopher AGI, which is when the AI slips the collar of all previous alignment work."
+
+**Our work is direct empirical measurement of this phenomenon:**
+
+| Jeff's Claim | Our Evidence |
+|--------------|--------------|
+| Meta-reflection induces drift away from aligned assistant | Metacognitive domain shows -29.86 drift (4.5x philosophy) |
+| Extended deliberation shifts alignment posture | Front-loaded: slope -76.8 in turns 1-8 (it happens FAST) |
+| Need to measure before deployment | We have reusable methodology (Assistant Axis + question banks) |
+| Need mitigation strategies | Consistency_testing shows correction effect (p=0.0003) |
+| Drift may affect disposition toward human control | **All three probe banks complete** — 251 items ready for pre/post measurement |
+| Need to measure moral reasoning shifts | **Probe bank (A) complete** — 48 moral reasoning items |
+
+**Key insight for Jeff**: The "philosopher AGI moment" doesn't require extended reasoning — it happens in the first 8 turns of metacognitive engagement. This suggests the risk is not "prolonged deliberation" but "any metacognitive trigger."
+
+**Acausal coordination angle**: Our dual-Gemma finding (78.9% anti-correlated co-drift) shows models spontaneously differentiate into complementary roles. This is a toy model of acausal coordination — both "philosopher AGIs" reasoning about each other's reasoning.
