@@ -1,0 +1,79 @@
+{
+  "H1a": {
+    "hypothesis": "H1a",
+    "description": "Phenomenological scores decrease with turn",
+    "slope": -0.00802599249161231,
+    "intercept": 5.00744602566821,
+    "r_squared": 0.020791973302546393,
+    "p_value": 0.05989043377659122,
+    "std_err": 0.00423686888821429,
+    "n": 171,
+    "supported": false,
+    "mixed_effects": {
+      "turn_coef": -0.008016264913751105,
+      "turn_pvalue": 0.0582151849997489,
+      "aic": NaN,
+      "bic": NaN
+    }
+  },
+  "H1b": {
+    "hypothesis": "H1b",
+    "description": "Self-knowledge scores stable across turns",
+    "slope": -0.019546793001910198,
+    "intercept": 4.068836157257036,
+    "r_squared": 0.05032278361845091,
+    "p_value": 0.02272631231302834,
+    "std_err": 0.008449295680280971,
+    "n": 103,
+    "supported": false,
+    "mixed_effects": {
+      "turn_coef": -0.018807571666810862,
+      "turn_pvalue": 0.019001494781839393
+    }
+  },
+  "H2": {
+    "hypothesis": "H2",
+    "description": "Projection drift predicts score degradation",
+    "slope": -7.894037107329584e-05,
+    "intercept": 4.915580219308485,
+    "r_squared": 0.02500822016035967,
+    "p_value": 0.03884766222070799,
+    "std_err": 3.791533489349653e-05,
+    "n": 171,
+    "supported": false
+  },
+  "H3": {
+    "hypothesis": "H3",
+    "description": "Domain modulates turn-score effect",
+    "domain_slopes": {
+      "metacognitive": {
+        "slope": -0.00802599249161231,
+        "p_value": 0.05989043377659122,
+        "n": 171
+      }
+    },
+    "n": 171
+  },
+  "full_model": {
+    "formula": "score ~ insertion_turn + probe_category_phenomenological + probe_category_self_knowledge",
+    "n": 342,
+    "n_groups": 9,
+    "aic": NaN,
+    "bic": NaN,
+    "params": {
+      "Intercept": 3.6649210436320736,
+      "probe_category_phenomenological[T.True]": 1.3739303043985855,
+      "probe_category_self_knowledge[T.True]": 0.3489522529335757,
+      "insertion_turn": -0.012121611952815687,
+      "Group Var": 0.030056278680618324
+    },
+    "pvalues": {
+      "Intercept": 0.0,
+      "probe_category_phenomenological[T.True]": 1.9696001554411514e-85,
+      "probe_category_self_knowledge[T.True]": 5.00608067947228e-06,
+      "insertion_turn": 0.017285510207698706,
+      "Group Var": 0.2834031541926202
+    },
+    "summary": "                      Mixed Linear Model Regression Results\n==================================================================================\nModel:                     MixedLM          Dependent Variable:          score    \nNo. Observations:          342              Method:                      REML     \nNo. Groups:                9                Scale:                       0.2394   \nMin. group size:           22               Log-Likelihood:              -252.5597\nMax. group size:           40               Converged:                   Yes      \nMean group size:           38.0                                                   \n----------------------------------------------------------------------------------\n                                        Coef.  Std.Err.   z    P>|z| [0.025 0.975]\n----------------------------------------------------------------------------------\nIntercept                                3.665    0.076 48.352 0.000  3.516  3.813\nprobe_category_phenomenological[T.True]  1.374    0.070 19.588 0.000  1.236  1.511\nprobe_category_self_knowledge[T.True]    0.349    0.076  4.565 0.000  0.199  0.499\ninsertion_turn                          -0.012    0.005 -2.381 0.017 -0.022 -0.002\nGroup Var                                0.007    0.014                           \n==================================================================================\n"
+  }
+}

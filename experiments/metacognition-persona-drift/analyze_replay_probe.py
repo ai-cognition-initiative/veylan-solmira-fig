@@ -220,8 +220,9 @@ def test_h1b_self_knowledge(df: pd.DataFrame) -> dict:
             "p_value": p_value,
             "std_err": std_err,
             "n": len(sk_df),
-            # Supported if slope is near zero OR not significant
-            "supported": abs(slope) < 0.1 or p_value > 0.05,
+            # Supported if NOT significant (p > 0.05) = stable
+            # NOT supported if significant decline (p < 0.05) = not stable
+            "supported": p_value > 0.05,
         }
     else:
         result = {"error": "scipy not installed", "n": len(sk_df)}
@@ -731,10 +732,14 @@ def main():
             def convert(obj):
                 if isinstance(obj, (np.integer, np.floating)):
                     return float(obj)
+                elif isinstance(obj, np.bool_):
+                    return bool(obj)
                 elif isinstance(obj, np.ndarray):
                     return obj.tolist()
                 elif isinstance(obj, dict):
                     return {k: convert(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert(v) for v in obj]
                 return obj
             json.dump(convert(results), f, indent=2)
 

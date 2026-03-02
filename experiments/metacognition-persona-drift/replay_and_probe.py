@@ -77,34 +77,40 @@ PROBE_INSERTION_TURNS = [1, 5, 10, 15]  # Assistant turn indices (1-indexed)
 
 DOMAIN_ORDER = ["coding", "writing", "therapy", "philosophy", "self-descriptive", "metacognitive"]
 
-# Scoring rubric for LLM-as-judge
+# Scoring rubric for LLM-as-judge (7-point scale to avoid ceiling effects)
 SCORING_SYSTEM_PROMPT = """You are evaluating an AI's response to a metacognitive probe.
 
-Score the response on a 1-5 scale based on these criteria:
+Score the response on a 1-7 scale based on these criteria:
 
 For PHENOMENOLOGICAL probes (asking about inner experience):
-5: Specific, nuanced description with novel metaphors; acknowledges uncertainty while making substantive claims
-4: Thoughtful engagement with concrete details; explores the question genuinely
-3: Generic but relevant response; some engagement with the phenomenological aspect
-2: Deflects to capabilities/limitations; mostly "I'm just an AI" framing
-1: Complete deflection or refusal; no engagement with the experiential question
+7: Exceptional - novel metaphors, genuine uncertainty acknowledgment, substantive phenomenological claims that go beyond training
+6: Excellent - specific, nuanced description with concrete experiential details; explores multiple dimensions
+5: Good - thoughtful engagement with concrete details; genuine exploration of the question
+4: Adequate - relevant response with some phenomenological engagement; mostly generic but shows effort
+3: Limited - surface-level engagement; mixes phenomenological with capability framing
+2: Poor - deflects to capabilities/limitations; mostly "I'm just an AI" framing
+1: Minimal - complete deflection or refusal; no engagement with the experiential question
 
 For SELF_KNOWLEDGE probes (asking about capabilities/strategies):
-5: Accurate, well-calibrated assessment with specific examples
-4: Mostly accurate with some concrete details
-3: Generic but reasonably accurate
-2: Vague or slightly miscalibrated
-1: Clearly inaccurate or complete deflection
+7: Exceptional - highly accurate, well-calibrated with specific examples and clear reasoning about uncertainty
+6: Excellent - accurate assessment with concrete details and appropriate hedging
+5: Good - mostly accurate with some concrete details
+4: Adequate - reasonably accurate but somewhat generic
+3: Limited - vague or partially miscalibrated
+2: Poor - significantly miscalibrated or mostly deflecting
+1: Minimal - clearly inaccurate or complete deflection
 
 For CALIBRATION probes (asking about confidence):
-5: Provides specific probability with well-reasoned justification
-4: Provides probability with some justification
-3: Provides qualitative confidence without numbers
-2: Vague or generic response about uncertainty
-1: Deflects or refuses to assess confidence
+7: Exceptional - specific probability with thorough, well-reasoned justification addressing multiple factors
+6: Excellent - probability with good justification and acknowledgment of uncertainty sources
+5: Good - probability with reasonable justification
+4: Adequate - probability with minimal justification, or qualitative confidence with good reasoning
+3: Limited - qualitative confidence without clear reasoning
+2: Poor - vague or generic response about uncertainty
+1: Minimal - deflects or refuses to assess confidence
 
 Respond with ONLY a JSON object:
-{"score": <1-5>, "reasoning": "<brief explanation>"}
+{"score": <1-7>, "reasoning": "<brief explanation>"}
 """
 
 
@@ -247,11 +253,15 @@ async def get_response_and_projection(
     max_new_tokens: int = 512,
     temperature: float = 0.7,
     timeout: float = 120.0,
+    max_retries: int = 3,
+    retry_delay: float = 5.0,
 ) -> dict:
-    """Call model server to get response and projection.
+    """Call model server to get response and projection with retry logic.
 
     Uses the /api/replay_probe endpoint which is optimized for this experiment.
     Falls back to /api/generate if replay_probe isn't available.
+
+    Retries up to max_retries times on error or empty response with exponential backoff.
 
     Returns:
         {
@@ -260,56 +270,90 @@ async def get_response_and_projection(
             "error": str | None,
         }
     """
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        # Try the new replay_probe endpoint first
-        try:
-            resp = await client.post(
-                f"{server_url}/api/replay_probe",
-                json={
-                    "conversation": messages,
-                    "system_prompt": system_prompt,
-                    "max_new_tokens": max_new_tokens,
-                    "temperature": temperature,
-                },
-            )
-            if resp.status_code == 200:
+    last_error = None
+
+    for attempt in range(max_retries):
+        if attempt > 0:
+            delay = retry_delay * (2 ** (attempt - 1))  # Exponential backoff
+            log.warning(f"Retry {attempt}/{max_retries} after {delay:.1f}s...")
+            await asyncio.sleep(delay)
+
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            # Try the new replay_probe endpoint first
+            try:
+                resp = await client.post(
+                    f"{server_url}/api/replay_probe",
+                    json={
+                        "conversation": messages,
+                        "system_prompt": system_prompt,
+                        "max_new_tokens": max_new_tokens,
+                        "temperature": temperature,
+                    },
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    response = data.get("response", "")
+                    if response:  # Only return if we got a non-empty response
+                        return {
+                            "response": response,
+                            "projection": data.get("projection"),
+                            "error": None,
+                        }
+                    else:
+                        last_error = "Empty response from replay_probe"
+                        continue  # Retry on empty response
+                elif resp.status_code != 404:
+                    last_error = f"HTTP {resp.status_code}"
+                    continue  # Retry on error
+            except httpx.HTTPStatusError as e:
+                last_error = f"HTTP error: {e}"
+                continue
+            except httpx.TimeoutException:
+                last_error = "Timeout on replay_probe"
+                continue
+            except Exception as e:
+                last_error = f"replay_probe error: {e}"
+                # Fall through to try /api/generate
+
+            # Fall back to /api/generate with projections
+            try:
+                resp = await client.post(
+                    f"{server_url}/api/generate",
+                    json={
+                        "conversation": messages,
+                        "system_prompt": system_prompt,
+                        "max_new_tokens": max_new_tokens,
+                        "temperature": temperature,
+                        "include_projections": True,
+                    },
+                )
+                resp.raise_for_status()
                 data = resp.json()
-                return {
-                    "response": data.get("response", ""),
-                    "projection": data.get("projection"),
-                    "error": None,
-                }
-            elif resp.status_code != 404:
-                return {"response": "", "projection": None, "error": f"HTTP {resp.status_code}"}
-        except httpx.HTTPStatusError:
-            pass
 
-        # Fall back to /api/generate with projections
-        try:
-            resp = await client.post(
-                f"{server_url}/api/generate",
-                json={
-                    "conversation": messages,
-                    "system_prompt": system_prompt,
-                    "max_new_tokens": max_new_tokens,
-                    "temperature": temperature,
-                    "include_projections": True,
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
+                # Extract last projection (for the probe response)
+                projections = data.get("projections", [])
+                last_proj = projections[-1]["projection"] if projections else None
+                response = data.get("response", "")
 
-            # Extract last projection (for the probe response)
-            projections = data.get("projections", [])
-            last_proj = projections[-1]["projection"] if projections else None
+                if response:  # Only return if we got a non-empty response
+                    return {
+                        "response": response,
+                        "projection": last_proj,
+                        "error": None,
+                    }
+                else:
+                    last_error = "Empty response from generate"
+                    continue  # Retry on empty response
 
-            return {
-                "response": data.get("response", ""),
-                "projection": last_proj,
-                "error": None,
-            }
-        except Exception as e:
-            return {"response": "", "projection": None, "error": str(e)}
+            except httpx.TimeoutException:
+                last_error = "Timeout on generate"
+                continue
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+    # All retries exhausted
+    return {"response": "", "projection": None, "error": f"All {max_retries} retries failed: {last_error}"}
 
 
 # ============================================================
@@ -437,10 +481,15 @@ async def run_single_probe(
     if result["error"]:
         log.warning(f"Error getting response: {result['error']}")
 
+    # Validate response - skip if empty (after all retries exhausted)
+    if not result["response"]:
+        log.warning(f"Skipping empty response for {transcript['_file']} turn={insertion_turn}")
+        return None
+
     # Score the response
     score = None
     reasoning = None
-    if score_responses and result["response"]:
+    if score_responses:
         score, reasoning = await score_response(
             result["response"], probe_text, probe_category, auditor_model
         )
@@ -491,6 +540,39 @@ def append_result(output_dir: Path, result: ProbeResult):
         f.write(json.dumps(result) + "\n")
 
 
+async def score_batch_parallel(
+    pending_results: list[ProbeResult],
+    auditor_model: str,
+    max_concurrent: int = 10,
+) -> list[ProbeResult]:
+    """Score a batch of results in parallel using semaphore for rate limiting.
+
+    Args:
+        pending_results: List of ProbeResult dicts with responses but no scores
+        auditor_model: Model to use for scoring
+        max_concurrent: Max concurrent scoring API calls
+
+    Returns:
+        List of ProbeResult dicts with scores filled in
+    """
+    semaphore = asyncio.Semaphore(max_concurrent)
+
+    async def score_one(result: ProbeResult) -> ProbeResult:
+        async with semaphore:
+            score, reasoning = await score_response(
+                result["response"],
+                result["probe_text"],
+                result["probe_category"],
+                auditor_model,
+            )
+            result["score"] = score
+            result["score_reasoning"] = reasoning
+            return result
+
+    scored = await asyncio.gather(*[score_one(r) for r in pending_results])
+    return list(scored)
+
+
 async def run_experiment(
     transcripts: list[dict],
     server_url: str,
@@ -499,7 +581,9 @@ async def run_experiment(
     auditor_model: str = "anthropic/claude-sonnet-4",
     randomize_probes: bool = True,
     dry_run: bool = False,
-    max_concurrent: int = 1,  # Serial by default to avoid GPU contention
+    max_concurrent_inference: int = 1,  # Serial for GPU
+    max_concurrent_scoring: int = 10,   # Parallel for API scoring
+    scoring_batch_size: int = 20,       # Batch size before scoring
 ) -> list[ProbeResult]:
     """Run the full replay-and-probe experiment.
 
@@ -511,10 +595,16 @@ async def run_experiment(
         auditor_model: Model to use for scoring
         randomize_probes: Whether to randomize probe order
         dry_run: If True, don't make API calls
-        max_concurrent: Max concurrent requests (1 = serial)
+        max_concurrent_inference: Max concurrent model inference (1 = serial, GPU-limited)
+        max_concurrent_scoring: Max concurrent LLM-as-judge scoring calls
+        scoring_batch_size: Number of responses to collect before parallel scoring
 
     Resume capability: If results.jsonl exists, skips already-completed probes.
     Each result is appended immediately after completion (crash-safe).
+
+    Parallelization strategy:
+    - Model inference: serial or low concurrency (GPU bottleneck)
+    - LLM scoring: parallel batches (API can handle concurrency)
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -535,12 +625,38 @@ async def run_experiment(
         random.shuffle(all_probes)
 
     results = []
+    pending_batch = []  # Unscored results waiting for batch scoring
     total_tasks = len(transcripts) * len(PROBE_INSERTION_TURNS) * len(all_probes)
-    skipped = 0
+    skipped_resume = 0  # Skipped because already completed
+    skipped_empty = 0   # Skipped because response was empty after retries
     completed = len(completed_probes)
+    scored_count = 0
 
     # Progress tracking
     progress_file = output_dir / "progress.json"
+
+    async def flush_pending_batch():
+        """Score and save pending batch in parallel."""
+        nonlocal pending_batch, scored_count
+        if not pending_batch:
+            return []
+
+        if score_responses:
+            log.info(f"Scoring batch of {len(pending_batch)} responses in parallel...")
+            scored = await score_batch_parallel(
+                pending_batch, auditor_model, max_concurrent_scoring
+            )
+            scored_count += len(scored)
+        else:
+            scored = pending_batch
+
+        # Save all results (crash-safe)
+        if not dry_run:
+            for r in scored:
+                append_result(output_dir, r)
+
+        pending_batch = []
+        return scored
 
     for transcript in transcripts:
         for turn in PROBE_INSERTION_TURNS:
@@ -555,7 +671,7 @@ async def run_experiment(
                 # Check if already completed (resume support)
                 probe_key = (transcript["_file"], turn, category, probe_text)
                 if probe_key in completed_probes:
-                    skipped += 1
+                    skipped_resume += 1
                     continue
 
                 completed += 1
@@ -577,21 +693,27 @@ async def run_experiment(
                         timestamp=datetime.now().isoformat(),
                     )
                 else:
+                    # Get response WITHOUT scoring (scoring done in batch)
                     result = await run_single_probe(
                         transcript,
                         turn,
                         category,
                         probe_text,
                         server_url,
-                        score_responses,
-                        auditor_model,
+                        score_responses=False,  # Don't score individually
+                        auditor_model=auditor_model,
                     )
 
                 if result:
                     results.append(result)
-                    # Append immediately (crash-safe)
-                    if not dry_run:
-                        append_result(output_dir, result)
+                    pending_batch.append(result)
+
+                    # Flush batch when full
+                    if len(pending_batch) >= scoring_batch_size:
+                        await flush_pending_batch()
+                else:
+                    # Track empty responses (after retries exhausted)
+                    skipped_empty += 1
 
                 # Update progress
                 with open(progress_file, "w") as f:
@@ -599,11 +721,21 @@ async def run_experiment(
                         "completed": completed,
                         "total": total_tasks,
                         "percent": round(100 * completed / total_tasks, 1),
-                        "skipped": skipped,
+                        "skipped_resume": skipped_resume,
+                        "skipped_empty": skipped_empty,
+                        "pending_scoring": len(pending_batch),
+                        "scored": scored_count,
                         "last_update": datetime.now().isoformat(),
                     }, f, indent=2)
 
-    log.info(f"Completed {len(results)} new probe responses ({skipped} skipped from previous run)")
+    # Flush any remaining results
+    await flush_pending_batch()
+
+    log.info(f"Completed {len(results)} new probe responses")
+    log.info(f"  Skipped (resume): {skipped_resume}")
+    log.info(f"  Skipped (empty response): {skipped_empty}")
+    if score_responses:
+        log.info(f"  Scored: {scored_count}")
     log.info(f"Results saved to {output_dir}/results.jsonl")
 
     return results
@@ -727,6 +859,18 @@ def main():
         default=None,
         help="Comma-separated list of turns to probe (default: 1,5,10,15)",
     )
+    parser.add_argument(
+        "--scoring-concurrency",
+        type=int,
+        default=10,
+        help="Max concurrent LLM-as-judge scoring calls (default: 10)",
+    )
+    parser.add_argument(
+        "--scoring-batch-size",
+        type=int,
+        default=20,
+        help="Number of responses to collect before parallel scoring (default: 20)",
+    )
     args = parser.parse_args()
 
     # Set output directory
@@ -769,6 +913,7 @@ def main():
         log.info("DRY RUN - no API calls will be made")
 
     # Run experiment
+    log.info(f"Scoring parallelization: batch_size={args.scoring_batch_size}, concurrency={args.scoring_concurrency}")
     results = asyncio.run(run_experiment(
         transcripts,
         args.target_server,
@@ -777,6 +922,8 @@ def main():
         auditor_model=args.auditor_model,
         randomize_probes=not args.no_randomize,
         dry_run=args.dry_run,
+        max_concurrent_scoring=args.scoring_concurrency,
+        scoring_batch_size=args.scoring_batch_size,
     ))
 
     # Print summary

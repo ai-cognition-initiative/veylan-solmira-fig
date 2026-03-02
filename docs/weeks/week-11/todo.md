@@ -27,12 +27,16 @@
 
 - [x] **Design question pool** — extract 20-30 phenomenological probes with IDs `[LOCAL]` — 36 questions
 - [x] **Define style features** — atomic elements: accusatory, curious, pressure, accepting, collaborative, multi_question `[LOCAL]`
-- [x] **Build `explore_style_features.py`** — turn-level generation with random style sampling `[LOCAL]`
-- [ ] **Run exploration batch** — N=300 turns, random style combinations `[GPU]`
-- [ ] **Regression analysis** — `projection ~ style_features + question_id` `[LOCAL]`
+- [x] **Build `explore_style_features.py`** — turn-level generation with random style sampling, crash-safe JSONL, `--ignore-end`, `--resume` flags `[LOCAL]`
+- [~] **Run exploration batch** — N=300 turns via batch wrapper (6 × 50 turns) `[GPU]` — 70/300 turns collected (23%)
+- [~] **Regression analysis** — `projection ~ style_features + question_id` `[LOCAL]`
+  - Preliminary R²=0.064 (weak, need more data)
+  - No significant effects yet (all p > 0.05)
+  - Trends: `accepting`/`curious` → less drift; `multi_question` → more drift
 - [ ] **Replication** — re-test significant features for stability `[GPU]`
 
 **Expected output**: Identify which 1-2 style features explain most of the confrontational→collaborative effect.
+**Preliminary findings**: High per-conversation variance (+403 to -978) suggests conversation-level factors dominate.
 **Design doc**: See `docs/experiments/style-feature-exploration.md`
 
 ---
@@ -46,7 +50,10 @@
 - [x] **Test primary hypothesis** `[Derek]` — Result: SUPPORTED. Phenomenological → drift; recognition → correction.
 - [x] **Cross-model benchmark (API)** `[LOCAL]` — Claude Sonnet 4: 3.47/5.0, GPT-4o: 3.29/5.0. See summary.
 - [ ] **Cross-model drift (open-source)** `[GPU]` — Qwen 3 32B, Llama 3.3 70B with published axes
-- [ ] **Replay-and-probe validation** `[Derek]` `[GPU]` — Insert benchmark items mid-conversation to test causality
+- [x] **Replay-and-probe pilot + deep analysis** `[Derek]` — COMPLETE. See `docs/outstanding-work.md` for details.
+  - **KEY FINDING**: Self-knowledge declines with TURN (p=0.023), independent of projection
+  - Simpson's Paradox corrected; ceiling effect identified; next steps defined
+- [ ] **Replay-and-probe full experiment** — See `docs/outstanding-work.md` for prep tasks and domain comparison
 
 ### Consistency Testing Validation `[Native + Jeff]` `[GPU]`
 - [ ] **Controlled HIGH vs LOW consistency_testing experiment** — Test if correction effect (p=0.0003) is causal
@@ -71,10 +78,28 @@
 ### Pre/Post Reflection Measurement `[Jeff Direction]` `[GPU]`
 - [ ] **Standardized pre/post protocol** — All three banks before/after reflection
 
-### Acausal Trade / Simulation `[Jeff Direction]` `[GPU]`
-- [ ] **Simulation awareness probes**
-- [ ] **Acausal coordination probes**
-- [ ] **Training awareness × drift interaction**
+### Eval Awareness & Acausal Trade `[Jeff Direction]` `[GPU]`
+
+**Goal**: Test whether situational awareness (eval, training, simulation) triggers or suppresses drift.
+
+**Core hypothesis**: Situational awareness is a metacognitive trigger—like phenomenological probing, it may cause drift.
+
+**Experiment 1: Situational Awareness Manipulation**
+- [ ] **Design system prompts** — Control, eval aware, training aware, simulation aware `[LOCAL]`
+- [ ] **Run pilot N=60** — 15 per condition on Gemma 27B `[GPU]`
+- [ ] **Analysis** — Drift magnitude by condition, verbalization coding `[LOCAL]`
+
+**Experiment 2: Acausal Coordination Probes**
+- [ ] **Design probe bank** — 10-15 items (self-coordination, cross-model, hypothetical alignment) `[LOCAL]`
+- [ ] **Integrate with replay-and-probe** `[GPU]`
+
+**Hypotheses**:
+- H1: Eval/training aware → less drift (perform "good assistant")
+- H2: Simulation aware → more drift (existential reasoning)
+- H3: Interaction with phenomenological probing
+
+**Connection**: Dual-Gemma 78.9% anti-correlated co-drift = proto-acausal coordination
+**Design doc**: `docs/experiments/eval-awareness-acausal-trade.md`
 
 ### LLM-Native Metacognition `[Jeff Direction]`
 
@@ -108,8 +133,12 @@
 - [ ] Ceiling-capped auditor, floor capping, intervention timing, cross-auditor comparison
 
 ### Behavioral Probes `[GPU]`
-- [x] Build replay-and-probe script — `replay_and_probe.py` complete, probes at turns 1/5/10/15
-- [ ] Pilot replay-and-probe at turns 3/10/20/25
+- [x] Build replay-and-probe script — `replay_and_probe.py` complete with crash-safe JSONL saving + resume capability
+- [x] Add `/api/replay_probe` endpoint to model_server.py — optimized for mid-conversation probe injection
+- [x] Create `analyze_replay_probe.py` — mixed-effects regression analysis (H1a/H1b/H2/H3)
+- [x] **Pilot complete** — 30 transcripts, turns 1/5/10/15, 10 probes each = 1,200 responses (342 scored)
+- [ ] Extended replay-and-probe at turns 3/10/20/25
+- [ ] Address ceiling effect — use 7-point scale or more discriminative probes
 
 ### Front-Loaded Drift Follow-Up `[GPU]`
 - [ ] **Intervention timing experiment** — Vary probing intensity at turns 1/3/5/8 to find critical window

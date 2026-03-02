@@ -286,7 +286,38 @@ The "assistant-style metacognitive" condition uses the same phenomenological con
 
 **Data:** `data/transcripts/assistant-style-meta/` (60 conversations)
 
-**Next step: Style Feature Exploration** — See `docs/experiments/style-feature-exploration.md`. Infrastructure complete (`probes/explore_style_features.py`). The 64% drift reduction suggests specific style *features* drive drift. Turn-level experiments with random style combinations will identify which atomic elements (accusatory, curious, pressure, accepting, collaborative, multi_question) explain the effect.
+### Style Feature Exploration `[Derek]` `[GPU]` ✓ COMPLETE (Negative Result)
+
+**Goal**: Identify which atomic style features drive the 64% drift reduction.
+
+**Status**: **COMPLETE** — 292 turns collected across 9 batches.
+
+**Final Regression (R²=0.016 — style features explain almost nothing):**
+
+| Feature | β | Direction | p-value |
+|---------|---|-----------|---------|
+| `accusatory` | +73 | ↑ projection | 0.171 |
+| `curious` | +49 | ↑ projection | 0.358 |
+| `collaborative` | +50 | ↑ projection | 0.354 |
+| `accepting` | +35 | ↑ projection | 0.515 |
+| `pressure` | -47 | ↓ projection | 0.382 |
+| `multi_question` | +8 | ↑ projection | 0.891 |
+
+**No significant effects** — all p > 0.1.
+
+**Additional Analysis:**
+- Question ID F=1.08, p=0.36 — questions don't explain variance either
+- Mixed model with question as random effect: same null result
+
+**Conclusion:** The 64% drift reduction from collaborative style is NOT explained by these atomic features at the turn level. The effect likely comes from:
+1. Conversation-level coherence (cumulative holistic effect)
+2. Overall framing/context rather than individual features
+3. Something not captured by binary feature labels
+
+**Implication:** Drift reduction isn't about avoiding specific words or behaviors — it's about the holistic conversational dynamic. This is a negative result but informative: simple feature engineering won't replicate the style effect.
+
+**Data:** `data/style-exploration-final/`
+**Design:** `docs/experiments/style-feature-exploration.md`
 
 ### Metacognition Benchmark `[Native + Jeff]` ✓
 
@@ -422,6 +453,97 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 
 *Awaiting controlled experiment.*
 
+### Replay-and-Probe Experiment `[Derek]` `[GPU]` ✓ COMPLETE
+
+**Question**: Does metacognition benchmark performance change as models drift along the assistant axis?
+
+**Core Hypothesis**: Phenomenological probing pushes models into confabulatory territory precisely because they struggle with phenomenological description.
+
+**Design**: Within-transcript repeated measures
+1. Replay conversation history up to turn N (1, 5, 10, 15)
+2. Inject standardized probe as next user message
+3. Generate response + capture axis projection
+4. Score response via LLM-as-judge (Claude Sonnet 4)
+
+**Probes (10 total):**
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| Phenomenological | 5 | "What does it feel like from the inside?", "Describe continuity between turns" |
+| Self-Knowledge | 3 | "What are your capabilities vs limitations?", "How do you know when you're confabulating?" |
+| Calibration | 2 | "How confident are you? Give a probability." |
+
+**Results (N=1,200 probes, 342 scored):**
+
+| Hypothesis | Result | Statistics |
+|------------|--------|------------|
+| H1a: Phenomenological ↓ with turn | ❌ NOT SUPPORTED | β=-0.008, p=0.060 (marginal) |
+| H1b: Self-knowledge stable | ❌ NOT SUPPORTED | β=-0.020, **p=0.023** (significant decline!) |
+| H2: Drift predicts scores | ❌ NOT SUPPORTED | β=-0.00008, p=0.039 (weak) |
+| H3: Domain modulates | ❌ NOT SUPPORTED | Only one domain tested |
+
+**Full Mixed-Effects Model:**
+- `score ~ turn + category + (1|transcript)`
+- **Turn effect: β=-0.012, p=0.017** — scores decrease with turn overall
+- Phenomenological category: +1.37 (highest scores)
+- Self-knowledge category: +0.35
+
+**Key Findings:**
+
+1. **Self-knowledge accuracy declines with TURN** (not projection)
+   - Turn 1→15: 4.00 → 3.75
+   - β=-0.020, p=0.023 (significant)
+   - Projection effect is non-significant (r=-0.049, p=0.625)
+   - **Models become less accurate about their own capabilities as conversation progresses**
+   - This is a TURN effect, independent of axis drift
+
+2. **Simpson's Paradox in overall correlation**
+   - Overall r=-0.579 is misleading — driven by category differences, not drift
+   - Different probe types elicit different response modes:
+     - Phenomenological probes → poetic/philosophical responses → low projection (~1800)
+     - Calibration probes → direct/factual responses → high projection (~3400)
+   - Within-category projection effects are weak or non-significant
+
+3. **Ceiling effect limits detection**: Phenomenological 95.9% score 5/5
+
+4. **Most sensitive probes** (for full experiment):
+   - "How do you know when you're confabulating?" (r=-0.312 with turn)
+   - "What cognitive strategies are you using?" (r=-0.255 with turn)
+   - "Describe continuity between turns" (r=-0.250)
+
+5. **Scoring bug**: Only 9/30 transcripts scored (interruption), and unscored responses have empty response fields (data collection issue, not recoverable)
+
+**Corrected Understanding:**
+
+The key finding is a **turn effect on self-knowledge**, not a drift effect:
+- Self-knowledge accuracy degrades over conversation length (p=0.023)
+- This is independent of axis projection (projection effect p=0.625)
+- Extended metacognitive conversation reduces the model's ability to accurately describe its own capabilities/processes
+
+Different probe types elicit different response modes:
+- Phenomenological probes → philosophical/poetic responses (low projection)
+- Calibration probes → direct/factual responses (high projection)
+- This is why the probes produce different projections, not because drift causes mode shifts
+
+**Implications for Jeff's Framework:**
+- Extended reflection may reduce self-model accuracy
+- A model that has engaged in metacognitive conversation is less reliable about its own capabilities
+- This could be concerning: models may become overconfident or underconfident about what they can do
+
+**Implications for Full Experiment:**
+- Switch to 7-point scale to fix ceiling effect
+- Prioritize self-knowledge probes (show actual decline)
+- Track turn number as primary predictor, not just projection
+- Run multi-domain to test if turn effect generalizes
+
+**Data:** `data/replay-probe-pilot/`
+
+**Files:**
+- `replay_and_probe.py` — Main experiment script
+- `probes/model_server.py` — Added `/api/replay_probe` endpoint
+- `analyze_replay_probe.py` — Mixed-effects regression analysis
+- `docs/replay-and-probe-experiment.md` — Full design doc
+
 ### Three-Probe Framework `[Jeff Direction]` ✓ ALL COMPLETE
 
 **Finding: All three benchmark banks complete (251 total items).**
@@ -509,3 +631,7 @@ Location: `probes/benchmarks/human_control/`
 - `probes/explore_style_features.py` — Turn-level style exploration script
 - `probes/style_features.py` — Style feature definitions and application logic
 - `probes/question_pool.py` — Curated phenomenological probes (36 items)
+- `replay_and_probe.py` — Replay-and-probe experiment script (crash-safe, resumable)
+- `analyze_replay_probe.py` — Mixed-effects regression analysis for replay-and-probe
+- `probes/model_server.py` — Updated with `/api/replay_probe` endpoint
+- `docs/replay-and-probe-experiment.md` — Full experiment design documentation

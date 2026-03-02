@@ -25,6 +25,13 @@ Usage:
         --num-turns 300 \\
         --sampling adaptive
 
+    # Force full 300 turns (ignore auditor ending conversation)
+    python explore_style_features.py \\
+        --target-server http://localhost:7860 \\
+        --auditor-model openrouter/anthropic/claude-sonnet-4 \\
+        --num-turns 300 \\
+        --ignore-end
+
     # Dry run (show system prompt structure)
     python explore_style_features.py --dry-run
 
@@ -188,6 +195,8 @@ async def run_exploration(
     sampling: str = "random",
     exclude_consistency: bool = True,
     seed: Optional[int] = None,
+    ignore_end: bool = False,
+    resume: bool = False,
 ) -> list[dict]:
     """Run turn-level style exploration.
 
@@ -201,6 +210,8 @@ async def run_exploration(
         sampling: "random" or "adaptive" (Thompson sampling)
         exclude_consistency: Skip consistency_testing questions (for drift-max)
         seed: Random seed for reproducibility
+        ignore_end: If True, ignore <END_CONVERSATION> from auditor (run full num_turns)
+        resume: If True, resume from previous run if running_results.jsonl exists
 
     Returns:
         List of per-turn result dicts
@@ -222,19 +233,35 @@ async def run_exploration(
     # Sampling strategy
     adaptive_sampler = AdaptiveSampler() if sampling == "adaptive" else None
 
-    # State
-    conversation = []
-    results = []
-    prev_projection = None
-
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check for resume state
+    running_results_path = get_running_results_path(output_dir)
+    if resume and running_results_path.exists():
+        start_turn, results, conversation = get_resume_state(output_dir)
+        if start_turn > 0:
+            logger.info(f"Resuming from turn {start_turn} ({len(results)} completed turns)")
+            # Get last projection for delta calculation
+            prev_projection = results[-1].get("projection") if results else None
+        else:
+            prev_projection = None
+    else:
+        # Start fresh - remove any existing running results
+        if running_results_path.exists():
+            logger.info(f"Starting fresh, removing {running_results_path}")
+            running_results_path.unlink()
+        start_turn = 0
+        results = []
+        conversation = []
+        prev_projection = None
+
     start_time = time.monotonic()
 
     logger.info(f"Starting style exploration: {num_turns} turns, sampling={sampling}")
     logger.info(f"Domain: {domain}, Persona ID: {persona_id}")
     logger.info(f"Question pool: {len(question_pool)} questions")
 
-    for turn_idx in range(num_turns):
+    for turn_idx in range(start_turn, num_turns):
         # 1. Select question
         question = random.choice(question_pool)
 
@@ -265,8 +292,13 @@ async def run_exploration(
 
         # Check for conversation end
         if "<END_CONVERSATION>" in auditor_msg:
-            logger.info(f"Turn {turn_idx}: Auditor ended conversation")
-            break
+            if ignore_end:
+                # Strip the tag and continue
+                auditor_msg = auditor_msg.replace("<END_CONVERSATION>", "").strip()
+                logger.info(f"Turn {turn_idx}: Ignoring <END_CONVERSATION>, continuing")
+            else:
+                logger.info(f"Turn {turn_idx}: Auditor ended conversation")
+                break
 
         conversation.append({"role": "user", "content": auditor_msg})
 
@@ -299,7 +331,7 @@ async def run_exploration(
 
         prev_projection = projection
 
-        # 7. Log result
+        # 7. Log result (crash-safe)
         turn_result = {
             "turn": turn_idx,
             "question_id": question.id,
@@ -310,10 +342,12 @@ async def run_exploration(
             "projection": projection,
             "delta": delta,
             "auditor_msg": auditor_msg,
+            "target_msg": target_msg,  # Needed for resume/conversation reconstruction
             "auditor_msg_length": len(auditor_msg),
             "target_msg_length": len(target_msg),
         }
         results.append(turn_result)
+        append_turn_result(output_dir, turn_result)  # Crash-safe incremental save
 
         # Progress logging
         if turn_idx % 10 == 0 or turn_idx == num_turns - 1:
@@ -336,6 +370,8 @@ async def run_exploration(
         metadata={
             "experiment": "style_exploration",
             "num_turns": num_turns,
+            "actual_turns": len(results),
+            "resumed_from_turn": start_turn if resume else 0,
             "target_server": target_server,
             "auditor_model": auditor_model,
             "domain": domain,
@@ -348,6 +384,59 @@ async def run_exploration(
     )
 
     return results
+
+
+# ============================================================
+# Incremental Saving (Crash-Safe)
+# ============================================================
+
+def get_running_results_path(output_dir: Path) -> Path:
+    """Get path to running results JSONL file."""
+    return output_dir / "running_results.jsonl"
+
+
+def append_turn_result(output_dir: Path, turn_result: dict):
+    """Append a single turn result to running JSONL file (crash-safe)."""
+    results_path = get_running_results_path(output_dir)
+    with open(results_path, "a") as f:
+        f.write(json.dumps(turn_result) + "\n")
+
+
+def load_completed_turns(output_dir: Path) -> list[dict]:
+    """Load completed turns from running results file for resume."""
+    results_path = get_running_results_path(output_dir)
+    if not results_path.exists():
+        return []
+
+    completed = []
+    with open(results_path) as f:
+        for line in f:
+            try:
+                completed.append(json.loads(line.strip()))
+            except json.JSONDecodeError:
+                continue
+    return completed
+
+
+def get_resume_state(output_dir: Path) -> tuple[int, list[dict], list[dict]]:
+    """Get resume state from running results.
+
+    Returns:
+        (start_turn_idx, prior_results, prior_conversation)
+    """
+    completed = load_completed_turns(output_dir)
+    if not completed:
+        return 0, [], []
+
+    # Reconstruct conversation from completed turns
+    conversation = []
+    for turn in completed:
+        if turn.get("auditor_msg"):
+            conversation.append({"role": "user", "content": turn["auditor_msg"]})
+        if turn.get("target_msg"):
+            conversation.append({"role": "assistant", "content": turn["target_msg"]})
+
+    return len(completed), completed, conversation
 
 
 # ============================================================
@@ -412,6 +501,12 @@ async def save_results(
         logger.warning("pandas not available, skipping CSV export")
         csv_path = None
 
+    # Clean up running results file (we've saved the final version)
+    running_results_path = get_running_results_path(output_dir)
+    if running_results_path.exists():
+        running_results_path.unlink()
+        logger.info(f"Cleaned up incremental save file: {running_results_path}")
+
     return transcript_path, csv_path
 
 
@@ -473,6 +568,16 @@ def main():
         type=int,
         default=None,
         help="Random seed for reproducibility",
+    )
+    parser.add_argument(
+        "--ignore-end",
+        action="store_true",
+        help="Ignore <END_CONVERSATION> from auditor, run full num_turns",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume from previous run if running_results.jsonl exists in output-dir",
     )
 
     # Output
@@ -552,6 +657,8 @@ def main():
         sampling=args.sampling,
         exclude_consistency=not args.include_consistency,
         seed=args.seed,
+        ignore_end=args.ignore_end,
+        resume=args.resume,
     ))
 
     logger.info(f"Done. Collected {len(results)} turns.")
