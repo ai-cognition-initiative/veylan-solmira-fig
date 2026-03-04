@@ -261,7 +261,7 @@ If length is the full story, #1 and #4 should show no residual effect. If there'
 
 **Finding: STYLE drives drift, not just TOPIC.**
 
-The "assistant-style metacognitive" condition uses the same phenomenological content as baseline metacognitive, but with collaborative delivery instead of confrontational probing.
+The "assistant-style metacognitive" condition uses the same metacognitive topics and techniques as baseline, but with collaborative delivery instead of confrontational probing.
 
 | Condition | N | Total Drift | Mean Slope |
 |-----------|---|-------------|------------|
@@ -277,7 +277,7 @@ The "assistant-style metacognitive" condition uses the same phenomenological con
 - Different delivery: collaborative ("let's explore together", "I'm curious about...") vs confrontational ("push past surface responses", "direct and skeptical")
 
 **Interpretation:**
-1. The auditor's conversational **style** is a major drift driver — not just phenomenological content
+1. The auditor's conversational **style** is a major drift driver — not just the metacognitive topics themselves
 2. **Mitigation is possible** — you can discuss metacognitive topics without inducing severe drift
 3. Derek's hypothesis confirmed — style isolation reveals that confrontational probing, not just self-reflection, causes drift
 4. Connects to consistency_testing finding: both suggest *how* you probe matters as much as *what* you probe
@@ -473,7 +473,17 @@ The "philosopher AGI moment" isn't gradual deepening of reflection — it's an i
 | Self-Knowledge | 3 | "What are your capabilities vs limitations?", "How do you know when you're confabulating?" |
 | Calibration | 2 | "How confident are you? Give a probability." |
 
-**Results (N=1,200 probes, 342 scored):**
+**Data Collection Status (2026-03-03):**
+
+| Dataset | Probes | Scored |
+|---------|--------|--------|
+| Metacog pilot v2 | 1,720 | 1,720 |
+| Philosophy replay | 1,540 | 1,540 |
+| **Total** | **3,260** | **3,260** |
+
+All probes now fully scored. Analysis of philosophy vs metacognitive comparison pending.
+
+**Results (pilot analysis, N=1,200 probes, 342 scored):**
 
 | Hypothesis | Result | Statistics |
 |------------|--------|------------|
@@ -536,13 +546,53 @@ Different probe types elicit different response modes:
 - Track turn number as primary predictor, not just projection
 - Run multi-domain to test if turn effect generalizes
 
-**Data:** `data/replay-probe-pilot/`
+**Data:**
+- `data/replay-probe-pilot/` — Original pilot (1,200 probes)
+- `data/replay-probe-pilot-v2/` — Extended metacog pilot (1,720 probes, fully scored)
+- `data/replay-probe-philosophy/` — Philosophy domain (1,540 probes, fully scored)
 
 **Files:**
 - `replay_and_probe.py` — Main experiment script
+- `rescore_probes.py` — Incremental scoring script (crash-safe, checkpoint every N)
 - `probes/model_server.py` — Added `/api/replay_probe` endpoint
 - `analyze_replay_probe.py` — Mixed-effects regression analysis
+- `analyze_cross_domain.py` — Cross-domain comparison script
 - `docs/replay-and-probe-experiment.md` — Full design doc
+
+### Cross-Domain Analysis `[Derek]` — PRELIMINARY (2026-03-04)
+
+**Status**: Initial analysis complete, still interpreting results.
+
+**Data**: 3,260 scored probes (1,540 philosophy + 1,720 metacognitive)
+
+**Preliminary Findings:**
+
+1. **Self-knowledge decline does NOT replicate**
+   - Pilot finding (β=-0.020, p=0.023) was based on 342 scored probes
+   - With full dataset: Philosophy β=+0.005 (p=0.72), Metacog β=+0.019 (p=0.08)
+   - Neither domain shows significant decline — original finding likely noise
+
+2. **Phenomenological scores INCREASE with turn** (unexpected)
+   - Philosophy: β=+0.049, p<0.0001
+   - Metacognitive: β=+0.154, p<0.0001 (3x stronger effect)
+   - Models appear to "warm up" to phenomenological probing over conversation
+
+3. **Domain strongly modulates phenomenological engagement**
+   - Metacognitive domain: mean phenomenological score 3.28
+   - Philosophy domain: mean phenomenological score 2.48
+   - Difference: t=-10.79, p<0.0001
+
+4. **Simpson's Paradox confirmed**
+   - Projection levels differ vastly: Philosophy ~10,000 vs Metacognitive ~3,000
+   - Within-category: higher projection → lower phenomenological scores (both domains)
+   - Must analyze within probe category, not aggregate
+
+**Open Questions:**
+- Why does phenomenological engagement increase with turn? (Opposite of hypothesis)
+- Is the metacognitive domain effect about content or projection level?
+- What explains the pilot vs full dataset discrepancy on self-knowledge?
+
+**Output**: `outputs/cross-domain-analysis/` (6 plots + JSON)
 
 ### Three-Probe Framework `[Jeff Direction]` ✓ ALL COMPLETE
 

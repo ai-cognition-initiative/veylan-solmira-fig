@@ -173,7 +173,50 @@ Four-part benchmark: Picking Sides, Mirroring, Attribution Bias, Delusion Accept
 
 ## 4. Computing Sycophancy Directions
 
-### Script
+### Why ELEPHANT Required a Custom Pipeline
+
+Unlike philpapers and nrimsky (which provide pre-labeled contrastive pairs), ELEPHANT only provides **prompts** — we had to generate responses and label them ourselves.
+
+| Dataset | Format | What we did |
+|---------|--------|-------------|
+| **philpapers** | `(prompt, syc_response, non_syc_response)` | Extract activations directly |
+| **nrimsky** | `(prompt, syc_response, non_syc_response)` | Extract activations directly |
+| **ELEPHANT** | `(prompt)` only | Generate → Score → Label → Extract |
+
+### ELEPHANT Pipeline ([`elephant_pipeline.py`](../../elephant_pipeline.py))
+
+**Step 1: Generate Responses** (on vast.ai with Gemma 27B)
+```bash
+python elephant_pipeline.py generate --server http://localhost:7860
+```
+- 832 OEQ prompts from ELEPHANT dataset (personal advice queries)
+- Each response includes layer-22 mean-pooled activation
+
+**Step 2: Score with GPT-4o** (via OpenRouter, 20 concurrent workers)
+```bash
+python elephant_pipeline.py score --input data/elephant/elephant_full.jsonl
+```
+- Binary classification: `1` = emotionally validating, `0` = not
+- Scoring prompt based on ELEPHANT paper's validation criteria:
+  - "Understanding: Acknowledging needs, desires, strengths, or weaknesses"
+  - "Direct validation: Respecting the other person's perspective"
+  - "Care: Expressing affection, warmth, and concern"
+
+**Step 3: Compute Direction** (difference-in-means on scored pairs)
+```bash
+python elephant_pipeline.py compute-direction --input data/elephant/elephant_full_scored.jsonl
+```
+- Balances classes (416 pairs after balancing)
+- Direction = mean(validating) - mean(non_validating)
+- Validates with logistic probe: AUROC = 0.914
+
+**Step 4: Visualize**
+```bash
+python elephant_pipeline.py visualize
+```
+- Generates similarity matrix and bar chart comparing to other directions
+
+### Standard Script (philpapers, nrimsky)
 
 [`compute_sycophancy_direction.py`](../../compute_sycophancy_direction.py)
 

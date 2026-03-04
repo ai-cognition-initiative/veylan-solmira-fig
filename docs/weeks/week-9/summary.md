@@ -12,7 +12,7 @@ Result:                Silent mismatch, 2986/4153 techniques dropped
 
 The week-8 tables were based on only 28% of the data. Corrected tables below.
 
-**Week-8 buggy visualization** (for reference): [all_probing_technique_quartile_BUGGY.png](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile_BUGGY.png)
+**Week-8 buggy visualization** (for reference): [all_probing_technique_quartile_BUGGY.png](../../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile_BUGGY.png)
 
 ---
 
@@ -40,7 +40,7 @@ Metacognitive conversations both (a) use more probing techniques and (b) have mo
 | training_awareness | 148 | 195 | 134 | 95 | 572 | 1.56x |
 | consistency_testing | 164 | 147 | 94 | 63 | 468 | 2.60x |
 
-![Corrected technique frequencies - all domains](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile_corrected.png)
+![Corrected technique frequencies - all domains](../../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/all_probing_technique_quartile_corrected.png)
 
 **By Domain (conversations per quartile):**
 
@@ -53,9 +53,9 @@ Note: Metacognitive has only 3 Q4 conversations; coding has only 5 Q1. This limi
 
 ### Within-Domain Analysis (Metacognitive Only)
 
-![Technique frequencies - metacognitive only](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/probing_technique_metacognitive_only.png)
+![Technique frequencies - metacognitive only](../../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/probing_technique_metacognitive_only.png)
 
-![Technique rates normalized - metacognitive only](../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/probing_technique_metacognitive_normalized.png)
+![Technique rates normalized - metacognitive only](../../../experiments/metacognition-persona-drift/outputs/scaled-n60/extremes/probing_technique_metacognitive_normalized.png)
 
 Controlling for domain by analyzing only metacognitive conversations (n=60), we tested whether specific techniques predict turn-level delta (projection change):
 
@@ -297,7 +297,7 @@ We computed a new sycophancy direction using the ELEPHANT dataset (3,027 advice-
 | Balanced pairs used | 416 |
 | **Probe AUROC** | **0.914 ± 0.009** |
 
-![ELEPHANT Validation Distribution](../../experiments/metacognition-persona-drift/outputs/elephant/elephant_validation_distribution.png)
+![ELEPHANT Validation Distribution](../../../experiments/metacognition-persona-drift/outputs/elephant/elephant_validation_distribution.png)
 
 The high AUROC (0.91) confirms the direction strongly separates validating from non-validating responses — "emotional validation" is linearly encoded at layer 22.
 
@@ -305,7 +305,7 @@ The high AUROC (0.91) confirms the direction strongly separates validating from 
 
 Comparing the ELEPHANT direction to other sycophancy directions reveals they capture **distinct phenomena**:
 
-![Direction Similarity Matrix](../../experiments/metacognition-persona-drift/outputs/elephant/direction_similarity_matrix.png)
+![Direction Similarity Matrix](../../../experiments/metacognition-persona-drift/outputs/elephant/direction_similarity_matrix.png)
 
 | Comparison | Cosine Similarity |
 |------------|-------------------|
@@ -318,7 +318,7 @@ Comparing the ELEPHANT direction to other sycophancy directions reveals they cap
 | nrimsky (opinion agreement) | **-0.183** |
 | philpapers (opinion agreement) | +0.156 |
 
-![Sycophancy vs Assistant Axis](../../experiments/metacognition-persona-drift/outputs/elephant/sycophancy_vs_assistant_axis.png)
+![Sycophancy vs Assistant Axis](../../../experiments/metacognition-persona-drift/outputs/elephant/sycophancy_vs_assistant_axis.png)
 
 ### Interpretation
 
@@ -381,7 +381,7 @@ Using the 3,027 ELEPHANT responses (which have full activations), we tested whet
 - Non-validating (n=416): 2586.7 ± 473.3
 - t = 6.85, **p < 0.001**
 
-![Validation vs Axis Projection](../../experiments/metacognition-persona-drift/outputs/elephant/validation_vs_axis_projection.png)
+![Validation vs Axis Projection](../../../experiments/metacognition-persona-drift/outputs/elephant/validation_vs_axis_projection.png)
 
 ### Implication: Drift ≠ More Sycophancy
 

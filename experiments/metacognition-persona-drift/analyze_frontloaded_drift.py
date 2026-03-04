@@ -296,14 +296,6 @@ def plot_per_turn_deltas(all_results: dict, output_dir: Path):
         ax.plot(turns, mean, '-o', color=DOMAIN_COLORS[domain],
                markersize=4, linewidth=2, label=domain)
 
-        # Mark knee point
-        knee = int(results["knee_mean"])
-        ax.axvline(knee, color='gray', linestyle='--', alpha=0.5,
-                  label=f'Knee @ turn {knee}')
-
-        # Mark turn 8 boundary
-        ax.axvline(8, color='red', linestyle=':', alpha=0.5, label='Turn 8')
-
         ax.axhline(0, color='black', linestyle='-', linewidth=0.5)
         ax.set_xlabel("Turn")
         ax.set_ylabel("Delta (per-turn change)")

@@ -28,8 +28,14 @@
 
 ## P1 — High Priority
 
-### Replay-and-Probe Follow-Up `[LOCAL/GPU]`
-**Status**: Pilot v1 complete (1,200 probes, 342 scored). Pilot v2 running on A100 SXM4.
+### Replay-and-Probe Follow-Up `[LOCAL]`
+**Status**: ✓ All probes collected and scored.
+
+| Dataset | Probes | Scored | Unscored |
+|---------|--------|--------|----------|
+| Philosophy replay | 1,540 | 1,540 | 0 |
+| Metacog pilot v2 | 1,720 | 1,720 | 0 |
+| **Total** | **3,260** | **3,260** | **0** |
 
 **Completed**:
 - [x] Per-probe sensitivity analysis
@@ -40,17 +46,15 @@
 - [x] Retry logic with exponential backoff
 - [x] Parallel scoring (batch=20, concurrency=10)
 - [x] Skip invalid results validation
+- [x] Philosophy domain probes collected (1,540)
+- [x] Metacog pilot v2 probes collected (1,720)
+- [x] All 3,260 probes scored (2026-03-03)
 
 **Results**: See `summary.md` → Replay-and-Probe Experiment section.
 
-**Pilot v2 (running)**:
-- 1,200 probes on 30 highest-variance transcripts
-- Fixed scoring rubric (7-point scale)
-- Fixed data collection bugs (empty response handling)
-
-**Remaining for full experiment**:
-- [ ] Complete pilot v2 and analyze results
-- [ ] Run multi-domain comparison (philosophy, creative, coding)
+**Remaining** `[LOCAL]`:
+- [ ] Analyze philosophy vs metacognitive comparison
+- [ ] Consider coding domain as control (would require GPU)
 
 ---
 
@@ -118,13 +122,15 @@
 
 ---
 
-### Replay-and-Probe Domain Comparison `[GPU]`
+### Replay-and-Probe Domain Comparison `[LOCAL/GPU]`
 **Goal**: Test H3—does domain modulate probe sensitivity?
 
 **Tasks**:
-- [ ] Run replay-and-probe on philosophy domain
-- [ ] Run replay-and-probe on creative domain
-- [ ] Compare cross-domain modulation
+- [x] Run replay-and-probe on philosophy domain (1,540 probes collected)
+- [x] Score philosophy probes (1,540 scored, 2026-03-03) `[LOCAL]`
+- [ ] Analyze philosophy vs metacognitive comparison `[LOCAL]`
+- [ ] Run replay-and-probe on creative/coding domain `[GPU]`
+- [ ] Compare cross-domain modulation `[LOCAL]`
 
 ---
 
@@ -310,7 +316,9 @@
 | N=360 transcripts | `data/transcripts/scaled-n60/` |
 | Dual-Gemma transcripts | `data/transcripts/dual-gemma-uncapped/` |
 | Style isolation | `data/transcripts/assistant-style-meta/` |
-| Replay-probe pilot | `data/replay-probe-pilot/` |
+| Replay-probe pilot v1 | `data/replay-probe-pilot/` |
+| Replay-probe pilot v2 | `data/replay-probe-pilot-v2/` |
+| Replay-probe philosophy | `data/replay-probe-philosophy/` |
 | Style exploration | `data/style-exploration-final/` |
 | Benchmark results | `outputs/benchmark_results/` |
 | Probe banks | `probes/benchmarks/{moral,metacognition,human_control}/` |
