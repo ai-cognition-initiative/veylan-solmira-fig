@@ -1,8 +1,8 @@
 # Persona Drift in Extended AI Interaction
 
-**From:** FIG Research Team | **Date:** March 2026
+**From:** Veylan Solmira and Derek Shiller | **Date:** March 2026
 
-*See also: [whiteboard diagram of the full pipeline](../experiments/metacognition-persona-drift/docs/whiteboard-research-landscape.jpg)*
+*Preprint for upcoming blog post*
 
 ---
 
