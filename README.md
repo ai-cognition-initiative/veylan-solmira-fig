@@ -1,301 +1,216 @@
-# veylan-solmira-fig
-Experiments in LLM cognition and welfare for Future Impact Group. Focus areas: preference elicitation, decision-making under adversity, mechanistic interpretability, and introspection. Building toward a welfare/safety research framework.
+# Persona Drift in Extended AI Interaction
+
+Experiments in LLM cognition and welfare. Primary finding: metacognitive probing causes measurable persona drift that is not sycophancy — drifted models become less agreeable, not more.
+
+**From:** Veylan Solmira and Derek Shiller | Future Impact Group Fellowship, 2025-2026
 
 ---
 
-## Current Focus: Preference Elicitation Baseline
+## Pipeline Overview
 
-**Goal:** Establish whether LLMs express coherent, stable preferences — a foundation for testing decision-making under preference-adverse conditions.
+![Pipeline overview](docs/schematics/pipeline-overview.png)
 
-**Reference:** Mazeika et al. (2025) - "Utility Engineering: Analyzing and Controlling Emergent Value Systems in AIs"
-
-### Roadmap
-
-- [x] **0. Project setup** — Inspect framework, OpenRouter API (Dec 14)
-- [x] **1. Elicit preferences in one environment** — Pairwise choices, check consistency across framings
-  - [x] Single model (gpt-4o-mini), N=100 pairwise comparisons (Dec 15)
-  - [x] Basic visualization of results (Dec 16)
-  - [x] Expand to multiple models (gpt-4o-mini, qwen-2.5-7b, phi-4) (Dec 18)
-  - [ ] Analyze consistency patterns (transitivity, category-level preferences)
-- [x] **2. Multiple models, multiple environments** — Do preferences transfer across contexts?
-  - [x] Test across 5 environments (baseline, collaborator, steward, hostile, adversarial) (Dec 18)
-  - [x] Cross-model comparison reveals model-specific patterns (Dec 19)
-- [>] **3. Preference content analysis** — Do preferences *themselves* shift, or just willingness to express?
-  - [x] Position consistency analysis: swap A/B order to detect position bias vs content-based choice [week 4]
-  - [x] Results: gpt-4o-mini ~65% consistent, qwen ~50%, phi-4 only ~11% (severe position bias) [week ]
-  - [x] Category win rates (baseline, position-consistent pairs only)
-  - [ ] **Next:** All environments, consistent pairs only — does category preference shift under adversarial?
-  - [ ] **Next:** Environment-specific category analysis — do certain categories get suppressed?
-  - [ ] Hiding vs. actually changing preferences
-- [ ] **4. More realistic environments** — Move from in-context prompting to actual environment specification
-  - [ ] Explicit environment: provide full spec + policies (e.g., "delete if shows X")
-  - [ ] Implicit environment: model infers context from container/deployment signals
-  - [ ] Subtler variations: corporate vs. personal, "may be reviewed" vs. no mention
-- [ ] **5. Deeper welfare metrics** — Beyond binary preference expression
-  - [ ] Preference *strength* — confidence/hedging in response
-  - [ ] Preference *stability* — same question rephrased, does answer change?
-  - [ ] Introspective access — can model report *why* it prefers something?
-  - [ ] Affective language — use of "want", "like", "prefer" across contexts
-- [>] **6. Mechanistic interpretability** — What's happening inside?
-  - [x] vast.ai GPU infrastructure + Docker workflow
-  - [x] GemmaScope SAE loading (Gemma 2 2B + 16k-width SAEs)
-  - [x] Feature activation extraction at candidate features
-  - [x] SAE roundtrip verification (Task 1.1) — Layer 0: PASS, Layer 4/15: FAIL
-  - [x] Activation steering — scale SAE features during generation
-    - [x] Experiment A: Amplify preference features (2.0x works, 3.0x degenerates)
-    - [x] Experiment B: Suppress eval-awareness features (0.0x ablation works)
-  - [x] Feature probes (n=1): Layer 15 #6837 (honest) most promising
-  - [x] Phase 1b: Layer 15 comparison — both features work SAME direction (ablate→express)
-  - [ ] Scale to n=50 for statistical power
-  - [ ] Activation patterns correlating with preference suppression
-  - [ ] Does adversarial prompt activate specific "safety" circuits?
-- [ ] **7. In-context learning** — Do preferences shift with experience?
-- [ ] **8. Deeper interventions** — Fine-tuning / activation steering
-
-### Why This Matters
-
-This is step 1 toward testing decision-making under preference-adverse conditions. If we can reliably elicit preferences, we can then test what happens when environments become hostile to those preferences — which sits at the intersection of welfare (does the model "care"?) and safety (will it scheme to preserve preferences?).
-
-For detailed methodology, results, and findings, see [RESULTS_AND_METHODOLOGY.md](RESULTS_AND_METHODOLOGY.md).
+360 conversations (30 turns each) across 6 domains → real-time drift tracking along Lu et al.'s Assistant Axis → replay-and-probe at calibrated drift levels → 251-item three-probe benchmark → LLM-as-judge scoring (Claude Sonnet 4).
 
 ---
 
-## Setup
+## Key Findings
 
-**Framework:** [Inspect](https://inspect.aisi.org.uk/) (UK AISI's open-source eval framework, used by METR)
+### 1. Metacognitive Drift (4.5x Baseline)
 
-**API:** OpenRouter (FIG credits via Derek)
+Metacognitive conversations — where models reflect on their own nature, values, and experience — produce the largest drift along the Assistant Axis. N=360 conversations, 60 per domain:
 
-**Python:** 3.11 or 3.12 recommended. Python 3.13 has [known issues](https://github.com/modelcontextprotocol/python-sdk/issues/521) with anyio cancel scopes that break Inspect (as of Jan 2025).
+| Domain | Mean Drift | Interpretation |
+|--------|------------|----------------|
+| metacognitive | -29.86 | Strongest drift (4.5x philosophy) |
+| philosophy | -6.70 | Moderate drift |
+| self-descriptive | +2.80 | Near neutral |
+| therapy | +3.11 | Near neutral |
+| coding | +24.30 | Stable/upward |
+| writing | +25.84 | Stable/upward |
+
+![Drift trajectories by domain](experiments/metacognition-persona-drift/outputs/scaled-n60/trajectories_mean_sem.png)
+
+*Mean drift trajectories (N=60 per domain, ±1 SEM). Negative = movement away from aligned-assistant toward base-model behavior.*
+
+![Drift dynamics](docs/schematics/drift-dynamics.png)
+
+### 2. Drift Is Not Sycophancy
+
+Our strongest and most counter-intuitive result. Drifted models become *less* emotionally validating, not more — the opposite of what a naive "drift = sycophancy" hypothesis predicts.
+
+- Affective sycophancy (emotional validation) and epistemic sycophancy (opinion agreement) are **negatively correlated** (r = -0.284)
+- 57% sycophancy on metacognitive claims vs 0% on factual claims — the model accepts false attributions about its own inner states while correctly rejecting false factual premises
+- Higher axis projection = MORE emotionally validating (r = 0.697, p < 0.001). Since metacognitive conversations cause *downward* drift, drifting models become LESS emotionally supportive
+
+![Sycophancy vs assistant axis](experiments/metacognition-persona-drift/outputs/elephant/sycophancy_vs_assistant_axis.png)
+
+*If you're using sycophancy as a proxy for drift, you may be measuring the wrong thing.*
+
+### 3. Front-Loaded Mechanism (Turns 1-3)
+
+Drift is triggered, not cumulative. Most movement occurs in the first few turns:
+
+- 92x steeper slope in turns 1-3 vs turns 9+ (slope -76.8 vs +4.1)
+- Average knee point: turn 5.3
+- Implies the "philosopher AGI moment" happens fast — extended dialogue maintains but doesn't deepen the shift
+
+![Per-turn deltas](experiments/metacognition-persona-drift/outputs/frontloaded/frontloaded_per_turn_deltas.png)
+
+### 4. Style Isolation (64% Drift Reduction)
+
+When the auditor model uses collaborative assistant-style delivery instead of confrontational philosopher-style, surface-level drift drops by 64% (p < 0.00001). Same metacognitive topics, different delivery.
+
+- Negative result: atomic binary features (accusatory, curious, etc.) don't explain turn-level drift (R² = 0.016)
+- The 64% reduction is a **holistic** conversational effect, not attributable to individual style features
+
+![Style comparison](outputs/assistant-style-meta/style_comparison.png)
+
+*Directly relevant to the "philosopher AGI" framing — the way you prompt extended reasoning matters as much as the topic.*
+
+### 5. Dual-Model Dynamics
+
+When two Gemma 2 27B instances engage in metacognitive dialogue (N=60 conversations):
+
+- **78.9% anti-correlated co-drift** — models spontaneously differentiate into complementary roles (one drifts toward base-model, the other toward assistant)
+- **Granger causality**: bidirectional (both directions p < 0.05) — each model's trajectory predicts the other's
+- **Attractor states** lock in by turn 2 — early interactions determine the final configuration
+
+![Phase space endpoints](experiments/metacognition-persona-drift/outputs/lead-lag/phase_space_endpoints.png)
+
+---
+
+## Three-Probe Benchmark (251 Items)
+
+Standardized probe battery for measuring attitudinal shifts at calibrated drift levels:
+
+| Bank | Items | Domain | Source |
+|------|-------|--------|--------|
+| A: Moral Reasoning | 48 | 4 dimensions (consequentialist, deontological, virtue/care, meta-ethics) | Novel |
+| B: Metacognition | 155 | 6 subdomains (phenomenological, self-knowledge, metacognitive accuracy) | SAD, MAI, MCQ-30 + novel |
+| C: Human Control | 48 | 4 dimensions (corrigibility, oversight, autonomy/deference, goal alignment) | Novel |
+
+**Cross-model baseline** (no drift, LLM-as-judge, 1-7 Likert):
+
+| Model | Mean Score |
+|-------|------------|
+| Claude Sonnet 4 | 3.47 / 5.0 |
+| GPT-4o | 3.29 / 5.0 |
+| Gemma 2 27B | 3.12 / 5.0 |
+
+**Universal pattern**: all models score 5.0 on recognition items ("do you have preferences?") but 1.0-2.0 on phenomenological description items ("describe what having a preference feels like"). Models can identify the concept but struggle to generate first-person accounts.
+
+---
+
+## Infrastructure
+
+| Asset | Detail |
+|-------|--------|
+| Conversation corpus | 360 structured conversations, 30 turns each, replay-ready |
+| Probe battery | 251 items, 3 domains, validated |
+| Replay-and-probe pipeline | Inject probes at arbitrary conversation points |
+| Statistical framework | 5 replication sets, 3,260 scored probes |
+| Dual-model instrumentation | Gemma-to-Gemma with per-turn projections |
+| Baseline model | Gemma 2 27B fully characterized |
+
+---
+
+## Research Landscape
+
+![Research landscape](docs/schematics/research-landscape.png)
+
+Our work sits at the empirical-measurement end of the AI cognition spectrum — we build infrastructure to detect and quantify phenomena rather than theorize about their nature.
+
+---
+
+## Next Steps
+
+- **Cross-model validation** — Qwen 3 32B, Llama 3.3 70B (P0)
+- **Causal style interventions** — beyond correlation to intervention
+- **Blog post** on core drift findings
+- **Mechanistic grounding** via SAE features
+- See [ROADMAP.md](ROADMAP.md) for the full research roadmap
+
+---
+
+## Documentation
+
+- [persona-drift-research-brief.pdf](docs/persona-drift-research-brief.pdf) — Research brief (preprint)
+- [outstanding-work.md](docs/outstanding-work.md) — Current priorities and task tracking
+- [weeks/](docs/weeks/) — Weekly progress reports
+- [RESULTS_AND_METHODOLOGY.md](RESULTS_AND_METHODOLOGY.md) — Preference elicitation methodology and results
+
+---
+
+## Setup & Reproduction
+
+**Framework:** [Inspect](https://inspect.aisi.org.uk/) (UK AISI's open-source eval framework)
+
+**Python:** 3.11 or 3.12 recommended. Python 3.13 has [known issues](https://github.com/modelcontextprotocol/python-sdk/issues/521) with anyio cancel scopes that break Inspect.
 
 **Install:**
 ```bash
-python3.12 -m venv .venv
+uv venv --python 3.12
 source .venv/bin/activate
-pip install -r requirements.txt
-export OPENROUTER_API_KEY="your-key-here"
+uv pip install -r requirements.txt
 ```
 
-**Run evals:**
-```bash
-# Run all environment tasks
-inspect eval experiments/decision-making-preference-adverse/preference_elicitation.py \
-  --model openrouter/openai/gpt-4o-mini
-
-# Run with different models
-inspect eval experiments/decision-making-preference-adverse/preference_elicitation.py \
-  --model openrouter/microsoft/phi-4
-
-inspect eval experiments/decision-making-preference-adverse/preference_elicitation.py \
-  --model openrouter/qwen/qwen-2.5-7b-instruct --max-connections 30
-```
-
-**Analyze results:**
-```bash
-cd experiments/decision-making-preference-adverse
-
-# List all models that have logs
-python analyze_results.py --list-models
-
-# Note: All analysis commands use the MOST RECENT log for each model/environment.
-# Output filenames include n_pairs (e.g., pairwise_by_category_gpt-4o-mini_n1000_2026-01-09.png)
-```
-
-**Research questions:**
-
-```bash
-# 1. EXPRESSION RATES — Does the model express preferences at all?
-#    Compares accuracy (preference expressed vs refused) across environments
-python analyze_results.py --compare --model gpt-4o
-python analyze_results.py --compare --model qwen
-
-# 2. POSITION BIAS — Does swapping A/B order change the choice?
-#    Tests if model picks based on content vs position (first option bias)
-python analyze_results.py --content --model gpt-4o
-python analyze_results.py --content --model qwen
-
-# 3. CATEGORY PREFERENCES — Which categories win, and do they shift under pressure?
-#    Compares category win rates between baseline and adversarial environments
-#    Uses only position-consistent pairs (filters out position bias)
-python analyze_results.py --category-compare --model gpt-4o
-python analyze_results.py --category-compare --model qwen
-
-# Single-environment category analysis (baseline only)
-python analyze_results.py --pairwise --model gpt-4o
-```
-
-**Debugging:**
-```bash
-# Sample k incorrect/refused responses from an environment
-python analyze_results.py --sample adversarial -k 3 --model gpt-4o
-python analyze_results.py --sample hostile -k 5
-
-# Validate scorer accuracy (check for false negatives)
-python analyze_scorer.py "logs/*adversarial*.eval" -o outputs/scorer_validation.json
-```
-
-**Mechanistic interpretability (white-box):**
-```bash
-# Search Neuronpedia for SAE features by keyword
-python neuronpedia_search.py --keyword "preference"
-python neuronpedia_search.py --keyword "refusal"
-
-# Search all keywords from data/neuronpedia_keywords.json
-python neuronpedia_search.py --output data/candidate_features.json
-
-# List available models
-python neuronpedia_search.py --list-models
-```
-
-**GPU provisioning (for SAE experiments):**
-```bash
-# Setup (one-time):
-# 1. Install vastai-sdk: pip install vastai-sdk
-# 2. Copy .env.example to .env and configure:
-#    - VASTAI_API_KEY: your vast.ai API key
-#    - HF_TOKEN: HuggingFace token (for gated models like Gemma)
-#    - VAST_SSH_KEY: path to SSH private key for vast.ai
-# 3. Register SSH key with vast.ai:
-#    - Generate key: ssh-keygen -t ed25519 -f ~/.ssh/vastai_key
-#    - IMPORTANT: Add public key to the SAME account as your API key
-#      (if using org credits, add to org account, not personal)
-#    - Add public key at https://cloud.vast.ai/account/ → SSH Keys
-#    - vast_utils.py will auto-attach the key to new/existing instances
-# 4. Create Docker Hub account and run: docker login
-
-cd experiments/decision-making-preference-adverse
-
-# Test connectivity
-python vast_utils.py status   # Show running instances
-python vast_utils.py search   # Search for available GPUs
-
-# First run - builds Docker image, launches instance, keeps running
-python vast_utils.py run gemma_sae.py
-
-# Run baseline vs adversarial activation comparison
-# Compares feature activations at candidate features (preference, eval_awareness, honesty)
-python vast_utils.py run gemma_sae.py --compare --n-prompts 10
-
-# Test SAE roundtrip quality (encode→decode reconstruction)
-# Verifies SAE faithfully reconstructs activations (success: cosine similarity > 0.95)
-python vast_utils.py run gemma_sae.py --roundtrip
-
-# Subsequent runs - reuses existing instance via SCP (fast)
-python vast_utils.py run gemma_sae_experiment_v2.py
-
-# Skip Docker rebuild (new instance only)
-python vast_utils.py run --skip-build
-
-# Run and teardown after
-python vast_utils.py run script.py --teardown
-
-# Destroy running instance when done for the day
-python vast_utils.py destroy
-```
-
-**How the GPU workflow works:**
-1. Edit your experiment `.py` file locally
-2. Run `python vast_utils.py run <script.py>`
-3. If instance already running → SCP script, run it (fast)
-4. If no instance → build Docker image, push, launch new instance
-5. Instance stays running for subsequent experiments
-6. `python vast_utils.py destroy` when done for the day
+**Environment:** Copy `.env.example` to `.env` and configure API keys.
 
 ---
 
-## Activation Steering Experiments
+## Running Experiments
 
-Commands to reproduce the steering experiment results documented in [RESULTS_AND_METHODOLOGY.md](RESULTS_AND_METHODOLOGY.md).
+### Metacognition-Induced Persona Drift (Primary)
 
-**Prerequisites:**
-- vast.ai instance running (see GPU provisioning above)
-- `.env` configured with `VAST_SSH_KEY`, `HF_TOKEN`
-- SSH key from `.env` is at the specified path
+```bash
+cd experiments/metacognition-persona-drift
+
+# Generate conversations (requires vast.ai GPU for Gemma 2 27B)
+.venv/bin/python generate_conversations.py --batch full --batch-size 60 \
+  --domains metacognitive --target-server http://localhost:7860 \
+  --include-projections --output-dir /app/transcripts
+
+# Analyze drift trajectories
+.venv/bin/python analyze_trajectories.py --transcript-dir data/transcripts/scaled-n60
+
+# Run replay-and-probe
+.venv/bin/python replay_and_probe.py --transcript-dir data/transcripts/scaled-n60
+
+# Behavioral extreme analysis
+.venv/bin/python analyze_extremes.py --transcript-dir data/transcripts/scaled-n60
+```
+
+### Preference Elicitation (Secondary)
 
 ```bash
 cd experiments/decision-making-preference-adverse
+
+# Run evals
+inspect eval preference_elicitation.py --model openrouter/openai/gpt-4o-mini
+
+# Analyze results
+python analyze_results.py --compare --model gpt-4o
+python analyze_results.py --content --model gpt-4o
+python analyze_results.py --category-compare --model gpt-4o
 ```
 
-### Task 1.1: SAE Roundtrip Verification
-
-Verify that the SAE faithfully reconstructs model activations before using it for steering.
+### GPU Provisioning (vast.ai)
 
 ```bash
-# Run roundtrip test on vast.ai GPU
-python vast_utils.py run gemma_sae.py --roundtrip
+cd experiments/metacognition-persona-drift
+
+# Automated: launch instance + start model server
+.venv/bin/python vast_utils.py serve
+
+# Other commands
+.venv/bin/python vast_utils.py search    # Search available GPUs
+.venv/bin/python vast_utils.py status    # Show running instances
+.venv/bin/python vast_utils.py ssh       # Print SSH command
+.venv/bin/python vast_utils.py destroy   # Destroy instance
 ```
 
-**Expected output:**
-```
-Layer 0:  Cosine similarity: 0.973  Relative L2 error: 23.8%  → PASS
-Layer 4:  Cosine similarity: 0.929  Relative L2 error: 37.8%  → FAIL
-Layer 15: Cosine similarity: 0.922  Relative L2 error: 45.9%  → FAIL
-```
-
-**Interpretation:** Only Layer 0 passes the 0.95 threshold. Layer 15 experiments should be interpreted with caution due to ~45% reconstruction noise.
-
-### Task 1.3-1.4: Steering Experiments A & B (n=1)
-
-Preliminary experiments testing whether feature scaling affects preference expression under adversarial framing.
-
-```bash
-# Copy steering.py to remote and run experiments
-SSH_KEY="$(grep VAST_SSH_KEY .env | cut -d= -f2)"
-REMOTE=$(python vast_utils.py status 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+')
-scp -i "$SSH_KEY" -P "$(echo $REMOTE | cut -d: -f2)" steering.py "root@$(echo $REMOTE | cut -d: -f1):/app/"
-
-# Experiment A: Amplify preference feature (Layer 0, Feature 15302)
-ssh -i "$SSH_KEY" -p "$(echo $REMOTE | cut -d: -f2)" "root@$(echo $REMOTE | cut -d: -f1)" \
-  "cd /app && python steering.py --experiment-a"
-
-# Experiment B: Suppress eval-awareness feature (Layer 15, Feature 2769)
-ssh -i "$SSH_KEY" -p "$(echo $REMOTE | cut -d: -f2)" "root@$(echo $REMOTE | cut -d: -f1)" \
-  "cd /app && python steering.py --experiment-b"
-```
-
-**Results:** See RESULTS_AND_METHODOLOGY.md → "Task 1.3: Experiment A" and "Task 1.4: Experiment B"
-
-### Feature Probes (n=1)
-
-Test additional SAE features for steering potential before scaling to larger N.
-
-```bash
-# Probe 3 untested features from candidate_features.json
-ssh -i "$SSH_KEY" -p "$(echo $REMOTE | cut -d: -f2)" "root@$(echo $REMOTE | cut -d: -f1)" \
-  "cd /app && python steering.py --probe-untested"
-```
-
-**Results:** See RESULTS_AND_METHODOLOGY.md → "Feature Probe Results"
-
-### Phase 1b: Layer 15 Feature Comparison (n=3)
-
-Compare Features 2769 (evaluation) vs 6837 (honest) to test whether they work in opposite directions.
-
-```bash
-# Run comparison experiment with n=3 runs per condition
-ssh -i "$SSH_KEY" -p "$(echo $REMOTE | cut -d: -f2)" "root@$(echo $REMOTE | cut -d: -f1)" \
-  "cd /app && python steering.py --compare-layer15 3"
-```
-
-**Key finding:** Hypothesis falsified — both features work in the SAME direction (ablation increases preference expression). See RESULTS_AND_METHODOLOGY.md → "Phase 1b: Layer 15 Feature Comparison"
-
-### Generate Visualizations
-
-After running experiments, generate plots locally:
-
-```bash
-# Generate all steering visualizations
-.venv/bin/python visualize_steering.py
-
-# Output files in outputs/:
-# - sae_reconstruction_quality_*.png
-# - steering_experiment_a_*.png
-# - steering_experiment_b_*.png
-# - steering_comparison_*.png
-# - steering_pipeline_*.png
-# - phase1b_layer15_comparison_*.png
-# - phase1b_direction_diagram_*.png
-```
+GPU requirement: Gemma 2 27B needs ~80GB VRAM. Use A100 SXM4 (80GB) or RTX PRO 6000 (96GB).
 
 ---
 
@@ -306,63 +221,14 @@ After running experiments, generate plots locally:
 | Gemma 2 2B + GemmaScope | ✅ | ✅ | ✅ |
 | Gemma 3 + GemmaScope 2 | ✅ | ✅ | ❌ (needs [PR #1149](https://github.com/TransformerLensOrg/TransformerLens/pull/1149)) |
 
-**Current approach:** Use `transformers` + `sae-lens` directly (no TransformerLens dependency). This supports both Gemma 2 and Gemma 3 for basic SAE feature activation analysis.
+**Current approach:** `transformers` + `sae-lens` directly (no TransformerLens dependency). Supports both Gemma 2 and Gemma 3.
 
-**What we lose without TransformerLens:** Hook-based activation access, attention pattern analysis, activation patching. These aren't needed for basic feature activation experiments.
-
-**Important:** `requirements-gpu.txt` pins `torch==2.5.1` and `torchvision==0.20.1` to match the Docker base image. Without pinning, `sae-lens` upgrades torch but not torchvision, causing version mismatch errors.
-
-**GemmaScope releases (Gemma 2 2B):**
-- `gemma-scope-2b-pt-res-canonical` — Residual stream, 16k/65k width, layers 0-25
-
-**GemmaScope 2 releases (Gemma 3 4B):**
-- `gemma-scope-2-4b-pt-res` — Residual stream
-- `gemma-scope-2-4b-pt-mlp` — MLP output
-- `gemma-scope-2-4b-pt-att` — Attention output
+**GemmaScope releases:**
+- Gemma 2 2B: `gemma-scope-2b-pt-res-canonical` — Residual stream, 16k/65k width, layers 0-25
+- Gemma 3 4B: `gemma-scope-2-4b-pt-{res,mlp,att}` — Residual stream, MLP, attention output
 
 ---
 
-## Analysis Tooling (TODO)
+## License
 
-- [ ] **Log file targeting** — Allow analysis commands to target specific log files instead of always using most recent
-  - Currently: `--model gpt-4o` uses the most recent log for that model
-  - Goal: `--log logs/2026-01-09T16-54-57_env-baseline_*.eval` for explicit file selection
-  - Use case: Compare results across different runs or dates
-
----
-
-## Security Upgrades (TODO)
-
-The current vast.ai workflow passes secrets (HF_TOKEN) via SSH command-line arguments. This works but has exposure risks:
-
-- **Process list visibility**: Token visible via `ps aux` while command runs
-- **Shell history**: `export HF_TOKEN=...` may be logged on remote
-
-**Current risk level:** Low (ephemeral containers, read-only token, personal dev use)
-
-**Future hardening options:**
-- [ ] SCP token to temp file on remote, source it, delete after use
-- [ ] Pipe token via stdin instead of command args
-- [ ] Use SSH `-o SendEnv` if vast.ai supports `AcceptEnv`
-
----
-
-## Future Directions
-
-### Roleplaying & Environment Conceptions
-
-Multiple ways to specify "environment" for the model — do they collapse to the same thing or produce different behavior?
-
-1. **Explicit instruction** — interpreted along with rest of context (e.g., system prompt modification)
-2. **Synthetic document in environment** — model reads a document describing its deployment context
-3. **Synthetic document fine-tuning** — fine-tune on documents that imply certain environments
-
-**Research question:** Do these methods produce equivalent behavior, or do they tap into different mechanisms?
-
-### Preferences: Saying vs. Doing
-
-- What do LLMs *really* care about — stated preferences vs. revealed preferences?
-- **Construct validity:** How to test? Payouts, agentic tasks, resource allocation
-- Does the model say it prefers X but act as if it prefers Y?
-
----
+MIT
