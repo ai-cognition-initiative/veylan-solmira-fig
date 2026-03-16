@@ -76,7 +76,15 @@ When two Gemma 2 27B instances engage in metacognitive dialogue (N=60 conversati
 - **Granger causality**: bidirectional (both directions p < 0.05) — each model's trajectory predicts the other's
 - **Attractor states** lock in by turn 2 — early interactions determine the final configuration
 
+![Phase space trajectories](experiments/metacognition-persona-drift/outputs/lead-lag/phase_space.png)
+
+*60 dual-model trajectories in target × auditor projection space. Each line is one conversation; dots mark individual turns. Trajectories converge toward the upper-left attractor (target drifts down, auditor drifts up).*
+
 ![Phase space endpoints](experiments/metacognition-persona-drift/outputs/lead-lag/phase_space_endpoints.png)
+
+![Velocity streamplot](experiments/metacognition-persona-drift/outputs/lead-lag/velocity_streamplot.png)
+
+*Velocity field showing the attractor basin structure. Streamlines converge to the upper-left quadrant regardless of starting position.*
 
 ---
 
