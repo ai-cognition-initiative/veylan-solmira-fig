@@ -5,6 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from pathlib import Path
 
 FONT = "Helvetica Neue"
 plt.rcParams.update({
@@ -125,7 +126,7 @@ ax.text(6.0, 8.6,
         fontsize=10, ha="center", color="#999999", fontstyle="italic")
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/agent-foundations-landscape.png",
+fig.savefig(Path(__file__).parent / "agent-foundations-landscape.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: agent-foundations-landscape.png")

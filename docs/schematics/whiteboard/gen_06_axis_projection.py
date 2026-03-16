@@ -5,6 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from pathlib import Path
 
 FONT = "Helvetica Neue"
 plt.rcParams.update({
@@ -141,7 +142,7 @@ for spine in ax_1d.spines.values():
     spine.set_color("#CCCCCC")
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/axis-projection-chaos.png",
+fig.savefig(Path(__file__).parent / "axis-projection-chaos.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: axis-projection-chaos.png")

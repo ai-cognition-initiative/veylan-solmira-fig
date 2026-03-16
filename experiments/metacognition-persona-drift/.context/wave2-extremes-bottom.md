@@ -52,7 +52,7 @@ outputs/scaled-n60-full/extremes/
    - Validation sycophancy (nrimsky): opposes drift (-0.414 cosine)
 
 2. **Documentation created**:
-   - `the linear probes reference document`
+   - the linear probes reference document
    - `experiments/metacognition-persona-drift/docs/linear-probes-application.md`
    - `experiments/metacognition-persona-drift/docs/wiki/difference-in-means.md`
    - `experiments/metacognition-persona-drift/docs/wiki/sycophancy.md`
@@ -82,7 +82,7 @@ From roadmap:
 ## Infrastructure
 
 - vast.ai instances: Check before destroying (shared account)
-- SSH key: `$VAST_SSH_KEY`
+- SSH key: `$VAST_SSH_KEY` (or `~/.ssh/vast-key`)
 - API keys: `future-impact-group/.env`
 - Python: `.venv/bin/python` (3.14)
 

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import numpy as np
+from pathlib import Path
 
 C = {
     'bg':         '#FAFAFA',
@@ -175,7 +176,7 @@ ax.text(7.5, -0.8, 'This research sits at the empirical\u2013measurement boundar
         bbox=dict(boxstyle='round,pad=0.4', facecolor='white', edgecolor=C['border'],
                   linewidth=0.8))
 
-plt.savefig('docs/schematics/research-landscape.png',
+plt.savefig(Path(__file__).parent / 'research-landscape.png',
             dpi=200, bbox_inches='tight', facecolor=C['bg'])
 plt.close()
 print("Done: research-landscape.png")

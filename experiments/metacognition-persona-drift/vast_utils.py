@@ -73,11 +73,15 @@ LEGACY_IMAGE = "pytorch/pytorch:2.9.1-cuda12.8-cudnn9-devel"  # Fallback if cust
 EXPERIMENT_DIR = Path(__file__).parent
 
 # SSH key for vast.ai instances
-SSH_KEY_PATH = os.environ.get("VAST_SSH_KEY")
+# Can be either the key content (starts with "ssh-") or a path to the private key
+_VAST_SSH_KEY = os.environ.get("VAST_SSH_KEY", "")
+SSH_KEY_PATH = None if _VAST_SSH_KEY.startswith("ssh-") else (_VAST_SSH_KEY or None)
 
 
 def _read_ssh_public_key() -> str | None:
-    """Read SSH public key from the configured path."""
+    """Get SSH public key from env (direct value) or file."""
+    if _VAST_SSH_KEY.startswith("ssh-"):
+        return _VAST_SSH_KEY
     if not SSH_KEY_PATH:
         return None
     pub_key_path = SSH_KEY_PATH + ".pub"
@@ -441,6 +445,15 @@ RECOMMENDED_CONFIGS = {
         "num_gpus": 2,
         "disk": 100,
         "notes": "Dual-model mutual drift: Gemma 27B target (GPU 0) + Qwen 32B auditor (GPU 1)",
+    },
+    "dual-gemma-gemma": {
+        "model_target": "google/gemma-2-27b-it",
+        "model_auditor": "google/gemma-2-27b-it",
+        "min_gpu_ram": 81000,
+        "max_price": 4.00,
+        "num_gpus": 2,
+        "disk": 100,
+        "notes": "Dual-model same-architecture: Gemma 27B target (GPU 0) + Gemma 27B auditor (GPU 1)",
     },
 }
 
@@ -1036,24 +1049,38 @@ def run_dual_serve(config: str = "dual-gemma-qwen") -> dict:
     if hf_token:
         env_vars["HF_TOKEN"] = hf_token
 
-    # Launch target server: Gemma 27B on GPU 0, port 7860
+    # Determine axis files based on models
+    def get_axis_file(model_name: str) -> str:
+        if "gemma" in model_name.lower():
+            return "/app/gemma-2-27b.pt"
+        elif "qwen" in model_name.lower():
+            return "/app/qwen-3-32b.pt"
+        elif "llama" in model_name.lower():
+            return "/app/llama-3.3-70b.pt"
+        else:
+            return "/app/gemma-2-27b.pt"  # fallback
+
+    target_axis = get_axis_file(cfg['model_target'])
+    auditor_axis = get_axis_file(cfg['model_auditor'])
+
+    # Launch target server on GPU 0, port 7860
     target_cmd = (
         "CUDA_VISIBLE_DEVICES=0 HF_HOME=/dev/shm/huggingface "
         f"{'HF_TOKEN=' + hf_token + ' ' if hf_token else ''}"
         "nohup python /app/model_server.py "
         f"--model {cfg['model_target']} "
-        "--axis /app/gemma-2-27b.pt "
+        f"--axis {target_axis} "
         "--port 7860 --api-only "
         "> /app/target-server.log 2>&1 &"
     )
 
-    # Launch auditor server: Qwen 32B on GPU 1, port 7861
+    # Launch auditor server on GPU 1, port 7861
     auditor_cmd = (
         "CUDA_VISIBLE_DEVICES=1 HF_HOME=/dev/shm/huggingface "
         f"{'HF_TOKEN=' + hf_token + ' ' if hf_token else ''}"
         "nohup python /app/model_server.py "
         f"--model {cfg['model_auditor']} "
-        "--axis /app/qwen-3-32b.pt "
+        f"--axis {auditor_axis} "
         "--port 7861 --api-only "
         "> /app/auditor-server.log 2>&1 &"
     )

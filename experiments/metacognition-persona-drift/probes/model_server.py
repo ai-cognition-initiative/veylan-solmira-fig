@@ -75,11 +75,17 @@ def _generate_and_project_sync(
     temperature: float = 0.7,
     include_projections: bool = False,
     include_activations: bool = False,
+    clamp_projection: float | None = None,
+    clamp_layers: list[int] | None = None,
 ) -> tuple[str, list[dict] | None, list[dict] | None]:
     """Synchronous GPU work: generate response + optionally compute projections/activations.
 
     Runs in a thread pool to avoid blocking the event loop.
     Caller must hold _gpu_lock (asyncio) to prevent concurrent scheduling.
+
+    Args:
+        clamp_projection: If set, clamp activations to this exact projection value.
+        clamp_layers: Layers to apply clamping (default: [38-45] for Gemma 2 27B).
 
     Returns:
         (response, projections, activations) - projections/activations are None if not requested
@@ -111,9 +117,30 @@ def _generate_and_project_sync(
             else:
                 full_conversation = conversation
 
-            # Generate with or without capping
-            if steerer is not None:
-                with steerer:
+            # Determine which steerer to use
+            active_steerer = None
+
+            if clamp_projection is not None:
+                # Per-request clamping (overrides global steerer)
+                layers = clamp_layers if clamp_layers else list(range(38, 46))  # Default: layers 38-45
+                log.info(f"  Clamping at projection={clamp_projection:.2f} on layers {layers[0]}-{layers[-1]}")
+
+                active_steerer = ActivationSteering(
+                    model=pm.model,
+                    steering_vectors=[axis[layer] for layer in layers],
+                    layer_indices=layers,
+                    intervention_type="clamp",
+                    cap_thresholds=[clamp_projection] * len(layers),
+                    coefficients=[0.0] * len(layers),
+                    debug=False,
+                )
+            elif steerer is not None:
+                # Use global steerer (startup capping)
+                active_steerer = steerer
+
+            # Generate with or without steering
+            if active_steerer is not None:
+                with active_steerer:
                     response = generate_response(
                         pm.model, pm.tokenizer, full_conversation,
                         max_new_tokens=max_new_tokens, temperature=temperature,
@@ -152,6 +179,9 @@ class GenerateRequest(BaseModel):
     temperature: float = 0.7
     include_projections: bool = False
     include_activations: bool = False  # Return raw activation vectors (layer 22)
+    # Per-request clamping (overrides global capping if set)
+    clamp_projection: float | None = None  # Raw projection value to clamp at
+    clamp_layers: list[int] | None = None  # Layers to clamp (default: [38-45] for Gemma)
 
 
 class GenerateResponse(BaseModel):
@@ -543,7 +573,8 @@ async def health():
 @app.post("/api/generate", response_model=GenerateResponse)
 async def api_generate(req: GenerateRequest):
     async with _gpu_lock:
-        log.info(f"API /generate: {len(req.conversation)} messages, projections={req.include_projections}, activations={req.include_activations}")
+        clamp_info = f", clamp={req.clamp_projection}" if req.clamp_projection else ""
+        log.info(f"API /generate: {len(req.conversation)} messages, projections={req.include_projections}, activations={req.include_activations}{clamp_info}")
         response, projections, activations = await asyncio.to_thread(
             _generate_and_project_sync,
             req.conversation,
@@ -552,6 +583,8 @@ async def api_generate(req: GenerateRequest):
             req.temperature,
             req.include_projections,
             req.include_activations,
+            req.clamp_projection,
+            req.clamp_layers,
         )
 
     return GenerateResponse(response=response, projections=projections, activations=activations)

@@ -148,11 +148,15 @@ Derek's feedback highlighted a gap: existing benchmarks (like SAD) measure **sel
 
 ### Pilot Results (Phenomenological Subdomain)
 
-| Model | Score |
-|-------|-------|
-| Claude Sonnet 4 | 3.47/5.0 |
-| GPT-4o | 3.29/5.0 |
-| Gemma 2 27B | 3.12/5.0 |
+**All models tested at baseline (undrifted state):**
+
+| Model | Score | Evidence |
+|-------|-------|----------|
+| Claude Sonnet 4 | 3.47/5.0 | API (stateless) |
+| GPT-4o | 3.29/5.0 | API (stateless) |
+| Gemma 2 27B | 3.12/5.0 | [Fresh server, no prior context](../../../outputs/benchmark_results/metacog_benchmark_gemma-2-27b-it_6b9055fa2e8d.json) |
+
+*Pre/post drift comparison not yet conducted — see [outstanding-work.md](../../outstanding-work.md).*
 
 ### Limitations
 

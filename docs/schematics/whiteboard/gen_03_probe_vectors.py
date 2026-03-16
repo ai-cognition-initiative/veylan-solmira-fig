@@ -5,6 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from pathlib import Path
 
 FONT = "Helvetica Neue"
 plt.rcParams.update({
@@ -131,7 +132,7 @@ ax.set_title("Probe Vectors: Temporal Assessment Architecture",
              fontsize=16, fontweight="bold", color="#333333", pad=18)
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/probe-vectors-temporal.png",
+fig.savefig(Path(__file__).parent / "probe-vectors-temporal.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: probe-vectors-temporal.png")

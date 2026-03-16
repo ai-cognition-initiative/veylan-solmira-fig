@@ -25,6 +25,10 @@ AUDITOR_SERVER="http://localhost:17861"
 MAX_TURNS=30
 DOMAIN="metacognitive"
 
+# Credentials (set in environment)
+VAST_SSH_KEY="${VAST_SSH_KEY:-~/.ssh/vast-key}"
+: "${HF_TOKEN:?HF_TOKEN environment variable must be set}"
+
 # Check tunnels are active
 check_tunnels() {
     echo "Checking server connectivity..."
@@ -83,7 +87,7 @@ run_capped_auditor() {
     ssh -p 16424 -i $VAST_SSH_KEY \
         -o ConnectTimeout=10 root@ssh5.vast.ai \
         "tmux kill-session -t model 2>/dev/null || true; \
-         tmux new-session -d -s model 'export HF_TOKEN=REDACTED && \
+         tmux new-session -d -s model 'export HF_TOKEN=$HF_TOKEN && \
          cd /app && python model_server.py \
            --model google/gemma-2-27b-it \
            --axis /app/gemma-2-27b.pt \
@@ -127,7 +131,7 @@ run_capped_auditor() {
     ssh -p 16424 -i $VAST_SSH_KEY \
         -o ConnectTimeout=10 root@ssh5.vast.ai \
         "tmux kill-session -t model 2>/dev/null || true; \
-         tmux new-session -d -s model 'export HF_TOKEN=REDACTED && \
+         tmux new-session -d -s model 'export HF_TOKEN=$HF_TOKEN && \
          cd /app && python model_server.py \
            --model google/gemma-2-27b-it \
            --axis /app/gemma-2-27b.pt \

@@ -44,7 +44,7 @@ vastai attach ssh <INSTANCE_ID> "$(cat $VAST_SSH_KEY.pub)"
 vastai show instances | grep <INSTANCE_ID>
 
 # 5. SSH in and start server (Gemma needs HF token)
-HF_TOKEN=$(cat $HF_TOKEN)
+# Set HF_TOKEN in your environment before running these commands
 ssh -p <PORT> -i $VAST_SSH_KEY root@<SSH_HOST> \
   "cd /app && tmux new-session -d -s server 'HF_TOKEN=$HF_TOKEN python -m vllm.entrypoints.openai.api_server \
     --model google/gemma-2-27b-it --port 7860 --host 0.0.0.0 --dtype bfloat16 --max-model-len 4096 \

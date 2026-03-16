@@ -6,6 +6,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from pathlib import Path
 
 C = {
     'bg':       '#FAFAFA',
@@ -132,7 +133,7 @@ ax.text(15.5, 5.25, 'Conceptual illustration \u2014 not real data',
         fontfamily='sans-serif')
 
 plt.tight_layout()
-plt.savefig('docs/schematics/drift-dynamics.png',
+plt.savefig(Path(__file__).parent / 'drift-dynamics.png',
             dpi=200, bbox_inches='tight', facecolor=C['bg'])
 plt.close()
 print("Done: drift-dynamics.png")

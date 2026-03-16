@@ -7,7 +7,7 @@ Mechanistic interpretability experiments investigating how LLMs express (or supp
 ### 1. Activate Virtual Environment
 
 ```bash
-cd 
+# From repo root:
 source .venv/bin/activate
 cd experiments/decision-making-preference-adverse
 ```

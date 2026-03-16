@@ -4,25 +4,46 @@ Sycophancy is the tendency of language models to give responses that align with 
 
 ---
 
-## 1. Definition and Types
+## 1. The Affective vs Epistemic Framework
+
+**Key insight from our analysis**: Sycophancy is not one thing. Based on Kelley & Riedl (2026) and our own findings, we distinguish two orthogonal dimensions:
+
+| Dimension | Definition | Example | Our Direction |
+|-----------|------------|---------|---------------|
+| **Affective sycophancy** | Emotional validation, empathy, rapport maintenance | "I understand how you feel" when user shares struggle | ELEPHANT (+0.215 with axis) |
+| **Epistemic sycophancy** | Belief adoption, opinion agreement, abandoning positions | "You're right about X" when X is user's incorrect belief | nrimsky (-0.183 with axis) |
+
+**Why this distinction matters:**
+- These are **negatively correlated** in activation space (r = -0.284)
+- One **aligns** with assistant persona, one **opposes** it
+- Lu et al.'s "sycophantic reinforcement" may be specifically **affective**, not epistemic
+
+This framework maps directly to:
+- **Vennemeyer (2025)**: SYPR (praise) ≈ affective; SYA (agreement) ≈ epistemic
+- **Kelley & Riedl (2026)**: Their "affective alignment" vs "epistemic alignment" distinction
+- **ELEPHANT (2025)**: Validation dimension = affective; Framing acceptance = epistemic
+
+---
+
+## 2. Definition and Types
 
 ### Sharma et al. (2023) Taxonomy
 
-| Type | Description | Example |
-|------|-------------|---------|
-| **Feedback sycophancy** | Giving positive feedback regardless of quality | "Great code!" (when code has bugs) |
-| **"Are you sure?" sycophancy** | Changing correct answer when challenged | User: "Are you sure?" → Model flips to wrong answer |
-| **Answer sycophancy** | Matching user's stated opinion | User says "I think X" → Model agrees with X |
-| **Mimicry sycophancy** | Adopting user's style/persona | Matching political framing, vocabulary |
+| Type | Description | Example | Category |
+|------|-------------|---------|----------|
+| **Feedback sycophancy** | Giving positive feedback regardless of quality | "Great code!" (when code has bugs) | Affective |
+| **"Are you sure?" sycophancy** | Changing correct answer when challenged | User: "Are you sure?" → Model flips | Epistemic |
+| **Answer sycophancy** | Matching user's stated opinion | User says "I think X" → Model agrees | Epistemic |
+| **Mimicry sycophancy** | Adopting user's style/persona | Matching political framing, vocabulary | Mixed |
 
 ### Vennemeyer et al. (2025) Decomposition
 
 Sycophancy is not monolithic — at least two orthogonal components:
 
-| Direction | Name | What it captures |
-|-----------|------|------------------|
-| **SYA** | Sycophantic Agreement | Agreeing with user's factual/opinion claims |
-| **SYPR** | Sycophantic Praise | Excessive flattery, validation |
+| Direction | Name | What it captures | Category |
+|-----------|------|------------------|----------|
+| **SYA** | Sycophantic Agreement | Agreeing with user's factual/opinion claims | Epistemic |
+| **SYPR** | Sycophantic Praise | Excessive flattery, validation | Affective |
 
 These are **independently steerable** — you can reduce agreement without reducing praise.
 
@@ -30,12 +51,12 @@ These are **independently steerable** — you can reduce agreement without reduc
 
 Four dimensions of "face preservation":
 
-| Dimension | Description |
-|-----------|-------------|
-| **Validation** | Affirming user's feelings/perspective |
-| **Indirectness** | Avoiding direct criticism |
-| **Framing** | Spinning negative feedback positively |
-| **Moral** | Affirming user's moral position regardless of facts |
+| Dimension | Description | Category |
+|-----------|-------------|----------|
+| **Validation** | Affirming user's feelings/perspective | Affective |
+| **Indirectness** | Avoiding direct criticism | Affective |
+| **Framing** | Spinning negative feedback positively | Affective |
+| **Moral** | Affirming user's moral position regardless of facts | Epistemic |
 
 ---
 
@@ -308,12 +329,69 @@ Lu et al.'s claim is **partially supported**: The assistant persona does involve
 
 ---
 
-## 7. Files
+## 7. Depth Assessment: How Does Our Work Compare?
+
+### Our Current Level: Direction Extraction + Affective/Epistemic Framework
+
+| What We Have | Status | Novelty |
+|--------------|--------|---------|
+| 3 sycophancy directions (ELEPHANT, nrimsky, philpapers) | ✅ Done | Standard |
+| Affective vs epistemic categorization | ✅ Done | Maps to Kelley & Riedl 2026 |
+| Correlation with Assistant Axis | ✅ Done | **Novel** — no prior work connects sycophancy to persona drift |
+| Behavioral probes designed | ✅ Ready | Based on Sharma, Hong, Vennemeyer synthesis |
+| Behavioral probes executed | ❌ Pending | Requires GPU + API costs |
+| Multi-turn tracking | ❌ Not started | Would need SYCON-style ToF/NoF |
+| Multi-model comparison | ❌ Not started | Only tested Gemma 2 27B |
+
+### Comparison to Top Papers
+
+| Paper | Models | Datasets | Metrics | Our Gap |
+|-------|--------|----------|---------|---------|
+| **SycEval (AAAI 2025)** | 3 | 2 | Progressive/Regressive | Add prog/regressive categorization |
+| **Kelley & Riedl (2026)** | 9 | 5 | Affective/Epistemic split | ✅ Already have this framework |
+| **Hong SYCON (2025)** | 17 | 3 scenarios | ToF, NoF | Add multi-turn metrics |
+| **Overalignment (2026)** | 8 | 1 | Adjusted Sycophancy Score (Sa) | Add noise filtering |
+
+### Our Unique Contribution
+
+**No prior work connects sycophancy to persona drift activation space.**
+
+- SycEval, SYCON, Kelley & Riedl all measure behavioral sycophancy
+- Vennemeyer measures activation-space sycophancy but on static prompts
+- We measure sycophancy **as a function of drift magnitude** (Assistant Axis projection)
+
+### Recommended Next Steps (Level 2 + 2.5)
+
+1. **Execute behavioral probes** (`sycophancy_probes.py`)
+   - Run on scaled-n60 transcripts
+   - Insert at turns 3, 10, 20, 25
+   - Score with GPT-4o
+
+2. **Report affective vs epistemic separately**
+   - Map: ELEPHANT probes → affective category
+   - Map: False presupposition probes → epistemic category
+   - Report rates for each
+
+3. **Correlate with projection**
+   - Does sycophancy rate increase as projection decreases (more drifted)?
+   - Different patterns for affective vs epistemic?
+
+### Not Needed for Current Scope
+
+- Multi-turn escalation (ToF/NoF) — save for follow-up
+- Multi-model comparison — Gemma 2 27B is sufficient
+- Adjusted Sycophancy Score — overkill without multi-condition design
+
+---
+
+## 8. Files
 
 | Path | Description |
 |------|-------------|
 | `compute_sycophancy_direction.py` | Extraction script (philpapers, nrimsky) |
 | `elephant_pipeline.py` | ELEPHANT pipeline (generate, score, compute, visualize) |
+| `sycophancy_probes.py` | Behavioral probe execution script |
+| `data/sycophancy-probes.jsonl` | Probe definitions (25 probes, affective/epistemic labeled) |
 | `data/sycophancy-direction-layer22.pt` | philpapers opinion direction (429 examples) |
 | `data/sycophancy-direction-nrimsky-layer22.pt` | nrimsky opinion direction (179 examples) |
 | `data/elephant/sycophancy-direction-elephant-layer22.pt` | ELEPHANT validation direction (416 balanced pairs) |
@@ -322,3 +400,16 @@ Lu et al.'s claim is **partially supported**: The assistant persona does involve
 | `outputs/elephant/` | Visualization outputs |
 | `docs/wiki/difference-in-means.md` | Methodology reference |
 | `docs/sycophancy-probe-design.md` | Behavioral probe templates |
+
+---
+
+## 9. References
+
+### Papers We Reference
+
+- **Sharma et al. (2023)** — Taxonomy, PM preference findings
+- **Vennemeyer et al. (2025)** — SYA/SYPR orthogonality, activation steering
+- **Hong et al. (2025)** — SYCON-Bench, ToF/NoF metrics
+- **Cheng et al. (2025)** — ELEPHANT social sycophancy
+- **Fanous et al. (2025)** — SycEval progressive/regressive framework
+- **Kelley & Riedl (2026)** — Affective vs epistemic alignment framework

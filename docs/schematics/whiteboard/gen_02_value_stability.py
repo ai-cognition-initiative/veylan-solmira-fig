@@ -4,6 +4,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 FONT = "Helvetica Neue"
 plt.rcParams.update({
@@ -96,7 +97,7 @@ ax.set_title("Value Stability Over Time: Cosine Similarity Trajectories",
              fontsize=16, fontweight="bold", color="#333333", pad=18)
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/value-stability-over-time.png",
+fig.savefig(Path(__file__).parent / "value-stability-over-time.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: value-stability-over-time.png")

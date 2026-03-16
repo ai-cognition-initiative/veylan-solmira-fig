@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch
 import numpy as np
+from pathlib import Path
 
 # Color palette
 C = {
@@ -145,7 +146,7 @@ ax.text(6.75, summary_y + 0.55, 'Combined: 251-item probe battery',
         ha='center', va='center', fontsize=10, fontweight='bold', color=C['text'],
         fontfamily='sans-serif')
 
-plt.savefig('docs/schematics/probe-vectors.png',
+plt.savefig(Path(__file__).parent / 'probe-vectors.png',
             dpi=200, bbox_inches='tight', facecolor=C['bg'])
 plt.close()
 print("Done: probe-vectors.png")

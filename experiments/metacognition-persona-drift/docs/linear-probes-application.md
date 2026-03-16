@@ -2,7 +2,7 @@
 
 Project-specific guide connecting linear probe methodology to the metacognition-persona-drift experiment infrastructure.
 
-**General reference**: See `the linear probes reference document` for foundational concepts.
+**General reference**: See the linear probes reference document for foundational concepts.
 
 ---
 

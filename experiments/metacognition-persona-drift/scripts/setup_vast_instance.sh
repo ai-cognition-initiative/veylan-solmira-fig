@@ -18,9 +18,9 @@ set -e
 
 SSH_HOST="${1:-ssh8.vast.ai}"
 SSH_PORT="${2:-37496}"
-SSH_KEY="$VAST_SSH_KEY"
-PROJECT_DIR="$HOME/Desktop/ai_dev/future-impact-group/veylan-solmira-fig/experiments/metacognition-persona-drift"
-HF_TOKEN=$(cat "$HF_TOKEN")
+SSH_KEY="${VAST_SSH_KEY:-$HOME/.ssh/vast-key}"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HF_TOKEN="${HF_TOKEN:?HF_TOKEN environment variable must be set}"
 
 # Colors for output
 RED='\033[0;31m'

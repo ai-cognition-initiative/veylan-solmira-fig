@@ -6,6 +6,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from pathlib import Path
 
 # Color palette — muted professional
 COLORS = {
@@ -123,7 +124,7 @@ for i, s in enumerate(stages):
                      arrowprops=dict(arrowstyle='->', color=COLORS['arrow'],
                                      lw=2, mutation_scale=15))
 
-plt.savefig('docs/schematics/pipeline-overview.png',
+plt.savefig(Path(__file__).parent / 'pipeline-overview.png',
             dpi=200, bbox_inches='tight', facecolor=COLORS['bg'])
 plt.close()
 print("Done: pipeline-overview.png")

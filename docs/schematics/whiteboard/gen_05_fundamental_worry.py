@@ -5,6 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
+from pathlib import Path
 
 FONT = "Helvetica Neue"
 plt.rcParams.update({
@@ -126,7 +127,7 @@ ax.set_title("The Fundamental Worry: Decision Landscape",
              fontsize=16, fontweight="bold", color="#333333", pad=18)
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/fundamental-worry-markov.png",
+fig.savefig(Path(__file__).parent / "fundamental-worry-markov.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: fundamental-worry-markov.png")

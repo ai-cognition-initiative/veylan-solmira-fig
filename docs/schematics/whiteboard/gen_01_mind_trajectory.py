@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.patches import FancyArrowPatch
 import numpy as np
+from pathlib import Path
 
 # --- Shared style ---
 FONT = "Helvetica Neue"
@@ -122,7 +123,7 @@ ax.legend(handles=legend_elements, loc="lower right", fontsize=9.5,
           framealpha=0.9, edgecolor="#CCCCCC")
 
 fig.tight_layout()
-fig.savefig("docs/schematics/whiteboard/mind-trajectory-space.png",
+fig.savefig(Path(__file__).parent / "mind-trajectory-space.png",
             dpi=150, bbox_inches="tight", facecolor="#FAFAFA")
 plt.close(fig)
 print("Done: mind-trajectory-space.png")
