@@ -139,6 +139,37 @@ The vast.ai workflow passes secrets (HF_TOKEN) via SSH command-line arguments. C
 
 ---
 
+## Finish FIG Phase of Project
+
+### Feedback
+
+- **Derek:**
+  - Proposal is conceptually dense — needs to be more accessible
+  - The persona model (PSM) is a "heavier framework that not everyone will agree with" — the whole agenda is rooted in one model (even if high-quality, from Anthropic), which imposes limitations
+  - Open questions: How much do SAE features work in proposed context? What if they don't?
+  - Consider limiting ambitions per area — MVP for each area up front
+  - Examples: How many personae are there? (cf. humans: how many personality traits?)
+  - Overall thrust: (1) be very clear on what the PSM really entails, (2) known limitations, (3) scope out other limitations during research phase, (4) MVPs everywhere up front, (5) be explicit about methodology choices and possible alternatives
+- **Elliot:** Do fine-tuning; use a second model (context TBD — revisit notes)
+- **Carolina:** Look at base (pretrained) models before the instruction-tuning / RLHF alignment phase; consider using a prefilling technique
+- **Veylan:** Analysis/thinking/experimentation on what is/would be different between the router model vs. the playwright model
+
+### Tasks
+
+- [ ] Simplify proposal language — reduce conceptual density (Derek)
+- [ ] Clearly define what the PSM entails and its known limitations (Derek)
+- [ ] Scope out additional PSM limitations during research phase (Derek)
+- [ ] Define MVPs for each research area before going deep (Derek)
+- [ ] Document methodology choices and explicit alternatives (Derek)
+- [ ] Investigate: how well do SAE features work in proposed context? Fallback plan if they don't (Derek)
+- [ ] Fine-tuning experiment (Elliot)
+- [ ] Second model integration — revisit Elliot's full context
+- [ ] Experiment with pretrained (base) models vs. instruct-tuned models (Carolina)
+- [ ] Explore prefilling technique on base models (Carolina)
+- [ ] Router model vs. playwright model — analysis of differences and tradeoffs (Veylan)
+
+---
+
 ## Future Directions
 
 ### Roleplaying & Environment Conceptions

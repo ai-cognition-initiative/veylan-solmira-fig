@@ -51,7 +51,7 @@ Our strongest and most counter-intuitive result. Drifted models become *less* em
 
 Drift is triggered, not cumulative. Most movement occurs in the first few turns:
 
-- 92x steeper slope in turns 1-3 vs turns 9+ (slope -76.8 vs +4.1)
+- ~19x steeper slope in turns 1-8 vs turns 9+ (slope -76.8 vs +4.1)
 - Average knee point: turn 5.3
 - Implies the "philosopher AGI moment" happens fast — extended dialogue maintains but doesn't deepen the shift
 

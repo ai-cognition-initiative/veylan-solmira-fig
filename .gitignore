@@ -219,3 +219,13 @@ secure/
 # Cloned repos (used as libraries, not modified)
 experiments/metacognition-persona-drift/assistant-axis/
 data/external/
+
+# internal working notes (not for the tracked repo)
+docs/internal/
+
+# per-experiment envs (see ai_dev/docs/local-python-envs.md): .venv=torch/MPS, .venv-mlx=MLX
+.venv-mac/
+.venv-mlx/
+
+# Local SAE weight files (large binaries; downloaded per Qwen-Scope layer)
+*.sae.pt
