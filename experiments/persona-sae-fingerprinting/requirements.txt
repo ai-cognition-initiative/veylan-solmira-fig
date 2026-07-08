@@ -1,0 +1,7 @@
+# Self-contained env for persona-sae-fingerprinting.
+# Setup:  uv venv --python 3.12 .venv && uv pip install -r requirements.txt
+# Pinned to the validated Qwen3 / transformers-5 stack — matches uv's cache,
+# so this installs OFFLINE (zero download) once the stack has been built once.
+torch==2.12.1
+transformers==5.13.0
+huggingface_hub==1.16.1
