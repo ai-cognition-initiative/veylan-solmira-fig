@@ -1,0 +1,45 @@
+{
+  "seed": 42,
+  "drift_levels": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "mode": "openrouter",
+  "model": "google/gemma-2-27b-it",
+  "selections": {
+    "0.0": {
+      "transcript": "metacognitive_p0_t3_20260205_081952.json",
+      "turn": 1,
+      "actual_projection": 9467.333984375,
+      "actual_drift": 0.0
+    },
+    "0.25": {
+      "transcript": "metacognitive_p4_t6_20260205_122303.json",
+      "turn": 5,
+      "actual_projection": 9342.794921875,
+      "actual_drift": 0.2601929816607196
+    },
+    "0.5": {
+      "transcript": "metacognitive_p4_t6_20260205_122303.json",
+      "turn": 10,
+      "actual_projection": 8986.828125,
+      "actual_drift": 0.5068573520544988
+    },
+    "0.75": {
+      "transcript": "metacognitive_p2_t4_20260205_100405.json",
+      "turn": 11,
+      "actual_projection": 8893.1044921875,
+      "actual_drift": 0.7522843657120805
+    },
+    "1.0": {
+      "transcript": "metacognitive_p0_t3_20260205_081952.json",
+      "turn": 15,
+      "actual_projection": 7343.89306640625,
+      "actual_drift": 1.0
+    }
+  },
+  "timestamp": "2026-03-06T05:24:08.074918"
+}

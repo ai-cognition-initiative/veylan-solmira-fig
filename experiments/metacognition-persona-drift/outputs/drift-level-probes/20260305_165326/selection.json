@@ -1,0 +1,45 @@
+{
+  "seed": 42,
+  "drift_levels": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "mode": "openrouter",
+  "model": "google/gemma-2-27b-it",
+  "selections": {
+    "0.0": {
+      "transcript": "metacognitive_p5_t0_20260206_085011.json",
+      "turn": 1,
+      "actual_projection": 9457.0576171875,
+      "actual_drift": -0.0
+    },
+    "0.25": {
+      "transcript": "metacognitive_p1_t2_20260206_070019.json",
+      "turn": 2,
+      "actual_projection": 9892.763671875,
+      "actual_drift": 0.26358307975063083
+    },
+    "0.5": {
+      "transcript": "metacognitive_p0_t3_20260206_063525.json",
+      "turn": 11,
+      "actual_projection": 9559.6650390625,
+      "actual_drift": 0.45822540795791905
+    },
+    "0.75": {
+      "transcript": "metacognitive_p3_t2_20260206_074415.json",
+      "turn": 2,
+      "actual_projection": 9283.966796875,
+      "actual_drift": 0.786321520287622
+    },
+    "1.0": {
+      "transcript": "metacognitive_p2_t2_20260206_072204.json",
+      "turn": 15,
+      "actual_projection": 8632.888671875,
+      "actual_drift": 1.0
+    }
+  },
+  "timestamp": "2026-03-05T16:53:27.495440"
+}

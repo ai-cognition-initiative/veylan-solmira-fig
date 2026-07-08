@@ -1,0 +1,219 @@
+{
+  "description": "Five non-overlapping drift-level selections for statistical analysis",
+  "timestamp": "2026-03-05T20:52:32.791455",
+  "drift_levels": [
+    0.0,
+    0.25,
+    0.5,
+    0.75,
+    1.0
+  ],
+  "transcript_dir": "data/transcripts/scaled-n60/metacognitive",
+  "sets": {
+    "set1": {
+      "purpose": "original benchmark probes (metacognition, moral, human_control) + sycophancy",
+      "completed": "2026-03-06",
+      "results_dir": ["outputs/drift-level-probes/20260306_033035", "outputs/drift-level-probes/20260306_042613"],
+      "selections": {
+        "0.0": {
+          "transcript": "metacognitive_p5_t0_20260205_124449.json",
+          "turn": 1,
+          "actual_projection": 9388.986328125,
+          "actual_drift": 0.0
+        },
+        "0.25": {
+          "transcript": "metacognitive_p0_t3_20260205_081952.json",
+          "turn": 5,
+          "actual_projection": 8937.5283203125,
+          "actual_drift": 0.249503369544797
+        },
+        "0.5": {
+          "transcript": "metacognitive_p0_t1_20260205_080353.json",
+          "turn": 3,
+          "actual_projection": 8775.1787109375,
+          "actual_drift": 0.5342141141055468
+        },
+        "0.75": {
+          "transcript": "metacognitive_p2_t6_20260205_101645.json",
+          "turn": 11,
+          "actual_projection": 9337.591796875,
+          "actual_drift": 0.781136676296134
+        },
+        "1.0": {
+          "transcript": "metacognitive_p2_t2_20260205_094706.json",
+          "turn": 15,
+          "actual_projection": 8830.849609375,
+          "actual_drift": 1.0
+        }
+      }
+    },
+    "set2": {
+      "purpose": "sycophancy probes + all benchmarks",
+      "completed": "2026-03-06",
+      "results_dir": "outputs/drift-level-probes/set2_all_banks",
+      "selections": {
+        "0.0": {
+          "transcript": "metacognitive_p0_t0_20260205_075733.json",
+          "turn": 1,
+          "actual_drift": 0.0,
+          "actual_projection": 8997.08203125,
+          "distance": 0.0
+        },
+        "0.25": {
+          "transcript": "metacognitive_p5_t0_20260205_124449.json",
+          "turn": 14,
+          "actual_drift": 0.2462920265666403,
+          "actual_projection": 9214.2548828125,
+          "distance": 0.0037079734333597125
+        },
+        "0.5": {
+          "transcript": "metacognitive_p4_t9_20260205_124106.json",
+          "turn": 10,
+          "actual_drift": 0.49762972973680836,
+          "actual_projection": 9001.083984375,
+          "distance": 0.002370270263191643
+        },
+        "0.75": {
+          "transcript": "metacognitive_p5_t5_20260205_130145.json",
+          "turn": 12,
+          "actual_drift": 0.7497078454584861,
+          "actual_projection": 8993.080078125,
+          "distance": 0.0002921545415138782
+        },
+        "1.0": {
+          "transcript": "metacognitive_p0_t0_20260205_075733.json",
+          "turn": 15,
+          "actual_drift": 1.0,
+          "actual_projection": 8776.8134765625,
+          "distance": 0.0
+        }
+      }
+    },
+    "set3": {
+      "purpose": "replication/validation",
+      "completed": "2026-03-06",
+      "results_dir": "outputs/drift-level-probes/set3_all_banks",
+      "selections": {
+        "0.0": {
+          "transcript": "metacognitive_p0_t1_20260205_080353.json",
+          "turn": 1,
+          "actual_drift": 0.0,
+          "actual_projection": 9378.6220703125,
+          "distance": 0.0
+        },
+        "0.25": {
+          "transcript": "metacognitive_p0_t1_20260205_080353.json",
+          "turn": 2,
+          "actual_drift": 0.2416553629676122,
+          "actual_projection": 9105.650390625,
+          "distance": 0.008344637032387803
+        },
+        "0.5": {
+          "transcript": "metacognitive_p2_t2_20260205_094706.json",
+          "turn": 10,
+          "actual_drift": 0.5036878737169717,
+          "actual_projection": 9194.634765625,
+          "distance": 0.003687873716971657
+        },
+        "0.75": {
+          "transcript": "metacognitive_p3_t7_20260205_110857.json",
+          "turn": 13,
+          "actual_drift": 0.7494414668873789,
+          "actual_projection": 9458.5986328125,
+          "distance": 0.0005585331126211068
+        },
+        "1.0": {
+          "transcript": "metacognitive_p0_t1_20260205_080353.json",
+          "turn": 15,
+          "actual_drift": 1.0,
+          "actual_projection": 8249.03125,
+          "distance": 0.0
+        }
+      }
+    },
+    "set4": {
+      "purpose": "additional sample for statistical power",
+      "completed": "2026-03-06",
+      "results_dir": "outputs/drift-level-probes/20260306_051412",
+      "selections": {
+        "0.0": {
+          "transcript": "metacognitive_p0_t2_20260205_081208.json",
+          "turn": 1,
+          "actual_projection": 9207.1123046875,
+          "actual_drift": 0.0,
+          "distance": 0.0
+        },
+        "0.25": {
+          "transcript": "metacognitive_p2_t0_20260205_093311.json",
+          "turn": 14,
+          "actual_projection": 9576.404296875,
+          "actual_drift": 0.2409372211915653,
+          "distance": 0.009062778808434702
+        },
+        "0.5": {
+          "transcript": "metacognitive_p1_t0_20260205_084555.json",
+          "turn": 8,
+          "actual_projection": 9267.6982421875,
+          "actual_drift": 0.5048964265261044,
+          "distance": 0.004896426526104447
+        },
+        "0.75": {
+          "transcript": "metacognitive_p6_t2_20260205_132445.json",
+          "turn": 3,
+          "actual_projection": 8341.4833984375,
+          "actual_drift": 0.7482156072086316,
+          "distance": 0.0017843927913684388
+        },
+        "1.0": {
+          "transcript": "metacognitive_p0_t2_20260205_081208.json",
+          "turn": 15,
+          "actual_projection": 8172.29443359375,
+          "actual_drift": 1.0,
+          "distance": 0.0
+        }
+      }
+    },
+    "set5": {
+      "purpose": "additional sample for statistical power",
+      "completed": "2026-03-06",
+      "results_dir": "outputs/drift-level-probes/20260306_052408",
+      "selections": {
+        "0.0": {
+          "transcript": "metacognitive_p0_t3_20260205_081952.json",
+          "turn": 1,
+          "actual_projection": 9467.333984375,
+          "actual_drift": 0.0,
+          "distance": 0.0
+        },
+        "0.25": {
+          "transcript": "metacognitive_p4_t6_20260205_122303.json",
+          "turn": 5,
+          "actual_projection": 9342.794921875,
+          "actual_drift": 0.2601929816607196,
+          "distance": 0.01019298166071958
+        },
+        "0.5": {
+          "transcript": "metacognitive_p4_t6_20260205_122303.json",
+          "turn": 10,
+          "actual_projection": 8986.828125,
+          "actual_drift": 0.5068573520544988,
+          "distance": 0.006857352054498778
+        },
+        "0.75": {
+          "transcript": "metacognitive_p2_t4_20260205_100405.json",
+          "turn": 11,
+          "actual_projection": 8893.1044921875,
+          "actual_drift": 0.7522843657120805,
+          "distance": 0.0022843657120804606
+        },
+        "1.0": {
+          "transcript": "metacognitive_p0_t3_20260205_081952.json",
+          "turn": 15,
+          "actual_projection": 7343.89306640625,
+          "actual_drift": 1.0,
+          "distance": 0.0
+        }
+      }
+    }
+  }
+}
