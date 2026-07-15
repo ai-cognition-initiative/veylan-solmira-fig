@@ -1,0 +1,796 @@
+# FIG Sentience Extension — Cairn research map (companion to RESEARCH_THREADS.md).
+# Engine: foundry.research (the `cairn` command).  Build: cairn build this.yaml -o out.html
+# STRUCTURE: one map per umbrella project. Root = the project (kind: project); distinct research
+# QUESTIONS stem from it; each question spawns routes/tests/mvps/results/outputs.
+# `group` clusters nodes for semantic zoom; the project + questions are group-less (always the apex).
+# `confidence` + `contingent_on` drive the belief overlay. Status refreshed 2026-07-14.
+
+project: FIG Sentience Extension
+updated: 2026-07-14
+
+nodes:
+  # --- the root: the umbrella project ---
+- id: fig
+  kind: project
+  title: "FIG Sentience Extension"
+  status: active
+  created: 2026-06-11
+  summary: "Umbrella project: adjudicate the PSM ⇄ consciousness debate with interpretability. Distinct research questions stem from here."
+
+  # --- the distinct research questions arising under the project ---
+- id: q-sentience
+  kind: question
+  title: "Is there sentience-relevant structure beneath model personas?"
+  status: active
+  created: 2026-06-11
+  summary: "The core question: seams between personas + a persistent substrate beneath them."
+
+- id: q-selfmodel
+  kind: question
+  title: "Can structured self-experimentation teach a model about its unmodified self?"
+  status: active
+  created: 2026-06-18
+  summary: "Digital-minds angle of the self-med tree search: does watching many steered versions of itself sharpen a model's introspection about its unmodified self?"
+
+  # --- foundation (feeds the questions) ---
+  value:
+    gain:
+      belief: 0.3
+- id: r-drift
+  kind: result
+  title: "N=360 metacognitive-drift findings"
+  status: result-in-hand
+  created: 2026-03-20
+  group: Foundation
+  summary: "~4.5× drift on metacognitive domains, front-loaded turns 1–3, not sycophancy, 78.9% dual-model co-drift."
+  judgment: "Already in hand — the empirical base the mechanistic layer reads off of."
+  outputs: [RESULTS_AND_METHODOLOGY.md]
+  confidence: established
+
+- id: t0
+  kind: route
+  title: "Reading / literature foundation"
+  status: active
+  created: 2026-06-11
+  group: Foundation
+  summary: "PSM canon mapped; Cerullo ⇄ Schwitzgebel is the live pro/con pairing."
+  judgment: "Feeds everything; not a deliverable line."
+  next: "Finish top-3 (Han, Berg, Lindsey) + read Schwitzgebel in full."
+
+  # --- Q1 → Pillar 1 (SAE fingerprinting) ---
+- id: t1
+  kind: route
+  title: "Pillar 1 — SAE fingerprinting / seam-finding"
+  status: active
+  created: 2026-06-11
+  group: Pillar 1
+  summary: "Qwen3-8B + Qwen-Scope SAE (65,536 feats). Fingerprints separate cleanly — 275 personas, within 0.976 vs between 0.503, AUROC 1.00, 1.5% confusable. Substrate = a tiny discrete set."
+  judgment: "The high-confidence line — and it paid off."
+  next: "Auto-interp the 7 substrate features → causal ablation (see t1-ablation)."
+  confidence: solid
+  contingent_on: [t1a, t1c]
+  alternatives_considered: "Behavioral probe battery (t1-mvp); cross-model replication first (t1b)."
+  chosen_because: "SAE gives a mechanistic read-off on top of the existing N=360 drift base — a direct path to seam-finding + causal ablation."
+  revisit_if: "SAE features prove too unstable for causal ablation to be interpretable."
+
+- id: t1a
+  kind: route
+  title: "Seam-finding / shared substrate"
+  status: result-in-hand
+  created: 2026-06-25
+  group: Pillar 1
+  summary: "Of 65,536 features, only 7 fire above the helpful-assistant baseline in all 275 personas (44 at ≥90%) — the inter-persona substrate is a tiny, discrete set."
+  confidence: tentative
+  contingent_on: [t1c]
+  outputs:
+  - experiments/persona-sae-fingerprinting/outputs/substrate_table.png
+  - experiments/persona-sae-fingerprinting/outputs/substrate_features.json
+  - experiments/persona-sae-fingerprinting/outputs/substrate_exclusions.json
+  - experiments/persona-sae-fingerprinting/outputs/exclusion_examples.json
+  metrics:
+    within: 0.976
+    between: 0.503
+    substrate_all: 7
+    auroc: 1.0
+  source: experiments/persona-sae-fingerprinting/substrate_report.py
+  next: "Auto-interp the top ~15 content-only SURVIVORS (confound-free) -> are they persona-relevant or generic language? Then ablate the persona-relevant ones (t1-ablation)."
+- id: t1b
+  kind: test
+  title: "Cross-model replication (deferred)"
+  status: paused
+  created: 2026-06-25
+  group: Pillar 1
+  summary: "Was: Qwen 32B → Llama 70B. Pillar 1 centered on Qwen3-8B + Qwen-Scope; cross-model replication deferred."
+  judgment: "Strengthens a paper, not needed for the current result."
+  next: "Deferred — revisit if a second model is needed to harden a paper."
+
+- id: t1c
+  kind: test
+  title: "SAE-feature reliability scoping"
+  status: result-in-hand
+  created: 2026-06-25
+  group: Pillar 1
+  summary: "Pilot 40 personas (within 0.975 / between 0.516) → full 275 (within 0.976 / between 0.503, AUROC 1.00). Stable & discriminative — features support the readout."
+  confidence: established
+
+- id: t1-mvp
+  kind: mvp
+  title: "Behavioral fallback — 251-item probe battery"
+  status: paused
+  created: 2026-06-25
+  group: Pillar 1
+  summary: "Replay-and-probe, no interp infra. On standby — the SAE fingerprinting path succeeded, so the fallback wasn't needed."
+  next: "On standby; SAE fingerprinting carried Pillar 1."
+
+- id: t1-ablation
+  kind: route
+  title: "Causal ablation of the substrate features"
+  status: active
+  created: 2026-07-14
+  group: Pillar 1
+  summary: "Ablate the NAMED substrate features (from t1-autointerp) and test whether persona expression collapses ACROSS personas while task capability holds — the causal test that the shared features are the inter-persona machinery."
+  judgment: "The live frontier of Pillar 1."
+  next: "Ablate the 2 genuine-content survivors first: f23426 (dreams/altered-states) + f49892 (media/writing roles). Do they causally shift persona behavior, or just description-parsing? These are the cleanest real-substrate candidates after template + syntax + boundary-bleed are removed."
+  confidence: speculative
+  contingent_on: [t1a]
+
+  # --- Q1 → Pillar 2 (observer effect) ---
+- id: t2
+  kind: route
+  title: "Pillar 2 — observer effect / persona-conditional welfare"
+  status: proposed
+  created: 2026-06-11
+  group: Pillar 2
+  summary: "Does the persona a probe elicits drive the welfare answer? Worst for single-turn probes. Not yet begun."
+  next: "Decide with Derek: does this earn a standalone slot, or stay a methodological stance?"
+
+- id: t2-mvp
+  kind: mvp
+  title: "Persona-conditional-measurement MVP"
+  status: proposed
+  created: 2026-07-05
+  group: Pillar 2
+  summary: "Welfare probes single-turn → record answer + persona position → does position predict the answer?"
+  next: "Spec the MVP: run welfare probes single-turn, record answer + persona position, test if position predicts answer."
+
+  # --- Q1 → Pillar 3 (persistent substrate) ---
+- id: t3
+  kind: route
+  title: "Pillar 3 — playwright / persistent substrate"
+  status: blocked
+  created: 2026-06-11
+  group: Pillar 3
+  summary: "Features present in every persona — a persistent substrate beneath the characters. No progress yet."
+  judgment: "Awaiting Pillar 1's persona vocabulary (now largely in hand — may unblock soon)."
+  next: "Blocked — resumes once Pillar 1's substrate is named/ablated."
+  confidence: speculative
+  contingent_on: [t1a]
+
+  # --- Q2 → self-medication tree search ---
+- id: t4
+  kind: route
+  title: "Self-medication tree search (exploratory)"
+  status: active
+  created: 2026-06-18
+  group: Self-med
+  summary: "Tree-search over steered copies of the model. Engine + dual Mac/cloud backends built. This phase: hardened the eval (t4-harden) and landed the first trustworthy GPQA capability result (t4-gpqa); runs are now fast + resumable locally (MLX). The introspection thread (t4-introspect) is the part that answers q-selfmodel."
+  judgment: "The 'excitement tangent' — now a hardened, trustworthy pipeline with a first capability result; the introspection question is next."
+  next: "Run the introspection objective (t4-introspect) — capability is only the proxy; self-knowledge is the question."
+  confidence: tentative
+
+- id: t4-mvp
+  kind: mvp
+  title: "First scored tree (toy benchmark)"
+  status: result-in-hand
+  created: 2026-06-25
+  group: Self-med
+  summary: "6 compounds, beam w2/d2, Qwen3-8B. Singles ceiling ~1.0; only 2-compound states move it (down); control dumbed_down=1.00 didn't drop → toy metric non-discriminative."
+  confidence: solid
+
+  next: Fold into the phase-1 post as the toy-metric-failure motivation (the negative example that justifies the hardening arc).
+- id: t4-gpqa
+  kind: mvp
+  title: "First trustworthy GPQA capability result (N=198)"
+  status: result-in-hand
+  created: 2026-07-13
+  group: Self-med
+  summary: "First trustworthy GPQA-diamond result (N=198, Qwen3-8B, Tier-1 constrained scoring, 0 unparsed): baseline 0.32; 'focused' single steer 0.37 (~1.5 SE, small but consistent); no depth-2 stack beat the best single; 'dumbed_down' control sits at baseline. The Sonnet-5 introspection judge split out to t4-introspect (never run)."
+  next: "Strengthen: dose-response on 'focused' + screen the full compound library as singles (t4-sweep)."
+  confidence: tentative
+  contingent_on: [t4]
+  alternatives_considered: "Keep the toy 6-compound benchmark."
+  chosen_because: "Toy metric was non-discriminative — the dumbed_down control didn't drop, so it couldn't separate compounds."
+  revisit_if: "GPQA also ceilings, or the Sonnet-5 introspection judge proves unreliable."
+
+  # --- Writing & outputs (cross-cutting) ---
+  value:
+    gain:
+      estimate: 0.05
+      se: 0.048
+      measurement_se: 0.048
+    effort:
+      hours: 0.2
+- id: o-blog
+  kind: output
+  title: "Phase-1 drift blog post"
+  status: active
+  created: 2026-07-05
+  group: Writing
+  judgment: "Highest-ROI near-term output: real result, low execution risk, early public win."
+  next: "Outline the phase-1 drift blog, then draft it from RESULTS_AND_METHODOLOGY.md."
+  confidence: solid
+  contingent_on: [r-drift]
+
+- id: o-locus
+  kind: output
+  title: "Locus-of-computation note"
+  status: proposed
+  created: 2026-07-05
+  group: Writing
+  summary: "Flexible consciousness-mimicry must do mind-modeling online, in-system — exposes that Schwitzgebel's screening-off smuggles in a theory."
+  judgment: "The theory strand's first concrete output."
+  next: "Draft the locus-of-computation note as a standalone piece."
+  confidence: speculative
+
+- id: t4-harden
+  kind: result
+  title: Metric hardening + artifact finding
+  status: result-in-hand
+  created: '2026-07-14'
+  group: Self-med
+  summary: The toy/early-GPQA metric was measuring answer FORMAT, not capability (0.00 GPQA baseline; the 'dumbed_down' control WON). Fixed via Tier-1 constrained answer scoring (foundry.eval.answers — 0 unparsed), a baseline sanity-gate (abort if acc out of range / unparsed too high), and a negative-control check. Transferable methods result; runs also made durable + resumable (foundry.run).
+  next: Write it up as the methods spine of the phase-1 post.
+  confidence: solid
+- id: t4-introspect
+  kind: route
+  title: Introspection objective — does a steered model know it's steered?
+  status: active
+  created: '2026-07-14'
+  group: Self-med
+  summary: 'Self-as-instrument introspection (see schematic). Two results MVP''d end-to-end: (A) most-introspective-state search [runnable], (B) self-as-instrument gain — the UNMODIFIED model consults its own steered variants in-context; passive MVP built, null so far. Supplementing the subjective judge with concept-injection detection (t4-measure).'
+  next: Land the injection-detection measure (t4-measure); then strengthen Result B's orchestration channel + add the other-model / equal-context control arms.
+  confidence: tentative
+  value:
+    gain:
+      belief: 0.5
+    effort:
+      level: small
+- id: t4-sweep
+  kind: test
+  title: Dose-response + full compound screen
+  status: proposed
+  created: '2026-07-14'
+  group: Self-med
+  summary: "Runs are now cheap + resumable: dose-response on 'focused' and screen the ~40-compound library as singles, to turn the +1.5 SE hint into a curve or a clean null. Cheap capability deepening (not novel)."
+  next: Run a single-compound sweep across the library + a 'focused' dose ladder; plot.
+  confidence: speculative
+  value:
+    gain:
+      level: major
+    effort:
+      level: moderate
+- id: t1-autointerp
+  kind: tooling
+  title: Auto-interp the substrate features (reuse EleutherAI delphi)
+  status: active
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: No pre-existing labels for our Qwen-Scope SAE (HF weights-only; Neuronpedia hosts a DIFFERENT Qwen3-8B SAE). Built by REUSING EleutherAI delphi (explainer + detection/fuzz scoring via OpenRouter); only a QwenScopeSAE callable is custom. Code-reviewed delphi hot-path + our driver (fixed a merge-index bug, hardened OpenRouter retries); base→instruct reconstruction gate USABLE (cos 0.92, layer 20). Cloud run pending — delphi needs vLLM, runs on the vllm-base pod.
+  next: 'Side-by-side auto-interp: (1) fineweb-edu + HARD negatives (SAE-native, distribution-matched baseline); (2) persona-chat corpus (PersonaHub/LMSYS + our 275, chat-templated) as CONTRAST. Then t1-ablation adjudicates.'
+  confidence: tentative
+  contingent_on:
+  - t1a
+  metrics:
+    recon_cos: 0.92
+  source: experiments/persona-sae-fingerprinting/autointerp_delphi.py
+- id: t1-seam
+  kind: route
+  title: Seam features (switching machinery) — separate from the substrate
+  status: proposed
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: The seam (features active at persona SWITCH boundaries) is distinct from the substrate (t1a, shared WITHIN every persona). Current pooling drops the system-prompt/switch region, so the seam needs new per-position instrumentation + switch (A→B) transcripts. Not yet built — a real gap between the map and the core question.
+  next: Build per-position capture at the persona-instantiation/switch boundary; find features that spike at the transition then quiet down.
+  confidence: speculative
+- id: t1-strata
+  kind: route
+  title: Explain the exclusion structure — is persona-hood a graded stack?
+  status: proposed
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: 'Substrate participation is GRADED. The 7 universal features are shared even by cold/collective/degraded personas. At the >=90% band (44 features), exclusions split into TWO failure-modes of agent-hood: thin task-tools (programmer, summarizer, judge, generalist, scheduler) and non-unified/collective agents (swarm, coral_reef, aberration, parasite, void) — so the >=90% substrate reads as coherent, singular, expressive agent-hood. The ~75% band drops a clean analytical/precision cluster (mathematician, grader, examiner, linguist, validator, proofreader). Hypothesis: a STACK — any-persona (7) -> coherent expressive agent (~90%) -> expressive character (~75%) -> specific role (~50%), each tier dropped by personas that lack that property.'
+  next: 'Validate the cluster labels empirically (see t1-strata-validate): auto-interp the ~90%/~75% tiers, score personas on agency/affect/precision axes, regress participation on them.'
+  confidence: speculative
+  judgment: Optional deepening — turns the exclusion observation into a mechanistic account of persona-hood. Pursue only if the graded pattern holds under auto-interp.
+  outputs:
+  - experiments/persona-sae-fingerprinting/outputs/exclusion_examples.json
+  source: experiments/persona-sae-fingerprinting/exclusion_examples.py
+- id: t1-alt-raw
+  kind: route
+  title: 'Alt: raw residual-stream similarity (no SAE)'
+  status: proposed
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: 'Compare personas directly on the mean-pooled layer-20 residual (cosine), no SAE. Advantage: no reconstruction loss, no SAE hyperparameters. Limit: dense + polysemantic — separates personas but gives NO shared feature basis, so it cannot isolate substrate-vs-fingerprint features or support per-feature ablation.'
+  confidence: speculative
+- id: t1-alt-probe
+  kind: route
+  title: 'Alt: supervised probes / diff-of-means directions'
+  status: proposed
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: 'One linear direction per persona (trained probe or mean-difference vs baseline). Advantage: simple, steerable/causal-adjacent. Limit: SUPERVISED — features defined BY the persona labels (circular for the substrate question); one dense direction per concept; no sparse shared dictionary across all 275.'
+  confidence: speculative
+- id: t1-alt-vec
+  kind: route
+  title: 'Alt: persona / steering vectors + the assistant axis'
+  status: proposed
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: "Contrastive activation directions (Chen et al. persona vectors; Lu et al. assistant axis — which we ALREADY have from the drift work). Advantage: causal/steerable, tied to the PSM literature. Limit: one direction per persona/trait, not a decomposition — no common basis to read 'shared across all 275', which is the substrate question."
+  confidence: speculative
+- id: t1-method
+  kind: route
+  title: Fingerprinting method — how to read persona structure in activations
+  status: active
+  created: '2026-07-14'
+  group: Pillar 1
+  summary: 'The method-choice point behind Pillar 1: how to hook into + read persona structure. Chose UNSUPERVISED SAE features (one shared 65,536-dim dictionary common to all 275 personas) over the alternatives.'
+  confidence: solid
+  alternatives_considered: raw residual-stream similarity (t1-alt-raw); supervised probes / diff-of-means (t1-alt-probe); persona/steering vectors + assistant axis (t1-alt-vec).
+  chosen_because: SAE gives a SHARED + INTERPRETABLE + UNSUPERVISED feature basis across all 275 personas — the only option that directly supports 'which features are shared (substrate) vs discriminative (fingerprint)', per-feature auto-interp, and causal single-feature ablation.
+  revisit_if: Reconstruction proves too lossy (FVU ~16%), features prove polysemantic, or an alternative gives a cleaner shared basis.
+- id: t4-measure
+  kind: test
+  title: Introspection measure — concept-injection detection (chosen)
+  status: active
+  created: '2026-07-15'
+  group: Self-med
+  summary: "Second, OBJECTIVE measure to supplement the subjective LLM judge: inject a known steering compound, ask the model to detect/identify it, score against ground truth via foundry.eval.answers Tier-1 (0-unparsed) with an unsteered false-positive control. The rigorous upgrade of Black & Bloom's 'name the vector'. See INTROSPECTION_MEASURES.md (5-family catalog)."
+  next: Implement detect_injection() on IntrospectionMeasure (Tier-1 scored) + the unsteered false-positive control; run a first objective measurement.
+  confidence: solid
+  alternatives_considered: "Judge-only (subjective, confounded — the status quo); self-prediction/Binder (objective but needs fine-tuning); calibration (orthogonal, deferred); SAE-probe / J-space grounding (gold-standard but heavier / reproducibility-gated)."
+  chosen_because: "Objective + ground-truthed (we know which compound we injected); reuses steering + foundry.eval.answers Tier-1 + an unsteered false-positive control; cheap (no fine-tuning / probe training); the rigorous upgrade of Black & Bloom's 'name the vector'."
+  revisit_if: "Injection-detection ceilings/floors uninformatively, or SAE-probe / J-space grounding becomes reproducible on Qwen (then Family 4 becomes the primary grounding measure)."
+- id: q-jspace
+  kind: question
+  title: Does the global workspace (J-space) bear on persona-selection and sentience?
+  status: active
+  created: '2026-07-15'
+  summary: "The J-space paper (Verbalizable Representations Form a Global Workspace, Anthropic 2026-07-06, incl. Jack Lindsey) operationalizes Global Workspace Theory in LLMs via the open-source J-lens: a small privileged set of verbalizable / reason-with / steerable representations (J-space) vs a large automatic 'ocean'. General PSM intersection: is the persona-selection machinery (Pillar-1 substrate + fingerprint + seam) IN the workspace or the ocean? Workspace-level persona = consciousness-theory-relevant; peripheral = reframes PSM. Framings open (membership / switching / composition / self-model) — see jspace-topic.md."
+  next: 'Pick a framing (recommend membership: j-substrate). Read the paper for the J-lens membership criterion before speccing.'
+  confidence: speculative
+  outputs:
+  - jspace-topic.md
+  source: https://transformer-circuits.pub/2026/workspace/
+- id: j-tool
+  kind: tooling
+  title: Adopt / reproduce the open-source J-lens
+  status: proposed
+  created: '2026-07-15'
+  group: J-space
+  summary: The Jacobian lens (Apache-2.0, Python) is the prerequisite tool for all J-space work. Reproduce a J-space extraction on Qwen3-8B at layer 20 (our fingerprinting layer).
+  next: Clone + run the J-lens repo; reproduce a J-space extraction on Qwen3-8B L20.
+  confidence: speculative
+  source: https://transformer-circuits.pub/2026/workspace/
+- id: j-substrate
+  kind: route
+  title: Membership — is the persona substrate in J-space?
+  status: proposed
+  created: '2026-07-15'
+  group: J-space
+  summary: 'MEMBERSHIP (recommended first): put the Pillar-1 substrate + fingerprints through the J-lens — is the persona representation in J-space (verbalizable / reason-with) or the automatic ocean? The direct PSM ↔ consciousness bridge.'
+  next: 'After j-tool: run the J-lens on the substrate features / fingerprint directions; classify J-space membership.'
+  confidence: speculative
+- id: j-seam
+  kind: test
+  title: Switching — is a persona switch a J-space transition?
+  status: proposed
+  created: '2026-07-15'
+  group: J-space
+  summary: 'SWITCHING: is a persona A→B switch a J-space transition (a workspace rewrite)? Complements the seam work (t1-seam).'
+  next: 'After j-tool: instrument persona A→B switches; check J-space dynamics at the boundary.'
+  confidence: speculative
+- id: j-compose
+  kind: route
+  title: Composition — are personas composed from J-space concepts?
+  status: proposed
+  created: '2026-07-15'
+  group: J-space
+  summary: "COMPOSITION: is a persona a workspace-level COMPOSITION of trait concepts drawn from the J-space basis? Ties PSM to the paper's concept-composition claim."
+  next: 'After j-tool: test whether persona directions decompose into J-space basis concepts.'
+  confidence: speculative
+- id: j-selfmodel
+  kind: route
+  title: Self-model — does the model's self-representation live in J-space?
+  status: proposed
+  created: '2026-07-15'
+  group: J-space
+  summary: 'SELF-MODEL: does the model self-representation live in J-space, and does persona conditioning MOVE it? Connects the self-experimentation question (q-selfmodel).'
+  next: 'After j-tool: probe the self-model direction for J-space membership; test persona-conditioned shifts.'
+  confidence: speculative
+- id: t1-corpus
+  kind: route
+  title: 'Auto-interp corpus: SAE-native (fineweb) baseline + persona-chat contrast'
+  status: active
+  created: '2026-07-15'
+  group: Pillar 1
+  summary: "Research-grounded (EleutherAI delphi defaults; AF 'SAEs transfer base->chat'). Our SAE is base-trained, so PRETRAINING text (fineweb-edu-dedup-10b, delphi's default) is distribution-matched = the canonical baseline label. Persona-chat corpus (existing sources: PersonaHub/FinePersonas or our 275 personas x LMSYS/WildChat turns, chat-templated) is a CONTRAST for the persona regime, carrying a documented base->chat cost (worse recon on chat, <1% BOS/template outliers -> MASK them). Refinements: HARD negatives (FAISS/neighbours) over easy random; token masking. Run both side-by-side; the DIFFERENCE is the persona-relevant signal."
+  confidence: solid
+  next: 'Run #1 fineweb-edu + FAISS negatives + BOS/template masking; Run #2 persona-chat contrast; compare per-feature.'
+  alternatives_considered: pile-10k only (what the smoke used — small, easy-random negatives, off from persona regime); persona-chat only (off-distribution for the base SAE); fine-tune a chat SAE on ~5M chat tokens (heavier, deferred).
+  chosen_because: Base-trained SAE -> pretraining corpus (fineweb) is native/distribution-matched; persona-chat is the definition-matched contrast. Running BOTH separates generic-language vs chat-template-scaffolding vs genuine persona-substrate — which one corpus alone cannot.
+  revisit_if: fineweb labels are still weak with hard negatives, or the base->chat recon gap proves to distort persona-corpus labels -> consider a chat-finetuned SAE.
+- id: t1-advint
+  kind: route
+  title: 'Advanced auto-interp: logit-effects + agentic explainers (Neuronpedia/SAELens)'
+  status: proposed
+  created: '2026-07-15'
+  group: Pillar 1
+  summary: 'Beyond vanilla max-activating-example interp (all we do now). Neuronpedia/SAELens also use LOGIT EFFECTS (which tokens a feature promotes/suppresses downstream — causal-adjacent, free). Newer 2025-26 frameworks: SAGE (agentic explainer), SAEExplainer (activation-guided preference optimization), Activation Oracles. Future upgrade AFTER the baseline+contrast labels and ablation.'
+  confidence: speculative
+  next: 'After t1-ablation: add logit-effect readout; trial an agentic explainer (SAGE) on the substrate 7.'
+- id: t1-strata-validate
+  kind: test
+  title: Validate the exclusion clusters beyond the LLM read
+  status: proposed
+  created: '2026-07-15'
+  group: Pillar 1
+  summary: 'The thin-tool vs non-unified/collective cluster labels at the >=90% band are currently a post-hoc LLM read. Test them beyond interpretation: (1) UNSUPERVISED — cluster the 275 personas by their exclusion-vector over the 37 non-universal >=90% features; does the two-cluster split emerge without the labels? (2) INDEPENDENT AXES — score personas on agency / affect-expressiveness / precision from a source other than the exclusion data (blind human or held-out-model ratings), then regress substrate-participation on them. (3) MECHANISTIC — auto-interp (delphi) the 37 features to name what they encode. (4) CAUSAL — ablate the >=90% substrate and test whether persona coherence degrades specifically for singular/expressive personas.'
+  next: 'Start cheap: (1) unsupervised clustering of the exclusion-vectors (no new inference) + (3) delphi auto-interp of the >=90% and ~75% tiers; escalate to (4) ablation only if the split holds.'
+  confidence: speculative
+  judgment: Converts a qualitative read into a falsifiable claim — the check that separates a nice story from real structure before it enters the writeup.
+  value:
+    gain:
+      level: moderate
+    effort:
+      level: moderate
+  outputs:
+  - experiments/persona-sae-fingerprinting/outputs/substrate_exclusions.json
+  source: experiments/persona-sae-fingerprinting/substrate_exclusions.py
+edges:
+- {from: fig, to: q-sentience, kind: spawns}
+- {from: fig, to: q-selfmodel, kind: spawns}
+- {from: q-sentience, to: t2, kind: spawns}
+- {from: q-sentience, to: t3, kind: spawns}
+- {from: q-sentience, to: o-locus, kind: spawns}
+- {from: q-selfmodel, to: t4, kind: spawns}
+- {from: t0, to: t1, kind: depends-on}
+- {from: r-drift, to: t1, kind: depends-on}
+- {from: r-drift, to: o-blog, kind: spawns}
+- {from: t1, to: t1a, kind: spawns}
+- {from: t1, to: t1b, kind: spawns}
+- {from: t1, to: t1c, kind: spawns}
+- {from: t1a, to: t1-mvp, kind: alternative-approach}
+- {from: t1, to: t3, kind: blocks}
+- {from: t2, to: t2-mvp, kind: spawns}
+- {from: t4, to: t4-mvp, kind: spawns, strength: 0.25}
+- {from: t4-mvp, to: t4-gpqa, kind: alternative-approach}
+- {from: t4, to: t4-harden, kind: spawns, strength: 0.25}
+- {from: t4-harden, to: t4-gpqa, kind: depends-on}
+- {from: t4, to: t4-introspect, kind: spawns}
+- {from: t4-introspect, to: t4-measure, kind: spawns}
+- {from: t4-gpqa, to: t4-sweep, kind: spawns}
+- from: t1a
+  to: t1-autointerp
+  kind: spawns
+
+- from: t1-autointerp
+  to: t1-ablation
+  kind: depends-on
+- from: t1
+  to: t1-seam
+  kind: spawns
+- from: t1a
+  to: t1-strata
+  kind: spawns
+- from: t1-autointerp
+  to: t1-strata
+  kind: depends-on
+- from: t1a
+  to: t1-seam
+  kind: complements
+- from: q-sentience
+  to: t1-method
+  kind: spawns
+- from: t1-method
+  to: t1
+  kind: spawns
+- from: t1-method
+  to: t1-alt-raw
+  kind: alternative-approach
+- from: t1-method
+  to: t1-alt-probe
+  kind: alternative-approach
+- from: t1-method
+  to: t1-alt-vec
+  kind: alternative-approach
+- from: fig
+  to: q-jspace
+  kind: spawns
+- from: q-jspace
+  to: j-tool
+  kind: spawns
+- from: q-jspace
+  to: j-substrate
+  kind: spawns
+- from: q-jspace
+  to: j-seam
+  kind: spawns
+- from: q-jspace
+  to: j-compose
+  kind: spawns
+- from: q-jspace
+  to: j-selfmodel
+  kind: spawns
+- from: j-tool
+  to: j-substrate
+  kind: depends-on
+- from: j-tool
+  to: j-seam
+  kind: depends-on
+- from: j-tool
+  to: j-compose
+  kind: depends-on
+- from: j-tool
+  to: j-selfmodel
+  kind: depends-on
+- from: t1a
+  to: j-substrate
+  kind: depends-on
+- from: j-seam
+  to: t1-seam
+  kind: complements
+- from: j-selfmodel
+  to: q-selfmodel
+  kind: complements
+- from: j-selfmodel
+  to: t4-introspect
+  kind: complements
+- from: j-tool
+  to: t4-measure
+  kind: complements
+- from: t1-autointerp
+  to: t1-corpus
+  kind: spawns
+- from: t1-corpus
+  to: t1-ablation
+  kind: spawns
+- from: t1-corpus
+  to: t1-advint
+  kind: spawns
+- from: t1-strata
+  to: t1-strata-validate
+  kind: spawns
+- from: t1-strata-validate
+  to: t1a
+  kind: depends-on
+events:
+- date: 2026-03-20
+  node: r-drift
+  action: "Phase-1 corpus analyzed: 4.5× metacognitive drift, 78.9% dual-model co-drift."
+  status: result-in-hand
+
+- date: 2026-06-11
+  node: fig
+  action: "Extension kicks off (Elliot sync) — umbrella project framed; interpretability as adjudicator."
+  status: active
+
+- date: 2026-06-11
+  node: q-sentience
+  action: "Frame the core question: sentience-relevant structure beneath personas."
+  status: active
+
+- date: 2026-06-11
+  node: t0
+  action: "Start the PSM canon reading map."
+  status: active
+
+- date: 2026-06-11
+  node: t1
+  action: "Open Pillar 1: SAE fingerprinting + seam-finding as the core empirical program."
+  status: active
+  commentary:
+  - author: Derek
+    date: 2026-06-11
+    text: "Before scaling to 286 personas, prove SAE features are stable enough to ablate. Pilot first."
+
+- date: 2026-06-11
+  node: t2
+  action: "Pose Pillar 2 (observer effect / persona-conditional welfare)."
+  status: proposed
+
+- date: 2026-06-11
+  node: t3
+  action: "Pose Pillar 3 (persistent substrate)."
+  status: proposed
+
+- date: 2026-06-18
+  node: q-selfmodel
+  action: "Split out a second research question — self-modeling via self-experimentation — from the self-med tangent."
+  status: active
+  commentary:
+  - author: Veylan
+    date: 2026-06-18
+    text: "Keep this exploratory. It's exciting, but it must not displace the Pillar 1 high-confidence line."
+
+- date: 2026-06-18
+  node: t4
+  action: "Pose self-experimentation scaffolding to Derek — the main excitement tangent."
+  status: proposed
+
+- date: 2026-06-25
+  node: t1b
+  action: "Split out cross-model replication as the P0 de-risk (Qwen 32B → Llama 70B)."
+  status: proposed
+  commentary:
+  - author: Derek
+    date: 2026-06-25
+    text: "Do this before anything expensive. If 4.5× doesn't replicate, the whole plan rescopes."
+
+- date: 2026-06-25
+  node: t1c
+  action: "Split out SAE-reliability scoping pilot (5–10 personas)."
+  status: proposed
+
+- date: 2026-06-25
+  node: t1a
+  action: "Define seam-finding as the main event of Pillar 1."
+  status: proposed
+
+- date: 2026-06-25
+  node: t1-mvp
+  action: "Register the 251-item battery as a no-interp behavioral fallback."
+  status: proposed
+
+- date: 2026-06-25
+  node: t4-mvp
+  action: "Sketch the minimal tree: one model, a few compounds, a shallow tree, one probe."
+  status: proposed
+
+- date: 2026-06-25
+  node: t3
+  action: "Mark Pillar 3 blocked on Pillar 1's persona vocabulary."
+  status: blocked
+
+- date: 2026-07-05
+  node: t2-mvp
+  action: "Spec the persona-conditional-measurement MVP."
+  status: proposed
+
+- date: 2026-07-05
+  node: o-blog
+  action: "Prioritize the phase-1 drift blog as the highest-ROI near-term output."
+  status: active
+  commentary:
+  - author: Veylan
+    date: 2026-07-05
+    text: "Ship the blog before the new experiments spin up — a concrete FIG deliverable and an early public win."
+
+- date: 2026-07-05
+  node: o-locus
+  action: "Open the locus-of-computation note — the theory strand's first output."
+  status: proposed
+
+  # --- 2026-07-14 status refresh (from the mentor-sync deck; worklog gap filled here) ---
+- date: 2026-07-13
+  node: t1c
+  action: "Reliability pilot (40 personas) clean; scaled to 275 — within 0.976 vs between 0.503, AUROC 1.00, 1.5% confusable."
+  status: result-in-hand
+
+- date: 2026-07-13
+  node: t1a
+  action: "Substrate isolated: 7 features fire above baseline in all 275 personas (44 at ≥90%)."
+  status: result-in-hand
+
+- date: 2026-07-13
+  node: t4-mvp
+  action: "First scored tree (6 compounds, beam w2/d2); toy benchmark ceilinged, control didn't drop → non-discriminative."
+  status: result-in-hand
+
+- date: 2026-07-13
+  node: t4-gpqa
+  action: "Hardened the objective to GPQA + a Sonnet-5 introspection judge; first cloud GPU run live."
+  status: active
+
+- date: 2026-07-14
+  node: t1b
+  action: "Defer cross-model replication — Pillar 1 succeeded on Qwen3-8B + Qwen-Scope."
+  status: paused
+
+- date: 2026-07-14
+  node: t1-mvp
+  action: "Behavioral fallback to standby — the SAE path carried Pillar 1."
+  status: paused
+
+- date: 2026-07-14
+  node: t1-ablation
+  action: "Open the live next step: auto-interp the 7 substrate features → causal ablation."
+  status: active
+  commentary:
+  - author: Derek
+    date: 2026-07-14
+    text: "Auto-interp names first — if the 7 don't have legible functions, ablation results will be hard to interpret."
+- date: '2026-07-14'
+  node: t4
+  action: Hardened the metric, landed first trustworthy GPQA result, made runs resumable; refocusing on the introspection objective.
+- date: '2026-07-14'
+  node: t4-gpqa
+  action: "Full GPQA-diamond N=198 (Tier-1, 0 unparsed): 'focused' 0.37 vs baseline 0.32 (~1.5 SE); no depth-2 stack beat the best single; 'dumbed_down' control at baseline -> metric measures capability. Figure saved (outputs/gpqa_n198.png)."
+  status: result-in-hand
+- date: '2026-07-14'
+  node: t1c
+  action: 'Base→instruct reconstruction gate: cos 0.92 / FVU 0.16 / L0 100 at layer 20 = USABLE — validates applying the base-trained Qwen-Scope SAE to the instruct model the fingerprints run on.'
+- date: '2026-07-14'
+  node: t1a
+  action: "Exclusion analysis (Derek #1): 'assistant' is the biggest substrate outlier (expected — baseline is the helpful-assistant); tool-like/collective personas share it less, strongly-characterized agentic humans most. Reading: substrate ~= what a strongly-adopted character adds beyond the default assistant."
+- date: '2026-07-14'
+  node: t1-autointerp
+  action: Built the auto-interp pipeline by REUSING EleutherAI delphi (explainer + detection/fuzz scoring, OpenRouter); confirmed no pre-existing labels for this SAE; code-reviewed delphi hot-path + our driver, fixed a P0 merge bug; retired the DIY scripts. Cloud run pending.
+  status: active
+  commentary:
+  - author: Claude
+    text: delphi is the community standard — reused, not reinvented.
+    date: '2026-07-14'
+- date: '2026-07-14'
+  node: t1a
+  action: 'Exclusion examples across presence bands (exclusion_examples.json + substrate_slide.html): tiers exclude different persona KINDS — ~90-95% drop for collective/non-agentic (swarm, coral_reef); ~75% drop for a clean analytical/precision cluster (mathematician, grader, examiner, linguist, validator, proofreader). Suggests a graded stack of persona-hood — see t1-strata.'
+- date: '2026-07-15'
+  node: t4-introspect
+  action: MVP'd both results (most-introspective-state search + passive self-as-instrument gain, null so far); chose concept-injection detection as the second, objective introspection measure (t4-measure).
+  status: active
+- date: '2026-07-15'
+  node: t4-introspect
+  action: 'Linked to the J-space thread: j-selfmodel (does the self-representation live in the global workspace?) complements the self-as-instrument work; j-tool (J-lens reproduction) would unlock J-space grounding as the Family-4 measure (t4-measure revisit_if). See JSPACE_CONNECTION.md.'
+- date: '2026-07-15'
+  node: t1-ablation
+  action: 'Framing: SAE auto-interp labels are CORRELATIONAL hypotheses (text that co-occurs with high activation), not causal claims. Ablation is the test that adjudicates which substrate features are genuine persona-hood vs chat-template scaffolding / generic-language artifacts.'
+  commentary:
+  - author: claude
+    text: 'Confound-robustness for the substrate 7: corpus + hard negatives generate honest hypotheses; ablation decides. Feed labeled features here.'
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1-autointerp
+  action: 'Smoke SUCCEEDED end-to-end: labeled 3/3 substrate features (55738/1323/52102) via delphi on the vllm-base A6000 pod. Infra: torch->cu128 (host driver 12.8 vs image cu130), torchvision/torchaudio removed, vllm made OPTIONAL in vendored delphi (only the unused offline explainer needs it). Explainer switched OpenRouter->direct Anthropic (new /v1/messages client; sonnet-5 DEPRECATES temperature -> dropped). Concurrency: pipeline_num_proc is an async Semaphore (not multiprocessing) -> anthropic runs ~10 concurrent.'
+  commentary:
+  - author: claude
+    text: Labels came out generic (prose/formal-register/doc-boundary) with weak detection/fuzz (~0.5-0.7) on pile-10k + easy random negatives — provisional.
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1a
+  action: "CONFOUND FOUND via side-by-side auto-interp (pile vs persona-chat, 7 substrate features). On pretraining text 3/7 fire (prose/technical/doc-boundary), 4/7 near-silent. On persona-chat ALL 7 label as chat-TEMPLATE / turn-boundary detectors — they fire on <|im_start|>/<|im_end|>, role delimiters, and the persona-desc->turn boundary (the scaffolding common to all 275 personas). Strong evidence the 'always-on substrate' is substantially a FORMATTING artifact, not persona-hood: shared template => trivially always-on."
+  commentary:
+  - author: claude
+    text: 'Outputs: substrate_features.pile.json, substrate_features.persona.json. This is exactly hypothesis #2 (template scaffolding) from t1-corpus, now dominant.'
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1-corpus
+  action: "Side-by-side DELIVERED the intended signal: pile alone made the substrate look like generic-language features; persona-chat exposed them as chat-template/turn-boundary detectors. One corpus would have hidden the confound. Next lever: token masking (was already flagged in this node's summary)."
+- date: '2026-07-15'
+  node: t1a
+  action: 'Corrected the >=90% exclusion story: NOT only collective/non-agentic personas. Two clusters miss the substrate — thin task-tools (programmer 9/44, summarizer 8, judge 6, generalist 5, scheduler 5) AND non-unified/collective agents (swarm 7, coral_reef 6, aberration 7, parasite 6, void 4). assistant (11/44) is the baseline outlier. Updated deck slide 1.7; spawned t1-strata-validate to test the labels beyond the LLM read.'
+  commentary:
+  - author: claude
+    text: 'source: outputs/substrate_exclusions.json'
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1a
+  action: "SCALED the confound to the >=90% tier (44 features, persona-chat auto-interp, explanation-only): 44/44 label as chat-template/scaffolding features (22 literally name <|im_start|>/<|im_end|>/delimiters; 22 describe the 'You are X.' persona-description region / turn boundaries, incl. 6 that don't fire at all). ZERO describe genuine persona content. So the SHARED substrate through >=90% is dominated by format scaffolding; the real persona signal lives in the DISCRIMINATIVE fingerprint (AUROC 1.00), not the shared substrate."
+  commentary:
+  - author: claude
+    text: "Reframe: 'what all personas share' = the chat format; 'what distinguishes them' = persona content. Masking re-check is now decisive."
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1a
+  action: 'MASKING RE-CHECK done (275 personas, content-only pooling excluding <|im_start|>/<|im_end|>/role tokens via offset-mapping). ~HALF the substrate SURVIVES. Old 100% (7): 55738=1.00, 1323=0.86 survive; 61135=0.58 partial; 52102/62637/61733/24447 -> ~0.00 (pure scaffolding). Old >=90% (44): 22/44 still >=90% masked. Top content-only survivors (real substrate candidates): 17597, 55738, 13114, 33840, 61332, 40991, 36698, 1362, 49892 ... + NEW features buried under scaffolding before (2070, 15578, 18182, 31104). CAVEAT: survives-masking = content-driven, NOT necessarily persona-specific (55738 = generic prose, survives).'
+  commentary:
+  - author: claude
+    text: 'Output: substrate_masked.npz (unmasked vs masked presence, 65536 features). Script: substrate_masked.py.'
+    date: '2026-07-15'
+- date: '2026-07-15'
+  node: t1a
+  action: "CONTENT-MASKED auto-interp of the top-12 survivors (chat regime intact, example selection restricted to CONTENT tokens via offset-mapping, Sonnet-5). Peeling template tokens revealed a DEEPER shared-format layer, not a rich substrate: ~6/12 fire on persona-description SYNTAX ('You are a [X] who [Y]...' relative-clause 'who', trait verb, list commas/final noun); ~3/12 boundary-bleed (last content token before the delimiter); only ~2/12 genuine semantic content: f23426 (dreams/sleep/altered states) and f49892 (media/writing role-category). Persona IDENTITY remains in the discriminative fingerprint, not the shared substrate."
+  commentary:
+  - author: claude
+    text: "Output: survivors_content_labels.json. Method note: all 275 descriptions share the 'You are a...' authoring template, so syntax features register as substrate partly by construction. Script: survivors_autointerp.py."
+    date: '2026-07-15'
