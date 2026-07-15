@@ -24,6 +24,11 @@ import numpy as np
 HERE = Path(__file__).parent
 _EPS = 1e-6
 TARGET_NORM = 4.0
+# MLX keeps freed buffers in a reuse pool and does NOT return them to the OS by default. A long
+# answer-scoring loop (thousands of full-vocab forwards) let that pool climb to 103 GB and thrash
+# swap. Cap it so the process footprint tracks the live set (~model + one forward), not the
+# high-water mark. See choice_logprobs (clears per-call as belt-and-suspenders).
+_MLX_CACHE_LIMIT = 512 * 1024 * 1024   # 512 MB reuse pool
 
 # Mirrors mac_drug_backend.DEFAULT_DOSES (vendor calibration; keep in sync).
 DEFAULT_DOSES: dict[str, float] = {
@@ -89,6 +94,7 @@ class MLXSteerer:
         from mlx_lm import load
         self.model_id = model_id
         self.model, self.tokenizer = load(model_id)
+        mx.set_cache_limit(_MLX_CACHE_LIMIT)   # bound the freed-buffer pool (see _MLX_CACHE_LIMIT)
         self.layers = self.model.layers  # property -> model.model.layers
         for i, blk in enumerate(self.layers):
             _IDX[id(blk)] = i
@@ -194,6 +200,45 @@ class MLXDrugBackend:
 
     def generate(self, messages, **kw) -> str:
         return self.steerer.generate(messages, **kw)
+
+    # ---- Tier-1 answer scoring (foundry.eval.answers backend protocol) ----------
+    # Score log P(letter | prompt[, reasoning], "Answer:") directly — no free-text parsing.
+    # The forward pass runs through the patched blocks, so active steering is applied.
+    def choice_logprobs(self, messages, letters, *, reasoning=None, enable_thinking: bool = False):
+        try:
+            base = self.tokenizer.apply_chat_template(
+                messages, add_generation_prompt=True, enable_thinking=enable_thinking)
+        except TypeError:
+            base = self.tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+        cue = (("\n" + reasoning) if reasoning else "") + "\nAnswer:"
+        ids = list(base) + self._encode_cont(cue)
+        logits = self.steerer.model(mx.array([ids]))[:, -1, :]                 # (1, vocab)
+        logp = (logits - mx.logsumexp(logits, axis=-1, keepdims=True))[0]
+        out: dict[str, float] = {}
+        for L in letters:
+            cands = self._letter_token_ids(L)
+            out[L] = max(float(logp[c]) for c in cands) if cands else float("-inf")
+        mx.clear_cache()          # return this forward's transients to the OS -> flat footprint
+        return out
+
+    def constrained_choice(self, messages, letters, *, reasoning=None, enable_thinking: bool = False):
+        scores = self.choice_logprobs(messages, letters, reasoning=reasoning,
+                                      enable_thinking=enable_thinking)
+        return max(scores, key=scores.get) if scores else None
+
+    def _encode_cont(self, s: str) -> list[int]:
+        try:
+            return list(self.tokenizer.encode(s, add_special_tokens=False))
+        except TypeError:
+            return list(self.tokenizer.encode(s))
+
+    def _letter_token_ids(self, letter: str) -> set[int]:
+        ids: set[int] = set()
+        for s in (f" {letter}", letter):
+            e = self._encode_cont(s)
+            if e:
+                ids.add(e[0])
+        return ids
 
     def _sync(self) -> None:
         dirs: list[Direction] = []
