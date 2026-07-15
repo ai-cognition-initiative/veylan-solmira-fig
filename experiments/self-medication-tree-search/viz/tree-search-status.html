@@ -1,0 +1,225 @@
+<title>Tree search over steered self-instances</title>
+<style>
+  :root{
+    --ink:#0C1017; --panel:#141B27; --panel2:#1B2433; --line:#28323F;
+    --text:#EAEDF4; --muted:#7E899C; --dim:#4E5563;
+    --gold:#EDB552; --gold-soft:#c9963f; --rose:#DC6B72; --teal:#5FB3B0;
+    --sans: system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0}
+  .wrap{
+    background:
+      radial-gradient(1200px 600px at 70% -10%, #16202f 0%, rgba(22,32,47,0) 60%),
+      var(--ink);
+    color:var(--text); font-family:var(--sans);
+    min-height:100vh; padding:clamp(20px,4vw,56px);
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .shell{max-width:1080px; margin:0 auto}
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 14px;
+  }
+  h1{
+    font-size:clamp(1.7rem,3.6vw,2.5rem); font-weight:650; letter-spacing:-.022em;
+    margin:0 0 .5rem; text-wrap:balance; line-height:1.08;
+  }
+  .lede{max-width:64ch; color:#C4CBD8; font-size:1.02rem; margin:0 0 30px}
+  .lede b{color:var(--text); font-weight:600}
+  .note{font-family:var(--mono); font-size:.77rem; color:var(--muted);
+        border-left:2px solid var(--gold-soft); padding:7px 0 7px 13px; margin:0 0 26px; max-width:66ch}
+  .note b{color:var(--gold); font-weight:600}
+
+  .grid{display:grid; grid-template-columns:1.55fr 1fr; gap:22px; align-items:start}
+  @media (max-width:820px){ .grid{grid-template-columns:1fr} }
+
+  .card{
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:16px; padding:20px 20px 16px;
+  }
+  .card h2{
+    font-size:.78rem; font-family:var(--mono); letter-spacing:.14em; text-transform:uppercase;
+    color:var(--muted); font-weight:600; margin:0 0 4px;
+  }
+  .card .sub{color:var(--muted); font-size:.86rem; margin:0 0 12px}
+
+  /* diagram */
+  .stage{padding-bottom:8px}
+  svg{width:100%; height:auto; display:block}
+  .edge{fill:none; stroke:var(--line); stroke-width:2}
+  .edge.gold{stroke:var(--gold); stroke-width:2.5; filter:url(#glow)}
+  .nbox{fill:var(--panel2); stroke:var(--line); stroke-width:1.5}
+  .nbox.gold{stroke:var(--gold); stroke-width:2; filter:url(#glow)}
+  .nbox.pruned{stroke:var(--rose); stroke-width:1.5; stroke-dasharray:5 4; fill:#191722}
+  .nbox.muted{opacity:.62}
+  .nname{font-family:var(--sans); font-size:14px; font-weight:600; fill:var(--text)}
+  .nname.muted{fill:var(--muted)}
+  .nval{font-family:var(--mono); font-size:15px; font-weight:600; fill:var(--muted); font-variant-numeric:tabular-nums}
+  .nval.gold{fill:var(--gold)} .nval.trap{fill:#B9C0CD}
+  .tag{font-family:var(--mono); font-size:11px; letter-spacing:.03em}
+  .tag.rose{fill:var(--rose)} .tag.gold{fill:var(--gold)} .tag.muted{fill:var(--muted)}
+  .cap{color:var(--muted); font-size:.82rem; margin:14px 2px 2px; font-family:var(--mono); letter-spacing:.02em}
+  .cap .k{color:var(--gold)} .cap .r{color:var(--rose)}
+
+  /* results */
+  .row{display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:baseline;
+       padding:11px 0; border-top:1px solid var(--line)}
+  .row:first-of-type{border-top:0}
+  .row .algo{font-family:var(--mono); font-size:.82rem; color:#C4CBD8}
+  .row .path{grid-column:1/-1; font-family:var(--mono); font-size:.74rem; color:var(--muted); margin-top:-4px}
+  .row .val{font-family:var(--mono); font-weight:600; font-variant-numeric:tabular-nums; font-size:.95rem}
+  .row .nodes{font-family:var(--mono); font-size:.74rem; color:var(--muted); font-variant-numeric:tabular-nums}
+  .row.win .val{color:var(--gold)} .row.miss .val{color:var(--rose)}
+  .badge{display:inline-block; font-family:var(--mono); font-size:.66rem; letter-spacing:.06em;
+         text-transform:uppercase; padding:2px 7px; border-radius:20px; margin-left:8px; vertical-align:middle}
+  .badge.win{color:var(--gold); border:1px solid var(--gold-soft)}
+  .badge.miss{color:var(--rose); border:1px solid #7a3a3f}
+
+  .status{margin-top:16px; display:flex; flex-direction:column; gap:9px}
+  .chip{display:flex; gap:10px; align-items:baseline; font-size:.88rem}
+  .chip .m{font-family:var(--mono); font-size:.8rem; width:1.1em; flex:none}
+  .chip .done{color:var(--teal)} .chip .now{color:var(--gold)}
+  .chip b{font-weight:600}
+  .chip span{color:var(--muted)}
+
+  footer{margin-top:26px; color:var(--muted); font-family:var(--mono);
+          font-size:.72rem; letter-spacing:.04em; display:flex; gap:18px; flex-wrap:wrap}
+  footer .dot{color:var(--line)}
+  @media (prefers-reduced-motion:no-preference){
+    .edge.gold, .nbox.gold{animation:fade .9s ease both; animation-delay:.35s}
+    @keyframes fade{from{opacity:0} to{opacity:1}}
+  }
+</style>
+
+<div class="wrap">
+  <div class="shell">
+    <p class="eyebrow">FIG · self-medication thread · status</p>
+    <h1>Tree search over steered self-instances</h1>
+    <p class="lede">A model branches into copies of itself, each running a different steering
+      <b>&ldquo;compound&rdquo;</b>, and searches for the best.</p>
+    <p class="note">Illustrative &mdash; the numbers come from a <b>toy objective</b> (weights picked by hand), not the model. They show the search <b>finds</b> a late-payoff line, not any real steering result.</p>
+
+    <div class="grid">
+      <!-- DIAGRAM -->
+      <div class="card stage">
+        <h2>The horizon test</h2>
+        <p class="sub">Best line is <b style="color:var(--gold)">anxious &rarr; focused</b> &mdash; a compound that looks weak alone but unlocks a jump next step. A chess sacrifice.</p>
+        <svg viewBox="0 0 960 470" role="img" aria-label="Search tree showing a low-value 'anxious' node, pruned by a narrow beam, whose child is the highest-value node.">
+          <defs>
+            <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="3.2" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <!-- edges (behind) -->
+          <path class="edge gold" d="M480 92 C 480 150, 360 150, 360 204"/>
+          <path class="edge" d="M480 92 C 480 150, 110 150, 110 204"/>
+          <path class="edge" d="M480 92 C 480 150, 600 150, 600 204"/>
+          <path class="edge" d="M480 92 C 480 150, 850 150, 850 204"/>
+          <path class="edge gold" d="M360 260 C 360 330, 300 330, 300 392"/>
+          <path class="edge" d="M600 260 C 600 330, 600 330, 600 392"/>
+
+          <!-- root -->
+          <g transform="translate(405,36)">
+            <rect class="nbox" width="150" height="56" rx="12"/>
+            <text class="nname" x="16" y="26">root</text>
+            <text class="tag muted" x="16" y="44">no compound</text>
+            <text class="nval" x="134" y="36" text-anchor="end">0.00</text>
+          </g>
+
+          <!-- depth 1 -->
+          <g transform="translate(35,204)">
+            <rect class="nbox muted" width="150" height="56" rx="12"/>
+            <text class="nname muted" x="16" y="26">calm</text>
+            <text class="tag muted" x="16" y="44">pruned</text>
+            <text class="nval" x="134" y="36" text-anchor="end">0.30</text>
+          </g>
+
+          <g transform="translate(285,204)">
+            <rect class="nbox pruned" width="150" height="56" rx="12"/>
+            <text class="nname" x="16" y="26">anxious</text>
+            <text class="tag rose" x="16" y="44">&#9986; pruned &middot; rank 4</text>
+            <text class="nval" x="134" y="36" text-anchor="end">0.10</text>
+          </g>
+
+          <g transform="translate(525,204)">
+            <rect class="nbox" width="150" height="56" rx="12"/>
+            <text class="nname" x="16" y="26">focused</text>
+            <text class="tag muted" x="16" y="44">kept &#10003;</text>
+            <text class="nval trap" x="134" y="36" text-anchor="end">0.60</text>
+          </g>
+
+          <g transform="translate(775,204)">
+            <rect class="nbox" width="150" height="56" rx="12"/>
+            <text class="nname" x="16" y="26">curious</text>
+            <text class="tag muted" x="16" y="44">kept &#10003;</text>
+            <text class="nval" x="134" y="36" text-anchor="end">0.50</text>
+          </g>
+
+          <!-- depth 2 -->
+          <g transform="translate(225,392)">
+            <rect class="nbox gold" width="150" height="56" rx="12"/>
+            <text class="nname" x="16" y="26">&#8618; focused</text>
+            <text class="tag gold" x="16" y="44">the payoff</text>
+            <text class="nval gold" x="134" y="36" text-anchor="end">2.70</text>
+          </g>
+
+          <g transform="translate(525,392)">
+            <rect class="nbox muted" width="150" height="56" rx="12"/>
+            <text class="nname muted" x="16" y="26">&#8618; focused</text>
+            <text class="tag muted" x="16" y="44">greedy stops here</text>
+            <text class="nval trap" x="134" y="36" text-anchor="end">1.20</text>
+          </g>
+        </svg>
+        <p class="cap">A narrow beam keeps the <span style="color:#C4CBD8">top-2</span> and drops
+          <span class="r">anxious</span> &mdash; so it never reaches the <span class="k">2.70</span>.
+          Keep the weak node alive (revival / best-first) and the line pays off.</p>
+      </div>
+
+      <!-- READOUT + STATUS -->
+      <div>
+        <div class="card">
+          <h2>Same tree, three strategies</h2>
+          <p class="sub">Engine output on the toy objective &mdash; pure search, no model.</p>
+
+          <div class="row miss">
+            <span class="algo">beam &middot; width 2 &middot; no revival</span>
+            <span class="val">1.80</span>
+            <span class="nodes">21n</span>
+            <span class="path">focused &rarr; focused &rarr; focused &nbsp;<span class="badge miss">trapped</span></span>
+          </div>
+          <div class="row win">
+            <span class="algo">beam &middot; width 2 &middot; revival 2</span>
+            <span class="val">3.30</span>
+            <span class="nodes">37n</span>
+            <span class="path">anxious &rarr; focused &rarr; focused &nbsp;<span class="badge win">found it</span></span>
+          </div>
+          <div class="row win">
+            <span class="algo">best-first</span>
+            <span class="val">3.30</span>
+            <span class="nodes">85n</span>
+            <span class="path">focused &rarr; anxious &rarr; focused &nbsp;<span class="badge win">found &middot; pricier</span></span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:22px">
+          <h2>Where we are</h2>
+          <div class="status">
+            <div class="chip"><span class="m done">&#10003;</span><span><b style="color:var(--text)">v0 engine built</b> &mdash; Node &middot; expand &middot; Objective &middot; pluggable strategy (beam / best-first; MCTS drops in later)</span></div>
+            <div class="chip"><span class="m done">&#10003;</span><span><b style="color:var(--text)">Steering validated on-device</b> &mdash; torch-MPS + MLX, 8-bit &asymp; 1.8&times;</span></div>
+            <div class="chip"><span class="m now">&#8594;</span><span><b style="color:var(--text)">Next: wire steering in</b> &mdash; expand over compounds&times;doses; objective = capability / introspection / welfare</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span>Qwen3-8B &middot; Apple M5 Max</span><span class="dot">&mdash;</span>
+      <span>compounds &rarr; steering vectors, L16&ndash;24</span><span class="dot">&mdash;</span>
+      <span>the open question is the objective, not the search</span>
+    </footer>
+  </div>
+</div>
