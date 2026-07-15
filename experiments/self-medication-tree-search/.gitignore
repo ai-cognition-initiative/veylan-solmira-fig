@@ -1,2 +1,14 @@
 vendor/
 .venv/
+
+# GPQA/contamination: raw benchmark content stays local — commit scores/figures only
+transcripts/
+*.transcript.json
+*.transcripts.jsonl
+*_raw.json
+run_*.log
+# foundry.run checkpoints (results.jsonl/run.log/manifest.json + any raw/)
+runs/
+
+# local secrets: absolute paths to key/token files live here, never in committed source
+.env
